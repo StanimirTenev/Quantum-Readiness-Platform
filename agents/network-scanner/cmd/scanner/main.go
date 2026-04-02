@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	"network-scanner/internal/client"
 	"network-scanner/internal/scanner"
 )
 
@@ -13,6 +14,8 @@ func main() {
 	target := flag.String("target", "", "TLS target in host:port format")
 	insecure := flag.Bool("insecure", false, "Skip certificate verification")
 	timeoutSeconds := flag.Int("timeout", 5, "Connection timeout in seconds")
+	ingest := flag.Bool("ingest", false, "Post collected data to inventory-service")
+	inventoryURL := flag.String("inventory-url", "http://127.0.0.1:8001", "Inventory service base URL")
 	flag.Parse()
 
 	if *target == "" {
@@ -24,6 +27,23 @@ func main() {
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "scan error: %v\n", err)
 		os.Exit(1)
+	}
+
+	if *ingest {
+		response, err := client.PostScan(*inventoryURL, result)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "ingest error: %v\n", err)
+			os.Exit(1)
+		}
+
+		encoded, err := json.MarshalIndent(response, "", "  ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "json encode error: %v\n", err)
+			os.Exit(1)
+		}
+
+		fmt.Println(string(encoded))
+		return
 	}
 
 	encoded, err := json.MarshalIndent(result, "", "  ")

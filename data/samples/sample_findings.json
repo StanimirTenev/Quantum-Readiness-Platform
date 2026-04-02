@@ -1,0 +1,4 @@
+[
+  {"asset_id":"asset-1","finding_type":"tls","algorithm":"RSA","severity":"high"},
+  {"asset_id":"asset-2","finding_type":"signing","algorithm":"ECDSA","severity":"high"}
+]

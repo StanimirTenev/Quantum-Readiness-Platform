@@ -1,0 +1,4 @@
+[
+  {"id":"asset-1","asset_type":"server","name":"vpn-gateway-01","owner":"security","criticality":5,"environment":"prod","vendor":"example-vendor"},
+  {"id":"asset-2","asset_type":"service","name":"internal-ca","owner":"platform","criticality":5,"environment":"prod","vendor":"example-vendor"}
+]

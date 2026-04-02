@@ -60,9 +60,27 @@ class Asset(AssetBase):
     id: str
 
 
+class HostInventory(BaseModel):
+    hostname: str
+    os: str
+    kernel: str
+    architecture: str
+    ips: list[str] = []
+
+
+class CryptoEvidence(BaseModel):
+    openssl_available: bool
+    openssl_version: Optional[str] = None
+    ssh_config_path: Optional[str] = None
+    known_crypto_files: list[str] = []
+
+
 class ScanIngestRequest(BaseModel):
     source: Literal["host", "network", "repo", "manual"]
     assets: list[AssetCreate]
+    host_inventory: Optional[HostInventory] = None
+    crypto_evidence: Optional[CryptoEvidence] = None
+    tls_evidence: Optional[dict] = None
 
 
 class ScanIngestResponse(BaseModel):

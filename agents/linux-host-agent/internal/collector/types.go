@@ -1,11 +1,11 @@
 package collector
 
 type HostInventory struct {
-	Hostname    string   `json:"hostname"`
-	OS          string   `json:"os"`
-	Kernel      string   `json:"kernel"`
-	Architecture string  `json:"architecture"`
-	IPs         []string `json:"ips"`
+	Hostname     string   `json:"hostname"`
+	OS           string   `json:"os"`
+	Kernel       string   `json:"kernel"`
+	Architecture string   `json:"architecture"`
+	IPs          []string `json:"ips"`
 }
 
 type CryptoEvidence struct {

@@ -115,3 +115,21 @@ class ScanRecord(BaseModel):
     host_inventory: Optional[dict[str, Any]] = None
     crypto_evidence: Optional[dict[str, Any]] = None
     tls_evidence: Optional[dict[str, Any]] = None
+
+
+class RiskRecord(BaseModel):
+    id: str
+    scan_id: str
+    asset_name: str
+    scenario: str
+    scenario_multiplier: float
+    base_score: float
+    final_score: float
+    normalized_score_100: float
+    rating: str
+    rationale: dict[str, Any]
+
+
+class ScanWithRisk(BaseModel):
+    scan: ScanRecord
+    risks: list[RiskRecord]

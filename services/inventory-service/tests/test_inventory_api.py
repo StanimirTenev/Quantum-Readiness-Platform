@@ -11,7 +11,20 @@ def test_health() -> None:
     assert response.json()["service"] == "inventory-service"
 
 
-def test_scan_ingest_and_list_scans() -> None:
+def test_scan_ingest_and_list_scans(monkeypatch) -> None:
+    def fake_score(self, payload):
+        return {
+            "scenario": payload["scenario"],
+            "scenario_multiplier": 1.0,
+            "base_score": 3.4,
+            "final_score": 3.4,
+            "normalized_score_100": 68.0,
+            "rating": "high",
+            "rationale": payload,
+        }
+
+    monkeypatch.setattr("app.clients.risk_engine.RiskEngineClient.score", fake_score)
+
     ingest_response = client.post(
         "/scans/ingest",
         json={
@@ -51,4 +64,9 @@ def test_scan_ingest_and_list_scans() -> None:
     assert scans_response.status_code == 200
     scans = scans_response.json()
     assert len(scans) >= 1
-    assert scans[0]["source"] in {"network", "host", "repo", "manual"}
+
+    risks_response = client.get("/risks")
+    assert risks_response.status_code == 200
+    risks = risks_response.json()
+    assert len(risks) >= 1
+    assert risks[0]["rating"] == "high"

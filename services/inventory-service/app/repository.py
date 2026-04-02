@@ -1,11 +1,11 @@
 import json
 import sqlite3
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable
 
-from .models import Asset, AssetCreate, AssetUpdate, ScanIngestRequest, ScanRecord
+from .models import Asset, AssetCreate, AssetUpdate, RiskRecord, ScanIngestRequest, ScanRecord
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "inventory.db"
 
@@ -45,6 +45,22 @@ class AssetRepository:
                     host_inventory TEXT,
                     crypto_evidence TEXT,
                     tls_evidence TEXT
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS risk_results (
+                    id TEXT PRIMARY KEY,
+                    scan_id TEXT NOT NULL,
+                    asset_name TEXT NOT NULL,
+                    scenario TEXT NOT NULL,
+                    scenario_multiplier REAL NOT NULL,
+                    base_score REAL NOT NULL,
+                    final_score REAL NOT NULL,
+                    normalized_score_100 REAL NOT NULL,
+                    rating TEXT NOT NULL,
+                    rationale TEXT NOT NULL
                 )
                 """
             )
@@ -150,6 +166,45 @@ class AssetRepository:
             row = connection.execute("SELECT * FROM scans WHERE id = ?", (scan_id,)).fetchone()
         return self._row_to_scan(row) if row else None
 
+    def create_risk_result(self, scan_id: str, asset_name: str, payload: dict[str, Any]) -> str:
+        result_id = str(uuid.uuid4())
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO risk_results (
+                    id, scan_id, asset_name, scenario, scenario_multiplier, base_score,
+                    final_score, normalized_score_100, rating, rationale
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    result_id,
+                    scan_id,
+                    asset_name,
+                    payload["scenario"],
+                    payload["scenario_multiplier"],
+                    payload["base_score"],
+                    payload["final_score"],
+                    payload["normalized_score_100"],
+                    payload["rating"],
+                    json.dumps(payload["rationale"]),
+                ),
+            )
+            connection.commit()
+        return result_id
+
+    def list_risk_results(self, scan_id: str | None = None) -> list[RiskRecord]:
+        query = "SELECT * FROM risk_results"
+        params: tuple[Any, ...] = ()
+        if scan_id is not None:
+            query += " WHERE scan_id = ?"
+            params = (scan_id,)
+        query += " ORDER BY rowid DESC"
+
+        with self._connect() as connection:
+            rows = connection.execute(query, params).fetchall()
+        return [self._row_to_risk(row) for row in rows]
+
     def _row_to_scan(self, row: sqlite3.Row) -> ScanRecord:
         return ScanRecord(
             id=row["id"],
@@ -158,6 +213,20 @@ class AssetRepository:
             host_inventory=self._parse_json(row["host_inventory"]),
             crypto_evidence=self._parse_json(row["crypto_evidence"]),
             tls_evidence=self._parse_json(row["tls_evidence"]),
+        )
+
+    def _row_to_risk(self, row: sqlite3.Row) -> RiskRecord:
+        return RiskRecord(
+            id=row["id"],
+            scan_id=row["scan_id"],
+            asset_name=row["asset_name"],
+            scenario=row["scenario"],
+            scenario_multiplier=row["scenario_multiplier"],
+            base_score=row["base_score"],
+            final_score=row["final_score"],
+            normalized_score_100=row["normalized_score_100"],
+            rating=row["rating"],
+            rationale=json.loads(row["rationale"]),
         )
 
     @staticmethod

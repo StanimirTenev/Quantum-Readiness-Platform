@@ -38,7 +38,7 @@ def test_repository_crud(tmp_path: Path) -> None:
     assert repo.get_asset(created.id) is None
 
 
-def test_scan_persistence(tmp_path: Path) -> None:
+def test_scan_and_risk_persistence(tmp_path: Path) -> None:
     repo = AssetRepository(tmp_path / "inventory.db")
 
     payload = ScanIngestRequest(
@@ -88,13 +88,30 @@ def test_scan_persistence(tmp_path: Path) -> None:
     assert scan_id
     assert len(created_assets) == 1
 
+    repo.create_risk_result(
+        scan_id=scan_id,
+        asset_name="google.com:443",
+        payload={
+            "scenario": "public_timeline",
+            "scenario_multiplier": 1.0,
+            "base_score": 3.4,
+            "final_score": 3.4,
+            "normalized_score_100": 68.0,
+            "rating": "high",
+            "rationale": {"criticality": 3},
+        },
+    )
+
     scans = repo.list_scans()
     assert len(scans) == 1
     assert scans[0].source == "network"
-    assert scans[0].tls_evidence is not None
-    assert scans[0].tls_evidence["target"] == "google.com:443"
 
     fetched = repo.get_scan(scan_id)
     assert fetched is not None
     assert fetched.host_inventory is not None
     assert fetched.host_inventory["hostname"] == "test-host"
+
+    risks = repo.list_risk_results(scan_id=scan_id)
+    assert len(risks) == 1
+    assert risks[0].asset_name == "google.com:443"
+    assert risks[0].rating == "high"

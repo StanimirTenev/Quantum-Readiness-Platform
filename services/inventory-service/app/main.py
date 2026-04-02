@@ -1,10 +1,22 @@
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, Query, status
 
-from .models import Asset, AssetCreate, AssetUpdate, ScanIngestRequest, ScanIngestResponse, ScanRecord
+from .clients.risk_engine import RiskEngineClient
+from .models import (
+    Asset,
+    AssetCreate,
+    AssetUpdate,
+    RiskRecord,
+    ScanIngestRequest,
+    ScanIngestResponse,
+    ScanRecord,
+    ScanWithRisk,
+)
 from .repository import AssetRepository
+from .risk_mapper import build_risk_payload
 
-app = FastAPI(title="Inventory Service", version="0.2.0")
+app = FastAPI(title="Inventory Service", version="0.3.0")
 repository = AssetRepository()
+risk_client = RiskEngineClient()
 
 
 @app.get("/health")
@@ -46,9 +58,20 @@ def delete_asset(asset_id: str) -> None:
 
 
 @app.post("/scans/ingest", response_model=ScanIngestResponse, status_code=status.HTTP_201_CREATED)
-def ingest_scan(payload: ScanIngestRequest) -> ScanIngestResponse:
+def ingest_scan(
+    payload: ScanIngestRequest,
+    auto_score: bool = Query(default=True),
+    scenario: str = Query(default="public_timeline"),
+) -> ScanIngestResponse:
     scan_id = repository.create_scan(payload)
     created = repository.create_many(payload.assets)
+
+    if auto_score:
+        for asset in created:
+            risk_payload = build_risk_payload(payload, asset.name, scenario=scenario)
+            risk_result = risk_client.score(risk_payload)
+            repository.create_risk_result(scan_id=scan_id, asset_name=asset.name, payload=risk_result)
+
     return ScanIngestResponse(
         source=payload.source,
         created=len(created),
@@ -62,9 +85,15 @@ def list_scans() -> list[ScanRecord]:
     return repository.list_scans()
 
 
-@app.get("/scans/{scan_id}", response_model=ScanRecord)
-def get_scan(scan_id: str) -> ScanRecord:
+@app.get("/scans/{scan_id}", response_model=ScanWithRisk)
+def get_scan(scan_id: str) -> ScanWithRisk:
     scan = repository.get_scan(scan_id)
     if scan is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
-    return scan
+    risks = repository.list_risk_results(scan_id=scan_id)
+    return ScanWithRisk(scan=scan, risks=risks)
+
+
+@app.get("/risks", response_model=list[RiskRecord])
+def list_risks(scan_id: str | None = None) -> list[RiskRecord]:
+    return repository.list_risk_results(scan_id=scan_id)

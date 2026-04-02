@@ -1,9 +1,11 @@
+import json
 import sqlite3
 import uuid
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
-from .models import Asset, AssetCreate, AssetUpdate
+from .models import Asset, AssetCreate, AssetUpdate, ScanIngestRequest, ScanRecord
 
 DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "inventory.db"
 
@@ -31,6 +33,18 @@ class AssetRepository:
                     environment TEXT,
                     vendor TEXT,
                     lifecycle_years INTEGER
+                )
+                """
+            )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS scans (
+                    id TEXT PRIMARY KEY,
+                    source TEXT NOT NULL,
+                    scanned_at TEXT NOT NULL,
+                    host_inventory TEXT,
+                    crypto_evidence TEXT,
+                    tls_evidence TEXT
                 )
                 """
             )
@@ -71,10 +85,7 @@ class AssetRepository:
         return created
 
     def create_many(self, payloads: Iterable[AssetCreate]) -> list[Asset]:
-        created: list[Asset] = []
-        for payload in payloads:
-            created.append(self.create_asset(payload))
-        return created
+        return [self.create_asset(payload) for payload in payloads]
 
     def update_asset(self, asset_id: str, payload: AssetUpdate) -> Asset | None:
         existing = self.get_asset(asset_id)
@@ -107,3 +118,56 @@ class AssetRepository:
             cursor = connection.execute("DELETE FROM assets WHERE id = ?", (asset_id,))
             connection.commit()
         return cursor.rowcount > 0
+
+    def create_scan(self, payload: ScanIngestRequest) -> str:
+        scan_id = str(uuid.uuid4())
+        scanned_at = datetime.now(UTC).isoformat()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO scans (id, source, scanned_at, host_inventory, crypto_evidence, tls_evidence)
+                VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    scan_id,
+                    payload.source,
+                    scanned_at,
+                    self._json_or_none(payload.host_inventory.model_dump() if payload.host_inventory else None),
+                    self._json_or_none(payload.crypto_evidence.model_dump() if payload.crypto_evidence else None),
+                    self._json_or_none(payload.tls_evidence.model_dump() if payload.tls_evidence else None),
+                ),
+            )
+            connection.commit()
+        return scan_id
+
+    def list_scans(self) -> list[ScanRecord]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT * FROM scans ORDER BY scanned_at DESC").fetchall()
+        return [self._row_to_scan(row) for row in rows]
+
+    def get_scan(self, scan_id: str) -> ScanRecord | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM scans WHERE id = ?", (scan_id,)).fetchone()
+        return self._row_to_scan(row) if row else None
+
+    def _row_to_scan(self, row: sqlite3.Row) -> ScanRecord:
+        return ScanRecord(
+            id=row["id"],
+            source=row["source"],
+            scanned_at=row["scanned_at"],
+            host_inventory=self._parse_json(row["host_inventory"]),
+            crypto_evidence=self._parse_json(row["crypto_evidence"]),
+            tls_evidence=self._parse_json(row["tls_evidence"]),
+        )
+
+    @staticmethod
+    def _json_or_none(value: dict[str, Any] | None) -> str | None:
+        if value is None:
+            return None
+        return json.dumps(value)
+
+    @staticmethod
+    def _parse_json(value: str | None) -> dict[str, Any] | None:
+        if value is None:
+            return None
+        return json.loads(value)

@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException, status
 
-from .models import Asset, AssetCreate, AssetUpdate, ScanIngestRequest, ScanIngestResponse
+from .models import Asset, AssetCreate, AssetUpdate, ScanIngestRequest, ScanIngestResponse, ScanRecord
 from .repository import AssetRepository
 
-app = FastAPI(title="Inventory Service", version="0.1.0")
+app = FastAPI(title="Inventory Service", version="0.2.0")
 repository = AssetRepository()
 
 
@@ -47,9 +47,24 @@ def delete_asset(asset_id: str) -> None:
 
 @app.post("/scans/ingest", response_model=ScanIngestResponse, status_code=status.HTTP_201_CREATED)
 def ingest_scan(payload: ScanIngestRequest) -> ScanIngestResponse:
+    scan_id = repository.create_scan(payload)
     created = repository.create_many(payload.assets)
     return ScanIngestResponse(
         source=payload.source,
         created=len(created),
         asset_ids=[asset.id for asset in created],
+        scan_id=scan_id,
     )
+
+
+@app.get("/scans", response_model=list[ScanRecord])
+def list_scans() -> list[ScanRecord]:
+    return repository.list_scans()
+
+
+@app.get("/scans/{scan_id}", response_model=ScanRecord)
+def get_scan(scan_id: str) -> ScanRecord:
+    scan = repository.get_scan(scan_id)
+    if scan is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Scan not found")
+    return scan

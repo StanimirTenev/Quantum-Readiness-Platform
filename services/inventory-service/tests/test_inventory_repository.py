@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.models import AssetCreate, AssetUpdate
+from app.models import AssetCreate, AssetUpdate, CryptoEvidence, HostInventory, ScanIngestRequest, TLSEvidence, TLSEvidenceCertificate
 from app.repository import AssetRepository
 
 
@@ -36,3 +36,65 @@ def test_repository_crud(tmp_path: Path) -> None:
     deleted = repo.delete_asset(created.id)
     assert deleted is True
     assert repo.get_asset(created.id) is None
+
+
+def test_scan_persistence(tmp_path: Path) -> None:
+    repo = AssetRepository(tmp_path / "inventory.db")
+
+    payload = ScanIngestRequest(
+        source="network",
+        assets=[
+            AssetCreate(
+                asset_type="endpoint",
+                name="google.com:443",
+                criticality=3,
+                environment="unknown",
+                lifecycle_years=3,
+            )
+        ],
+        host_inventory=HostInventory(
+            hostname="test-host",
+            os="linux",
+            kernel="6.x",
+            architecture="amd64",
+            ips=["127.0.0.1"],
+        ),
+        crypto_evidence=CryptoEvidence(
+            openssl_available=True,
+            openssl_version="OpenSSL 3",
+            ssh_config_path="/etc/ssh/ssh_config",
+            known_crypto_files=["/etc/ssl/openssl.cnf"],
+        ),
+        tls_evidence=TLSEvidence(
+            target="google.com:443",
+            tls_version="TLS1.3",
+            cipher_suite="TLS_AES_128_GCM_SHA256",
+            server_name="google.com",
+            certificate=TLSEvidenceCertificate(
+                subject="CN=*.google.com",
+                issuer="CN=Example Issuer",
+                not_before="2026-01-01T00:00:00Z",
+                not_after="2026-06-01T00:00:00Z",
+                signature_algorithm="ECDSA-SHA256",
+                public_key_algorithm="ECDSA",
+                dns_names=["google.com"],
+            ),
+        ),
+    )
+
+    scan_id = repo.create_scan(payload)
+    created_assets = repo.create_many(payload.assets)
+
+    assert scan_id
+    assert len(created_assets) == 1
+
+    scans = repo.list_scans()
+    assert len(scans) == 1
+    assert scans[0].source == "network"
+    assert scans[0].tls_evidence is not None
+    assert scans[0].tls_evidence["target"] == "google.com:443"
+
+    fetched = repo.get_scan(scan_id)
+    assert fetched is not None
+    assert fetched.host_inventory is not None
+    assert fetched.host_inventory["hostname"] == "test-host"

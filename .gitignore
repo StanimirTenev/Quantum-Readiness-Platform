@@ -1,10 +1,43 @@
+# Python
 __pycache__/
-*.pyc
-.env
+*.py[cod]
+*.pyo
+*.pyd
+.python-version
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
 .venv/
-node_modules/
+venv/
+env/
+
+# Runtime
+run/logs/
+run/pids/
+*.log
+*.pid
+
+# OS / editors
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Coverage / build
+.coverage
+htmlcov/
 dist/
 build/
-coverage/
-*.log
-.DS_Store
+*.egg-info/
+
+# Local databases
+*.db
+inventory.db
+workflow.db
+
+# Node (future-proof)
+node_modules/

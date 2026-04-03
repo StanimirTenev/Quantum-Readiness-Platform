@@ -3,28 +3,18 @@ from __future__ import annotations
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
-from .clients.inventory import InventoryClient
 from .clients.planner import PlannerClient
+from .clients.retrieval import RetrievalClient
 from .clients.workflow import WorkflowClient
 
-app = FastAPI(title="Copilot Service", version="0.3.0")
-inventory = InventoryClient()
+app = FastAPI(title="Copilot Service", version="0.4.0")
+retrieval = RetrievalClient()
 planner = PlannerClient()
 workflow = WorkflowClient()
 
 
 class QueryRequest(BaseModel):
     question: str
-
-
-def dedupe_risks_by_asset(risks: list[dict]) -> list[dict]:
-    best: dict[str, dict] = {}
-    for risk in risks:
-        asset_name = risk.get("asset_name", "unknown")
-        current = best.get(asset_name)
-        if current is None or risk.get("normalized_score_100", 0) > current.get("normalized_score_100", 0):
-            best[asset_name] = risk
-    return sorted(best.values(), key=lambda x: x.get("normalized_score_100", 0), reverse=True)
 
 
 @app.get("/health")
@@ -34,38 +24,37 @@ def health() -> dict[str, str]:
 
 @app.get("/summary")
 def summary() -> dict:
-    assets = inventory.get_assets()
-    scans = inventory.get_scans()
-    risks = dedupe_risks_by_asset(inventory.get_risks())
-
-    risk_counts: dict[str, int] = {}
-    for item in risks:
-        rating = item.get("rating", "unknown")
-        risk_counts[rating] = risk_counts.get(rating, 0) + 1
-
-    top_risks = risks[:5]
+    try:
+        overview = retrieval.get_overview()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Summary failed: {exc}") from exc
 
     return {
-        "asset_count": len(assets),
-        "scan_count": len(scans),
-        "risk_count": len(risks),
-        "risk_counts": risk_counts,
-        "top_risks": top_risks,
+        "asset_count": overview["asset_count"],
+        "scan_count": overview["scan_count"],
+        "risk_count": overview["risk_count"],
+        "risk_counts": _risk_counts_from_top_risks(overview.get("top_risks", [])),
+        "top_risks": overview.get("top_risks", []),
     }
 
 
 @app.get("/top-risks")
 def top_risks(limit: int = 5) -> dict:
-    risks = dedupe_risks_by_asset(inventory.get_risks())[:limit]
-    return {"count": len(risks), "items": risks}
-
-
-@app.get("/scan/{scan_id}")
-def scan_details(scan_id: str) -> dict:
     try:
-        return inventory.get_scan(scan_id)
+        overview = retrieval.get_overview()
     except Exception as exc:
-        raise HTTPException(status_code=404, detail=f"Scan lookup failed: {exc}") from exc
+        raise HTTPException(status_code=500, detail=f"Top risks failed: {exc}") from exc
+
+    items = overview.get("top_risks", [])[:limit]
+    return {"count": len(items), "items": items}
+
+
+@app.get("/asset/{asset_name:path}")
+def asset_details(asset_name: str) -> dict:
+    try:
+        return retrieval.get_asset(asset_name)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Asset lookup failed: {exc}") from exc
 
 
 @app.get("/plan-summary")
@@ -100,7 +89,7 @@ def workflow_summary() -> dict:
 @app.get("/operational-summary")
 def operational_summary() -> dict:
     try:
-        summary_data = summary()
+        overview = retrieval.get_overview()
         plan_data = planner.get_plan()
         tasks = workflow.get_tasks()
         approvals = workflow.get_approvals()
@@ -113,7 +102,13 @@ def operational_summary() -> dict:
         task_status_counts[status] = task_status_counts.get(status, 0) + 1
 
     return {
-        "platform": summary_data,
+        "platform": {
+            "asset_count": overview["asset_count"],
+            "scan_count": overview["scan_count"],
+            "risk_count": overview["risk_count"],
+            "risk_counts": _risk_counts_from_top_risks(overview.get("top_risks", [])),
+            "top_risks": overview.get("top_risks", []),
+        },
         "planning": {
             "wave_1_count": plan_data["summary"]["wave_1_count"],
             "wave_2_count": plan_data["summary"]["wave_2_count"],
@@ -129,43 +124,41 @@ def operational_summary() -> dict:
 
 @app.post("/query")
 def query(payload: QueryRequest) -> dict:
-    question = payload.question.strip().lower()
+    question = payload.question.strip()
+    lowered = question.lower()
 
-    if not question:
+    if not lowered:
         raise HTTPException(status_code=400, detail="Question must not be empty")
 
-    if "operational" in question or "operations" in question:
+    if "operational" in lowered or "operations" in lowered:
         return {"intent": "operational_summary", "result": operational_summary()}
 
-    if "workflow" in question or "tasks" in question or "approvals" in question:
+    if "workflow" in lowered or "tasks" in lowered or "approvals" in lowered:
         return {"intent": "workflow_summary", "result": workflow_summary()}
 
-    if "plan" in question or "wave" in question:
+    if "plan" in lowered or "wave" in lowered:
         return {"intent": "plan_summary", "result": plan_summary()}
 
-    if "summary" in question or "overview" in question:
+    if "summary" in lowered or "overview" in lowered:
         return {"intent": "summary", "result": summary()}
 
-    if "top risk" in question or "highest risk" in question:
+    if "top risk" in lowered or "highest risk" in lowered:
         return {"intent": "top_risks", "result": top_risks()}
 
-    if "scan " in question:
-        parts = question.split()
-        for part in parts:
-            if "-" in part and len(part) >= 8:
-                return {"intent": "scan_details", "result": scan_details(part)}
-        return {"intent": "scan_details", "result": "No scan_id found in question."}
+    if "asset " in lowered:
+        asset_name = question.split("asset ", 1)[1].strip()
+        if asset_name:
+            return {"intent": "asset_details", "result": asset_details(asset_name)}
 
-    risks = dedupe_risks_by_asset(inventory.get_risks())
-    assets = inventory.get_assets()
-    scans = inventory.get_scans()
+    if "scan " in lowered:
+        return {"intent": "search", "result": retrieval.search(question)}
 
-    return {
-        "intent": "fallback",
-        "result": {
-            "message": "Query not specifically mapped yet. Returning high-level platform snapshot.",
-            "asset_count": len(assets),
-            "scan_count": len(scans),
-            "risk_count": len(risks),
-        },
-    }
+    return {"intent": "search", "result": retrieval.search(question)}
+
+
+def _risk_counts_from_top_risks(risks: list[dict]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in risks:
+        rating = item.get("rating", "unknown")
+        counts[rating] = counts.get(rating, 0) + 1
+    return counts

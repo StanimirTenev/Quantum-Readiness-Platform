@@ -14,7 +14,7 @@ from .models import (
 from .repository import AssetRepository
 from .risk_mapper import build_risk_payload
 
-app = FastAPI(title="Inventory Service", version="0.3.0")
+app = FastAPI(title="Inventory Service", version="0.4.0")
 repository = AssetRepository()
 risk_client = RiskEngineClient()
 
@@ -97,3 +97,8 @@ def get_scan(scan_id: str) -> ScanWithRisk:
 @app.get("/risks", response_model=list[RiskRecord])
 def list_risks(scan_id: str | None = None) -> list[RiskRecord]:
     return repository.list_risk_results(scan_id=scan_id)
+
+
+@app.post("/admin/cleanup-assets")
+def cleanup_assets() -> dict[str, int]:
+    return repository.cleanup_duplicate_assets()

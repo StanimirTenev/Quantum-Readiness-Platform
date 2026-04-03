@@ -66,6 +66,19 @@ class AssetRepository:
             )
             connection.commit()
 
+    def _find_existing_asset(self, payload: AssetCreate) -> Asset | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT * FROM assets
+                WHERE name = ? AND asset_type = ?
+                ORDER BY rowid DESC
+                LIMIT 1
+                """,
+                (payload.name, payload.asset_type),
+            ).fetchone()
+        return Asset(**dict(row)) if row else None
+
     def list_assets(self) -> list[Asset]:
         with self._connect() as connection:
             rows = connection.execute("SELECT * FROM assets ORDER BY name ASC").fetchall()
@@ -77,6 +90,10 @@ class AssetRepository:
         return Asset(**dict(row)) if row else None
 
     def create_asset(self, payload: AssetCreate) -> Asset:
+        existing = self._find_existing_asset(payload)
+        if existing is not None:
+            return existing
+
         asset_id = str(uuid.uuid4())
         with self._connect() as connection:
             connection.execute(
@@ -204,6 +221,35 @@ class AssetRepository:
         with self._connect() as connection:
             rows = connection.execute(query, params).fetchall()
         return [self._row_to_risk(row) for row in rows]
+
+    def cleanup_duplicate_assets(self) -> dict[str, int]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, name, asset_type, rowid
+                FROM assets
+                ORDER BY rowid DESC
+                """
+            ).fetchall()
+
+            seen: set[tuple[str, str]] = set()
+            delete_ids: list[str] = []
+
+            for row in rows:
+                key = (row["name"], row["asset_type"])
+                if key in seen:
+                    delete_ids.append(row["id"])
+                else:
+                    seen.add(key)
+
+            deleted_assets = 0
+            for asset_id in delete_ids:
+                cur = connection.execute("DELETE FROM assets WHERE id = ?", (asset_id,))
+                deleted_assets += cur.rowcount
+
+            connection.commit()
+
+        return {"deleted_assets": deleted_assets}
 
     def _row_to_scan(self, row: sqlite3.Row) -> ScanRecord:
         return ScanRecord(

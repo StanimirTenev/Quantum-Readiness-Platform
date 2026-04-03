@@ -115,3 +115,23 @@ def test_scan_and_risk_persistence(tmp_path: Path) -> None:
     assert len(risks) == 1
     assert risks[0].asset_name == "google.com:443"
     assert risks[0].rating == "high"
+
+
+def test_cleanup_duplicate_assets(tmp_path: Path) -> None:
+    repo = AssetRepository(tmp_path / "inventory.db")
+
+    payload = AssetCreate(
+        asset_type="endpoint",
+        name="google.com:443",
+        criticality=3,
+        environment="unknown",
+        lifecycle_years=3,
+    )
+
+    first = repo.create_asset(payload)
+    second = repo.create_asset(payload)
+
+    assert first.id == second.id
+
+    result = repo.cleanup_duplicate_assets()
+    assert "deleted_assets" in result

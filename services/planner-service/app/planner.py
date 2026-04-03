@@ -6,8 +6,16 @@ from typing import Any
 def build_plan(assets: list[dict[str, Any]], risks: list[dict[str, Any]]) -> dict[str, Any]:
     asset_map = {asset["name"]: asset for asset in assets}
 
+    # keep only highest-score risk per asset_name
+    deduped: dict[str, dict[str, Any]] = {}
+    for risk in risks:
+        asset_name = risk.get("asset_name", "unknown")
+        current = deduped.get(asset_name)
+        if current is None or risk.get("normalized_score_100", 0) > current.get("normalized_score_100", 0):
+            deduped[asset_name] = risk
+
     ordered_risks = sorted(
-        risks,
+        deduped.values(),
         key=lambda x: x.get("normalized_score_100", 0),
         reverse=True,
     )
@@ -40,7 +48,7 @@ def build_plan(assets: list[dict[str, Any]], risks: list[dict[str, Any]]) -> dic
     return {
         "summary": {
             "total_assets": len(assets),
-            "total_risks": len(risks),
+            "total_risks": len(ordered_risks),
             "wave_1_count": len(wave_1),
             "wave_2_count": len(wave_2),
             "wave_3_count": len(wave_3),

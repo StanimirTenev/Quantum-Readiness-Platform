@@ -48,7 +48,24 @@ class WorkflowRepository:
             )
             connection.commit()
 
+    def _find_existing_task(self, payload: TaskCreate) -> Task | None:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT * FROM tasks
+                WHERE asset_name = ? AND wave = ? AND recommended_action IS ?
+                ORDER BY rowid DESC
+                LIMIT 1
+                """,
+                (payload.asset_name, payload.wave, payload.recommended_action),
+            ).fetchone()
+        return Task(**dict(row)) if row else None
+
     def create_task(self, payload: TaskCreate) -> Task:
+        existing = self._find_existing_task(payload)
+        if existing is not None:
+            return existing
+
         task_id = str(uuid.uuid4())
         with self._connect() as connection:
             connection.execute(

@@ -7,19 +7,21 @@ from app.repository import WorkflowRepository
 def test_workflow_repository(tmp_path: Path) -> None:
     repo = WorkflowRepository(tmp_path / "workflow.db")
 
-    task = repo.create_task(
-        TaskCreate(
-            title="Review google endpoint",
-            asset_name="google.com:443",
-            wave="wave_1",
-            priority="high",
-            description="Review TLS configuration and migration path.",
-            recommended_action="Review TLS configuration, certificate algorithms, and PQC migration path.",
-        )
+    payload = TaskCreate(
+        title="Review google endpoint",
+        asset_name="google.com:443",
+        wave="wave_1",
+        priority="high",
+        description="Review TLS configuration and migration path.",
+        recommended_action="Review TLS configuration, certificate algorithms, and PQC migration path.",
     )
 
+    task = repo.create_task(payload)
     assert task.id
     assert task.status == "draft"
+
+    duplicate = repo.create_task(payload)
+    assert duplicate.id == task.id
 
     submitted = repo.update_task_status(task.id, "pending_approval")
     assert submitted is not None

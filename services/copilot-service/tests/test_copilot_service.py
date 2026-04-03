@@ -49,3 +49,28 @@ def test_query_summary(monkeypatch) -> None:
     response = client.post("/query", json={"question": "give me a summary"})
     assert response.status_code == 200
     assert response.json()["intent"] == "summary"
+
+
+def test_operational_summary(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.inventory.get_assets", lambda: [{"id": "a1"}])
+    monkeypatch.setattr("app.main.inventory.get_scans", lambda: [{"id": "s1"}])
+    monkeypatch.setattr(
+        "app.main.inventory.get_risks",
+        lambda: [{"id": "r1", "rating": "high", "normalized_score_100": 65.0}],
+    )
+    monkeypatch.setattr(
+        "app.main.planner.get_plan",
+        lambda: {"summary": {"wave_1_count": 1, "wave_2_count": 2, "wave_3_count": 0}},
+    )
+    monkeypatch.setattr(
+        "app.main.workflow.get_tasks",
+        lambda: [{"id": "t1", "status": "draft"}, {"id": "t2", "status": "approved"}],
+    )
+    monkeypatch.setattr("app.main.workflow.get_approvals", lambda: [{"task_id": "t2"}])
+
+    response = client.get("/operational-summary")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["platform"]["asset_count"] == 1
+    assert data["planning"]["wave_1_count"] == 1
+    assert data["workflow"]["task_count"] == 2

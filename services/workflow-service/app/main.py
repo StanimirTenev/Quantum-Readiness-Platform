@@ -5,7 +5,7 @@ from fastapi import FastAPI, HTTPException, status
 from .models import ApprovalDecision, ApprovalRecord, Task, TaskCreate, TaskStatusUpdate
 from .repository import WorkflowRepository
 
-app = FastAPI(title="Workflow Service", version="0.1.0")
+app = FastAPI(title="Workflow Service", version="0.2.0")
 repository = WorkflowRepository()
 
 
@@ -59,3 +59,8 @@ def approve_task(task_id: str, payload: ApprovalDecision) -> ApprovalRecord:
 @app.get("/approvals", response_model=list[ApprovalRecord])
 def list_approvals(task_id: str | None = None) -> list[ApprovalRecord]:
     return repository.list_approvals(task_id=task_id)
+
+
+@app.post("/admin/cleanup-duplicates")
+def cleanup_duplicates() -> dict[str, int]:
+    return repository.cleanup_duplicate_tasks()

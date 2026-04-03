@@ -144,3 +144,39 @@ class WorkflowRepository:
         with self._connect() as connection:
             rows = connection.execute(query, params).fetchall()
         return [ApprovalRecord(**dict(row)) for row in rows]
+
+    def cleanup_duplicate_tasks(self) -> dict[str, int]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, asset_name, wave, COALESCE(recommended_action, '') AS recommended_action, rowid
+                FROM tasks
+                ORDER BY rowid DESC
+                """
+            ).fetchall()
+
+            seen: set[tuple[str, str, str]] = set()
+            delete_ids: list[str] = []
+
+            for row in rows:
+                key = (row["asset_name"], row["wave"], row["recommended_action"])
+                if key in seen:
+                    delete_ids.append(row["id"])
+                else:
+                    seen.add(key)
+
+            deleted_approvals = 0
+            deleted_tasks = 0
+
+            for task_id in delete_ids:
+                cur1 = connection.execute("DELETE FROM approvals WHERE task_id = ?", (task_id,))
+                cur2 = connection.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+                deleted_approvals += cur1.rowcount
+                deleted_tasks += cur2.rowcount
+
+            connection.commit()
+
+        return {
+            "deleted_tasks": deleted_tasks,
+            "deleted_approvals": deleted_approvals,
+        }

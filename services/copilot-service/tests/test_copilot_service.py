@@ -16,7 +16,10 @@ def test_summary(monkeypatch) -> None:
     monkeypatch.setattr("app.main.inventory.get_scans", lambda: [{"id": "s1"}])
     monkeypatch.setattr(
         "app.main.inventory.get_risks",
-        lambda: [{"id": "r1", "rating": "high", "normalized_score_100": 65.0}],
+        lambda: [
+            {"id": "r1", "asset_name": "google.com:443", "rating": "high", "normalized_score_100": 65.0},
+            {"id": "r2", "asset_name": "google.com:443", "rating": "high", "normalized_score_100": 68.0},
+        ],
     )
 
     response = client.get("/summary")
@@ -31,7 +34,7 @@ def test_summary(monkeypatch) -> None:
 def test_query_top_risks(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.main.inventory.get_risks",
-        lambda: [{"id": "r1", "rating": "high", "normalized_score_100": 65.0}],
+        lambda: [{"id": "r1", "asset_name": "google.com:443", "rating": "high", "normalized_score_100": 65.0}],
     )
     monkeypatch.setattr("app.main.inventory.get_assets", lambda: [])
     monkeypatch.setattr("app.main.inventory.get_scans", lambda: [])
@@ -56,7 +59,7 @@ def test_operational_summary(monkeypatch) -> None:
     monkeypatch.setattr("app.main.inventory.get_scans", lambda: [{"id": "s1"}])
     monkeypatch.setattr(
         "app.main.inventory.get_risks",
-        lambda: [{"id": "r1", "rating": "high", "normalized_score_100": 65.0}],
+        lambda: [{"id": "r1", "asset_name": "google.com:443", "rating": "high", "normalized_score_100": 65.0}],
     )
     monkeypatch.setattr(
         "app.main.planner.get_plan",

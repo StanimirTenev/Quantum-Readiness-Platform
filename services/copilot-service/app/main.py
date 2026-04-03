@@ -7,7 +7,7 @@ from .clients.inventory import InventoryClient
 from .clients.planner import PlannerClient
 from .clients.workflow import WorkflowClient
 
-app = FastAPI(title="Copilot Service", version="0.2.0")
+app = FastAPI(title="Copilot Service", version="0.3.0")
 inventory = InventoryClient()
 planner = PlannerClient()
 workflow = WorkflowClient()
@@ -15,6 +15,16 @@ workflow = WorkflowClient()
 
 class QueryRequest(BaseModel):
     question: str
+
+
+def dedupe_risks_by_asset(risks: list[dict]) -> list[dict]:
+    best: dict[str, dict] = {}
+    for risk in risks:
+        asset_name = risk.get("asset_name", "unknown")
+        current = best.get(asset_name)
+        if current is None or risk.get("normalized_score_100", 0) > current.get("normalized_score_100", 0):
+            best[asset_name] = risk
+    return sorted(best.values(), key=lambda x: x.get("normalized_score_100", 0), reverse=True)
 
 
 @app.get("/health")
@@ -26,18 +36,14 @@ def health() -> dict[str, str]:
 def summary() -> dict:
     assets = inventory.get_assets()
     scans = inventory.get_scans()
-    risks = inventory.get_risks()
+    risks = dedupe_risks_by_asset(inventory.get_risks())
 
     risk_counts: dict[str, int] = {}
     for item in risks:
         rating = item.get("rating", "unknown")
         risk_counts[rating] = risk_counts.get(rating, 0) + 1
 
-    top_risks = sorted(
-        risks,
-        key=lambda x: x.get("normalized_score_100", 0),
-        reverse=True,
-    )[:5]
+    top_risks = risks[:5]
 
     return {
         "asset_count": len(assets),
@@ -50,13 +56,8 @@ def summary() -> dict:
 
 @app.get("/top-risks")
 def top_risks(limit: int = 5) -> dict:
-    risks = inventory.get_risks()
-    ordered = sorted(
-        risks,
-        key=lambda x: x.get("normalized_score_100", 0),
-        reverse=True,
-    )[:limit]
-    return {"count": len(ordered), "items": ordered}
+    risks = dedupe_risks_by_asset(inventory.get_risks())[:limit]
+    return {"count": len(risks), "items": risks}
 
 
 @app.get("/scan/{scan_id}")
@@ -155,7 +156,7 @@ def query(payload: QueryRequest) -> dict:
                 return {"intent": "scan_details", "result": scan_details(part)}
         return {"intent": "scan_details", "result": "No scan_id found in question."}
 
-    risks = inventory.get_risks()
+    risks = dedupe_risks_by_asset(inventory.get_risks())
     assets = inventory.get_assets()
     scans = inventory.get_scans()
 

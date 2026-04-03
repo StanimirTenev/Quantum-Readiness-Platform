@@ -1,0 +1,1298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QRP — Quantum Readiness Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:     #060b14;
+  --bg2:    #0a1220;
+  --bg3:    #0f1a2e;
+  --bg4:    #162238;
+  --bg5:    #1c2d47;
+  --line:   rgba(255,255,255,0.06);
+  --line2:  rgba(255,255,255,0.11);
+  --cyan:   #22d3ee;
+  --cyan2:  #06b6d4;
+  --cd:     rgba(34,211,238,0.1);
+  --cds:    rgba(34,211,238,0.05);
+  --green:  #34d399;
+  --gd:     rgba(52,211,153,0.1);
+  --amber:  #fbbf24;
+  --ad:     rgba(251,191,36,0.1);
+  --red:    #f87171;
+  --rd:     rgba(248,113,113,0.1);
+  --purple: #a78bfa;
+  --pd:     rgba(167,139,250,0.1);
+  --orange: #fb923c;
+  --od:     rgba(251,146,60,0.1);
+  --t1: #f1f5f9; --t2: #94a3b8; --t3: #475569; --t4: #334155;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Inter', sans-serif;
+  --r: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body { background: var(--bg); color: var(--t1); font-family: var(--sans); height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+/* ── TOPBAR ── */
+.topbar {
+  height: 52px; flex-shrink: 0;
+  background: var(--bg2); border-bottom: 1px solid var(--line);
+  display: flex; align-items: center; padding: 0 18px; gap: 14px;
+  z-index: 100;
+}
+.tb-logo {
+  display: flex; align-items: center; gap: 9px;
+  font-family: var(--mono); font-size: 12px; font-weight: 700;
+  color: var(--cyan); letter-spacing: .06em;
+}
+.tb-logo-box {
+  width: 28px; height: 28px; border: 1.5px solid var(--cyan);
+  border-radius: 5px; display: flex; align-items: center; justify-content: center;
+  font-size: 9px; position: relative;
+}
+.tb-logo-box::after { content:''; position:absolute; inset:3px; border:1px solid rgba(34,211,238,.3); border-radius:2px; }
+.tb-org {
+  margin-left: 6px; padding: 3px 10px; background: var(--bg4);
+  border: 1px solid var(--line2); border-radius: 5px;
+  font-size: 12px; color: var(--t2); font-family: var(--mono);
+}
+.tb-scan-status {
+  margin-left: auto; display: flex; align-items: center; gap: 8px;
+  font-size: 11px; color: var(--t2); font-family: var(--mono);
+}
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--green); position: relative; }
+.pulse::after { content:''; position:absolute; inset:-3px; border-radius:50%; background:rgba(52,211,153,.3); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:.7} 50%{transform:scale(1.6);opacity:0} }
+
+.tb-user {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--cyan2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: #fff; flex-shrink: 0;
+}
+.tb-divider { width: 1px; height: 20px; background: var(--line); }
+
+/* ── APP BODY ── */
+.app-body { display: flex; flex: 1; overflow: hidden; }
+
+/* ── SIDENAV ── */
+.sidenav {
+  width: 200px; flex-shrink: 0;
+  background: var(--bg2); border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; padding: 14px 10px;
+  overflow-y: auto;
+}
+.nav-section-label {
+  font-size: 9px; font-family: var(--mono); letter-spacing: .12em;
+  color: var(--t3); text-transform: uppercase; padding: 6px 10px 4px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 9px;
+  padding: 8px 10px; border-radius: 6px; cursor: pointer;
+  font-size: 12px; font-weight: 500; color: var(--t2);
+  transition: all .15s; position: relative;
+}
+.nav-item:hover { background: var(--bg4); color: var(--t1); }
+.nav-item.active { background: var(--cd); color: var(--cyan); }
+.nav-item.active::before { content:''; position:absolute; left:0; top:4px; bottom:4px; width:2px; background:var(--cyan); border-radius:0 2px 2px 0; }
+.nav-icon { width: 16px; text-align: center; font-size: 13px; flex-shrink: 0; }
+.nav-badge {
+  margin-left: auto; font-size: 9px; font-family: var(--mono);
+  padding: 1px 5px; border-radius: 3px; font-weight: 700;
+}
+.nb-red { background: var(--rd); color: var(--red); }
+.nb-amber { background: var(--ad); color: var(--amber); }
+.nb-cyan { background: var(--cd); color: var(--cyan); }
+.sidenav-bottom { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); }
+
+/* ── MAIN VIEW ── */
+.view { flex: 1; overflow-y: auto; padding: 22px 24px; display: none; }
+.view.active { display: block; }
+
+/* ── COMMON ── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; }
+.grid4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+
+.card {
+  background: var(--bg3); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 18px 20px;
+  transition: border-color .2s;
+}
+.card:hover { border-color: var(--line2); }
+.card-sm { padding: 14px 16px; }
+.view-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+.view-sub { font-size: 12px; color: var(--t2); margin-bottom: 22px; }
+.section-hdr { font-size: 11px; font-family: var(--mono); letter-spacing: .1em; color: var(--t3); text-transform: uppercase; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+.section-hdr::after { content:''; flex:1; height:1px; background:var(--line); }
+.mb14 { margin-bottom: 14px; }
+.mb22 { margin-bottom: 22px; }
+
+/* ── STAT CARDS ── */
+.stat-val { font-family: var(--mono); font-size: 26px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+.stat-lbl { font-size: 11px; color: var(--t2); }
+.stat-delta { font-size: 10px; font-family: var(--mono); margin-top: 6px; }
+.stat-bar { height: 3px; background: var(--bg5); border-radius: 2px; margin-top: 10px; overflow: hidden; }
+.stat-bar-fill { height: 100%; border-radius: 2px; }
+
+/* ── READINESS RING ── */
+.readiness-wrap { display: flex; align-items: center; gap: 24px; }
+.ring-container { position: relative; width: 120px; height: 120px; flex-shrink: 0; }
+.ring-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.ring-pct { font-family: var(--mono); font-size: 22px; font-weight: 700; color: var(--amber); line-height: 1; }
+.ring-lbl { font-size: 9px; color: var(--t3); margin-top: 2px; font-family: var(--mono); letter-spacing: .05em; }
+
+/* ── ASSET TABLE ── */
+.asset-table { width: 100%; border-collapse: collapse; }
+.asset-table th {
+  text-align: left; font-size: 10px; font-family: var(--mono);
+  letter-spacing: .08em; color: var(--t3); padding: 8px 14px;
+  border-bottom: 1px solid var(--line); white-space: nowrap;
+}
+.asset-table td { padding: 11px 14px; font-size: 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.asset-table tr:last-child td { border-bottom: none; }
+.asset-table tr:hover td { background: rgba(255,255,255,.02); }
+
+/* RISK BADGES */
+.risk-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 8px; border-radius: 4px; font-size: 10px;
+  font-family: var(--mono); border: 1px solid; font-weight: 700;
+}
+.rb-critical { background: rgba(248,113,113,.12); border-color: rgba(248,113,113,.4); color: var(--red); }
+.rb-high { background: rgba(251,146,60,.12); border-color: rgba(251,146,60,.4); color: var(--orange); }
+.rb-medium { background: rgba(251,191,36,.1); border-color: rgba(251,191,36,.3); color: var(--amber); }
+.rb-low { background: rgba(52,211,153,.1); border-color: rgba(52,211,153,.3); color: var(--green); }
+
+/* CRYPTO BADGES */
+.crypto-badge {
+  display: inline-block; padding: 2px 7px; border-radius: 3px;
+  font-size: 10px; font-family: var(--mono); border: 1px solid;
+}
+.cb-classical { background: rgba(248,113,113,.08); border-color: rgba(248,113,113,.3); color: var(--red); }
+.cb-hybrid { background: rgba(251,191,36,.08); border-color: rgba(251,191,36,.3); color: var(--amber); }
+.cb-pqc { background: rgba(52,211,153,.08); border-color: rgba(52,211,153,.3); color: var(--green); }
+.cb-unknown { background: rgba(148,163,184,.08); border-color: rgba(148,163,184,.2); color: var(--t3); }
+.cb-vendor { background: rgba(167,139,250,.08); border-color: rgba(167,139,250,.3); color: var(--purple); }
+
+/* ── SCENARIO ENGINE ── */
+.scenario-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 22px; }
+.scenario-card {
+  padding: 14px 16px; background: var(--bg3); border: 1px solid var(--line);
+  border-radius: var(--r); cursor: pointer; transition: all .2s;
+}
+.scenario-card:hover { border-color: var(--line2); transform: translateY(-1px); }
+.scenario-card.active { border-color: var(--cyan); background: var(--cds); }
+.scenario-card .sc-name { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+.scenario-card .sc-date { font-size: 10px; font-family: var(--mono); color: var(--t3); margin-bottom: 6px; }
+.scenario-card .sc-desc { font-size: 11px; color: var(--t2); line-height: 1.5; }
+.sc-indicator { display: flex; gap: 4px; margin-top: 8px; }
+.sc-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* ── SCORE MATRIX ── */
+.score-matrix { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.score-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 9px 12px; background: var(--bg4); border-radius: 5px;
+}
+.score-label { font-size: 12px; color: var(--t2); }
+.score-val { font-family: var(--mono); font-size: 14px; font-weight: 700; }
+.score-bar-wrap { height: 3px; background: var(--bg5); border-radius: 2px; margin-top: 4px; }
+.score-bar { height: 100%; border-radius: 2px; transition: width .6s ease; }
+
+/* ── COPILOT ── */
+.copilot-layout { display: flex; flex-direction: column; height: calc(100vh - 52px - 44px); }
+.copilot-messages {
+  flex: 1; overflow-y: auto; padding: 16px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.msg-user { display: flex; justify-content: flex-end; }
+.msg-ai { display: flex; justify-content: flex-start; gap: 10px; }
+.msg-bubble {
+  max-width: 75%; padding: 11px 15px; border-radius: 10px;
+  font-size: 13px; line-height: 1.65;
+}
+.msg-user .msg-bubble { background: var(--cyan2); color: #000; border-radius: 10px 10px 2px 10px; }
+.msg-ai .msg-bubble { background: var(--bg3); border: 1px solid var(--line); border-radius: 10px 10px 10px 2px; }
+.ai-avatar {
+  width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--cyan2), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; color: #fff; font-family: var(--mono);
+  margin-top: 2px;
+}
+.msg-ai .msg-bubble strong { color: var(--cyan); font-weight: 600; }
+.msg-ai .msg-bubble code { font-family: var(--mono); font-size: 11px; background: var(--bg4); padding: 1px 4px; border-radius: 3px; color: var(--amber); }
+.msg-ai .msg-bubble ul { padding-left: 16px; }
+.msg-ai .msg-bubble li { margin-bottom: 3px; }
+
+.copilot-input-area {
+  border-top: 1px solid var(--line); padding: 14px 16px;
+  background: var(--bg2);
+}
+.copilot-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.chip {
+  padding: 5px 11px; border-radius: 20px; border: 1px solid var(--line);
+  font-size: 11px; color: var(--t2); cursor: pointer; background: var(--bg3);
+  transition: all .15s; white-space: nowrap;
+}
+.chip:hover { border-color: var(--cyan2); color: var(--cyan); background: var(--cds); }
+.copilot-input-row { display: flex; gap: 10px; }
+.copilot-input {
+  flex: 1; background: var(--bg3); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 10px 14px; color: var(--t1);
+  font-family: var(--sans); font-size: 13px; outline: none;
+  transition: border-color .15s;
+}
+.copilot-input:focus { border-color: var(--cyan2); }
+.copilot-send {
+  padding: 10px 18px; background: var(--cyan); border: none;
+  border-radius: var(--r); cursor: pointer; font-weight: 600;
+  font-size: 13px; color: #060b14; transition: background .15s;
+  font-family: var(--sans);
+}
+.copilot-send:hover { background: var(--cyan2); }
+.copilot-send:disabled { background: var(--bg5); color: var(--t3); cursor: default; }
+
+.typing-indicator { display: flex; gap: 4px; align-items: center; padding: 8px 0; }
+.typing-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--t3); animation: tdot 1.4s infinite ease-in-out; }
+.typing-dot:nth-child(2) { animation-delay: .2s; }
+.typing-dot:nth-child(3) { animation-delay: .4s; }
+@keyframes tdot { 0%,80%,100%{transform:scale(.8);opacity:.4} 40%{transform:scale(1.1);opacity:1} }
+
+/* ── MIGRATION ── */
+.wave-container { display: flex; gap: 14px; }
+.wave-col { flex: 1; }
+.wave-header {
+  padding: 10px 14px; border-radius: 6px 6px 0 0;
+  font-size: 11px; font-family: var(--mono); font-weight: 700;
+  letter-spacing: .05em; display: flex; align-items: center; justify-content: space-between;
+}
+.wave-body { background: var(--bg3); border: 1px solid var(--line); border-top: none; border-radius: 0 0 6px 6px; }
+.wave-item {
+  padding: 10px 14px; border-bottom: 1px solid var(--line);
+  font-size: 12px;
+}
+.wave-item:last-child { border-bottom: none; }
+.wave-item-name { font-weight: 500; margin-bottom: 3px; }
+.wave-item-meta { font-size: 10px; color: var(--t3); font-family: var(--mono); }
+.wave-w1 { background: rgba(248,113,113,.15); border-color: rgba(248,113,113,.5); color: var(--red); }
+.wave-w2 { background: rgba(251,191,36,.12); border-color: rgba(251,191,36,.4); color: var(--amber); }
+.wave-w3 { background: rgba(52,211,153,.1); border-color: rgba(52,211,153,.3); color: var(--green); }
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg5); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--t4); }
+
+/* ── SEARCH ── */
+.search-bar {
+  width: 100%; background: var(--bg3); border: 1px solid var(--line);
+  border-radius: var(--r); padding: 8px 14px; color: var(--t1);
+  font-family: var(--sans); font-size: 12px; outline: none;
+  margin-bottom: 14px; transition: border-color .15s;
+}
+.search-bar:focus { border-color: var(--cyan2); }
+
+/* FILTER ROW */
+.filter-row { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.filter-btn {
+  padding: 5px 11px; border-radius: 5px; border: 1px solid var(--line);
+  background: none; font-size: 11px; color: var(--t2); cursor: pointer;
+  font-family: var(--sans); transition: all .15s;
+}
+.filter-btn:hover { border-color: var(--line2); color: var(--t1); }
+.filter-btn.active { border-color: var(--cyan2); color: var(--cyan); background: var(--cds); }
+
+/* FINDING ROW */
+.finding-row {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 11px 0; border-bottom: 1px solid var(--line);
+}
+.finding-row:last-child { border-bottom: none; }
+.finding-icon { font-size: 16px; flex-shrink: 0; width: 24px; text-align: center; }
+.finding-body { flex: 1; }
+.finding-name { font-size: 12px; font-weight: 500; margin-bottom: 2px; }
+.finding-detail { font-size: 11px; color: var(--t2); font-family: var(--mono); }
+.finding-meta { font-size: 10px; color: var(--t3); margin-top: 3px; }
+
+/* SCAN ANIMATION */
+.scan-line { height: 1px; background: linear-gradient(90deg, transparent, var(--cyan), transparent); animation: scan 2s linear infinite; }
+@keyframes scan { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="tb-logo">
+    <div class="tb-logo-box">QRP</div>
+    QUANTUM READINESS
+  </div>
+  <div class="tb-divider"></div>
+  <div class="tb-org">SecureBank AG</div>
+  <div class="tb-scan-status">
+    <div class="pulse"></div>
+    Last scan: 2 hours ago &nbsp;·&nbsp; 847 assets indexed
+  </div>
+  <div class="tb-divider"></div>
+  <div class="tb-user">KS</div>
+</div>
+
+<div class="app-body">
+
+<!-- SIDENAV -->
+<nav class="sidenav">
+  <div class="nav-section-label">Overview</div>
+  <div class="nav-item active" onclick="showView('executive')">
+    <span class="nav-icon">◈</span> Executive
+  </div>
+
+  <div class="nav-section-label" style="margin-top:8px;">Inventory</div>
+  <div class="nav-item" onclick="showView('assets')">
+    <span class="nav-icon">⬡</span> Asset Graph
+    <span class="nav-badge nb-red">47</span>
+  </div>
+  <div class="nav-item" onclick="showView('certificates')">
+    <span class="nav-icon">◻</span> Certificates
+    <span class="nav-badge nb-amber">12</span>
+  </div>
+
+  <div class="nav-section-label" style="margin-top:8px;">Analysis</div>
+  <div class="nav-item" onclick="showView('scenarios')">
+    <span class="nav-icon">◎</span> Scenarios
+  </div>
+  <div class="nav-item" onclick="showView('migration')">
+    <span class="nav-icon">▷</span> Migration Waves
+  </div>
+
+  <div class="nav-section-label" style="margin-top:8px;">AI Copilot</div>
+  <div class="nav-item" onclick="showView('copilot')">
+    <span class="nav-icon">✦</span> Copilot
+    <span class="nav-badge nb-cyan">AI</span>
+  </div>
+
+  <div class="sidenav-bottom">
+    <div class="nav-item">
+      <span class="nav-icon">⚙</span> Settings
+    </div>
+    <div style="font-size:10px;color:var(--t3);padding:6px 10px;font-family:var(--mono);">
+      v1.0.0-beta<br>QRP Platform
+    </div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════ -->
+<!-- VIEW: EXECUTIVE -->
+<!-- ══════════════════════════════════════ -->
+<div class="view active" id="view-executive">
+
+  <div class="view-title">Executive Overview</div>
+  <div class="view-sub">SecureBank AG · Quantum Readiness Assessment · Last updated April 2, 2026</div>
+
+  <!-- STAT ROW -->
+  <div class="grid4 mb22">
+    <div class="card card-sm">
+      <div class="stat-lbl">Overall Readiness</div>
+      <div class="stat-val" style="color:var(--amber);">23%</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:23%;background:var(--amber)"></div></div>
+      <div class="stat-delta" style="color:var(--red);">▲ 3% since last quarter</div>
+    </div>
+    <div class="card card-sm">
+      <div class="stat-lbl">Total Assets</div>
+      <div class="stat-val" style="color:var(--cyan);">847</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:100%;background:var(--cyan)"></div></div>
+      <div class="stat-delta" style="color:var(--t2);">312 classical-only · 89 PQC-ready</div>
+    </div>
+    <div class="card card-sm">
+      <div class="stat-lbl">Critical Risk Assets</div>
+      <div class="stat-val" style="color:var(--red);">47</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:60%;background:var(--red)"></div></div>
+      <div class="stat-delta" style="color:var(--orange);">15 require immediate action</div>
+    </div>
+    <div class="card card-sm">
+      <div class="stat-lbl">Vendor Blockers</div>
+      <div class="stat-val" style="color:var(--purple);">8</div>
+      <div class="stat-bar"><div class="stat-bar-fill" style="width:40%;background:var(--purple)"></div></div>
+      <div class="stat-delta" style="color:var(--t2);">Cisco · HSM vendor · 6 others</div>
+    </div>
+  </div>
+
+  <div class="grid2 mb22">
+    <!-- Readiness donut -->
+    <div class="card">
+      <div class="section-hdr">Crypto Distribution</div>
+      <div class="readiness-wrap">
+        <div class="ring-container">
+          <canvas id="ring-canvas" width="120" height="120"></canvas>
+          <div class="ring-center">
+            <div class="ring-pct">23%</div>
+            <div class="ring-lbl">READY</div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:10px;">
+          <div class="finding-row" style="padding:6px 0;">
+            <div class="finding-body">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:12px;color:var(--red);">● Classical-only</span>
+                <span style="font-family:var(--mono);font-size:12px;font-weight:700;">312</span>
+              </div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:36.8%;background:var(--red)"></div></div>
+            </div>
+          </div>
+          <div class="finding-row" style="padding:6px 0;">
+            <div class="finding-body">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:12px;color:var(--amber);">● Hybrid-capable</span>
+                <span style="font-family:var(--mono);font-size:12px;font-weight:700;">156</span>
+              </div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:18.4%;background:var(--amber)"></div></div>
+            </div>
+          </div>
+          <div class="finding-row" style="padding:6px 0;">
+            <div class="finding-body">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:12px;color:var(--green);">● PQC-ready</span>
+                <span style="font-family:var(--mono);font-size:12px;font-weight:700;">89</span>
+              </div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:10.5%;background:var(--green)"></div></div>
+            </div>
+          </div>
+          <div class="finding-row" style="padding:6px 0;border:none;">
+            <div class="finding-body">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:12px;color:var(--t3);">● Unknown / vendor-blocked</span>
+                <span style="font-family:var(--mono);font-size:12px;font-weight:700;">290</span>
+              </div>
+              <div class="stat-bar"><div class="stat-bar-fill" style="width:34.2%;background:var(--t3)"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top 5 critical -->
+    <div class="card">
+      <div class="section-hdr">Top Critical Assets</div>
+      <table class="asset-table">
+        <thead>
+          <tr>
+            <th>Asset</th>
+            <th>Algorithm</th>
+            <th>Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div style="font-weight:500;">HSM Signing Cluster</div><div style="font-size:10px;color:var(--t3);">Code signing · firmware validation</div></td>
+            <td><span class="crypto-badge cb-classical">RSA-2048</span></td>
+            <td><span class="risk-badge rb-critical">● CRITICAL</span></td>
+          </tr>
+          <tr>
+            <td><div style="font-weight:500;">Internal Root CA</div><div style="font-size:10px;color:var(--t3);">PKI trust anchor</div></td>
+            <td><span class="crypto-badge cb-classical">RSA-4096</span></td>
+            <td><span class="risk-badge rb-critical">● CRITICAL</span></td>
+          </tr>
+          <tr>
+            <td><div style="font-weight:500;">Document Archive (7yr)</div><div style="font-size:10px;color:var(--t3);">Long-term sensitive records</div></td>
+            <td><span class="crypto-badge cb-classical">RSA-2048+AES</span></td>
+            <td><span class="risk-badge rb-critical">● CRITICAL</span></td>
+          </tr>
+          <tr>
+            <td><div style="font-weight:500;">VPN Gateway Cluster</div><div style="font-size:10px;color:var(--t3);">Cisco ASA · 4 nodes</div></td>
+            <td><span class="crypto-badge cb-classical">ECDH-256</span></td>
+            <td><span class="risk-badge rb-high">● HIGH</span></td>
+          </tr>
+          <tr>
+            <td><div style="font-weight:500;">Mobile Banking API</div><div style="font-size:10px;color:var(--t3);">External TLS endpoint</div></td>
+            <td><span class="crypto-badge cb-hybrid">ECDH-384</span></td>
+            <td><span class="risk-badge rb-high">● HIGH</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="card mb22">
+    <div class="section-hdr">Regulatory Timeline</div>
+    <div style="position:relative;padding:20px 0 8px;">
+      <!-- Line -->
+      <div style="position:absolute;top:34px;left:40px;right:40px;height:2px;background:var(--bg5);border-radius:1px;"></div>
+      <div style="display:flex;justify-content:space-between;padding:0 40px;">
+        <div style="text-align:center;">
+          <div style="width:14px;height:14px;border-radius:50%;background:var(--cyan);margin:0 auto 8px;border:2px solid var(--bg);"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--cyan);">NOW</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px;">Discovery phase</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:14px;height:14px;border-radius:50%;background:var(--amber);margin:0 auto 8px;border:2px solid var(--bg);"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--amber);">2026</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px;">EU: Start transition</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:14px;height:14px;border-radius:50%;background:var(--orange);margin:0 auto 8px;border:2px solid var(--bg);"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--orange);">2028</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px;">NCSC: First plan</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:14px;height:14px;border-radius:50%;background:var(--orange);margin:0 auto 8px;border:2px solid var(--bg);"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--orange);">2029</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px;">Google PQC target</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:14px;height:14px;border-radius:50%;background:var(--red);margin:0 auto 8px;border:2px solid var(--bg);"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--red);">2030</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px;">EU: Critical infra done</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="width:14px;height:14px;border-radius:50%;background:var(--t3);margin:0 auto 8px;border:2px solid var(--bg);"></div>
+          <div style="font-family:var(--mono);font-size:10px;color:var(--t3);">2035</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:3px;">Full transition</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding:10px 14px;background:var(--rd);border:1px solid rgba(248,113,113,.3);border-radius:6px;font-size:12px;color:var(--red);">
+      ⚠ At current pace (3%/quarter), SecureBank AG will reach only 48% readiness by 2030. <strong>Immediate action required on 15 critical assets.</strong>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- VIEW: ASSETS -->
+<!-- ══════════════════════════════════════ -->
+<div class="view" id="view-assets">
+  <div class="view-title">Asset Inventory</div>
+  <div class="view-sub">847 assets · Network, PKI, Signing, Backup, Cloud · Filtered by risk</div>
+
+  <div class="filter-row">
+    <button class="filter-btn active" onclick="filterAssets('all',this)">All (847)</button>
+    <button class="filter-btn" onclick="filterAssets('critical',this)">⬤ Critical (47)</button>
+    <button class="filter-btn" onclick="filterAssets('high',this)">⬤ High (128)</button>
+    <button class="filter-btn" onclick="filterAssets('classical',this)">Classical-only (312)</button>
+    <button class="filter-btn" onclick="filterAssets('unknown',this)">Unknown (290)</button>
+    <button class="filter-btn" onclick="filterAssets('pqc',this)">PQC-ready (89)</button>
+  </div>
+
+  <input class="search-bar" type="text" placeholder="Search assets, services, endpoints..." id="asset-search" oninput="searchAssets(this.value)">
+
+  <div class="card" style="padding:0;overflow:hidden;">
+    <div style="overflow-x:auto;">
+      <table class="asset-table" id="asset-table-el">
+        <thead>
+          <tr>
+            <th>Asset / Service</th>
+            <th>Type</th>
+            <th>Algorithm</th>
+            <th>PQC Status</th>
+            <th>Risk Score</th>
+            <th>Risk Level</th>
+            <th>Vendor</th>
+            <th>Owner</th>
+          </tr>
+        </thead>
+        <tbody id="asset-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- VIEW: CERTIFICATES -->
+<!-- ══════════════════════════════════════ -->
+<div class="view" id="view-certificates">
+  <div class="view-title">Certificate & PKI Inventory</div>
+  <div class="view-sub">143 certificates tracked · 12 expiring within 90 days · 6 classical-only chains</div>
+
+  <div class="grid3 mb22">
+    <div class="card card-sm">
+      <div class="stat-lbl">Total Certificates</div>
+      <div class="stat-val" style="color:var(--cyan);">143</div>
+      <div class="stat-delta" style="color:var(--t2);">RSA: 98 · ECDSA: 45</div>
+    </div>
+    <div class="card card-sm">
+      <div class="stat-lbl">Expiring &lt; 90 days</div>
+      <div class="stat-val" style="color:var(--amber);">12</div>
+      <div class="stat-delta" style="color:var(--orange);">3 critical services affected</div>
+    </div>
+    <div class="card card-sm">
+      <div class="stat-lbl">Classical-only Chains</div>
+      <div class="stat-val" style="color:var(--red);">6</div>
+      <div class="stat-delta" style="color:var(--t2);">Require migration planning</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-hdr">Certificate Findings</div>
+    <div class="finding-row">
+      <div class="finding-icon">🔴</div>
+      <div class="finding-body">
+        <div class="finding-name">Internal Root CA — RSA-2048 signing key</div>
+        <div class="finding-detail">CN=SecureBank-Root-CA · Expires 2029-03-12 · Signs 67 subordinate certs</div>
+        <div class="finding-meta">CRITICAL: Root CA uses quantum-vulnerable RSA-2048. Migration requires full PKI rebuild. Blast radius: all internal services.</div>
+      </div>
+      <span class="risk-badge rb-critical">CRITICAL</span>
+    </div>
+    <div class="finding-row">
+      <div class="finding-icon">🔴</div>
+      <div class="finding-body">
+        <div class="finding-name">Code Signing Certificate — HSM-backed RSA-2048</div>
+        <div class="finding-detail">CN=SecureBank-CodeSign · Expires 2027-08-30 · Signs mobile app, firmware</div>
+        <div class="finding-meta">CRITICAL: Code signing with RSA-2048. Retrospective attack could invalidate all signed binaries.</div>
+      </div>
+      <span class="risk-badge rb-critical">CRITICAL</span>
+    </div>
+    <div class="finding-row">
+      <div class="finding-icon">🟠</div>
+      <div class="finding-body">
+        <div class="finding-name">api.securebank.com — TLS Certificate (ECDSA P-256)</div>
+        <div class="finding-detail">CN=api.securebank.com · Expires 2026-11-15 · DigiCert CA</div>
+        <div class="finding-meta">HIGH: Public-facing TLS uses classical ECDSA. Key exchange still uses classical ECDH. Hybrid upgrade available.</div>
+      </div>
+      <span class="risk-badge rb-high">HIGH</span>
+    </div>
+    <div class="finding-row">
+      <div class="finding-icon">🟠</div>
+      <div class="finding-body">
+        <div class="finding-name">VPN Gateway Cluster — IPSec IKEv2 ECDH-256</div>
+        <div class="finding-detail">Cisco ASA 5585-X · 4 nodes · Group 19 (P-256)</div>
+        <div class="finding-meta">HIGH: IKEv2 key exchange uses ECDH-256. Vendor (Cisco) has PQC roadmap for Q3 2026. Firmware update required.</div>
+      </div>
+      <span class="risk-badge rb-high">HIGH</span>
+    </div>
+    <div class="finding-row" style="border:none;">
+      <div class="finding-icon">🟡</div>
+      <div class="finding-body">
+        <div class="finding-name">Kubernetes Ingress — Let's Encrypt ECDSA P-384</div>
+        <div class="finding-detail">*.internal.securebank.com · Auto-renewed · cert-manager</div>
+        <div class="finding-meta">MEDIUM: Internal services, shorter exposure window. cert-manager supports hybrid issuance — migration path available.</div>
+      </div>
+      <span class="risk-badge rb-medium">MEDIUM</span>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- VIEW: SCENARIOS -->
+<!-- ══════════════════════════════════════ -->
+<div class="view" id="view-scenarios">
+  <div class="view-title">Scenario Engine</div>
+  <div class="view-sub">Simulate different threat timelines and see how risk scores change across your asset portfolio</div>
+
+  <div class="scenario-grid">
+    <div class="scenario-card active" id="sc-public" onclick="setScenario('public',this)">
+      <div class="sc-name">Public Timeline</div>
+      <div class="sc-date">Q-day estimate: 2029–2031</div>
+      <div class="sc-desc">Standard NIST/NCSC timeline. Cryptographically relevant quantum computers by early 2030s.</div>
+      <div class="sc-indicator">
+        <div class="sc-dot" style="background:var(--green)"></div>
+        <div class="sc-dot" style="background:var(--green)"></div>
+        <div class="sc-dot" style="background:var(--amber)"></div>
+        <div class="sc-dot" style="background:var(--bg5)"></div>
+        <div class="sc-dot" style="background:var(--bg5)"></div>
+      </div>
+    </div>
+    <div class="scenario-card" id="sc-early" onclick="setScenario('early',this)">
+      <div class="sc-name">Early Break</div>
+      <div class="sc-date">Q-day estimate: 2026–2027</div>
+      <div class="sc-desc">Accelerated hardware progress. Quantum advantage arrives 3–4 years ahead of consensus.</div>
+      <div class="sc-indicator">
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--orange)"></div>
+        <div class="sc-dot" style="background:var(--bg5)"></div>
+      </div>
+    </div>
+    <div class="scenario-card" id="sc-hndl" onclick="setScenario('hndl',this)">
+      <div class="sc-name">HNDL Active Now</div>
+      <div class="sc-date">Harvest: ongoing · Decrypt: 2028+</div>
+      <div class="sc-desc">Adversaries are collecting encrypted traffic today. Long-term sensitive data already at risk.</div>
+      <div class="sc-indicator">
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--bg5)"></div>
+      </div>
+    </div>
+    <div class="scenario-card" id="sc-hidden" onclick="setScenario('hidden',this)">
+      <div class="sc-name">Hidden Capability</div>
+      <div class="sc-date">Nation-state classified CRQC</div>
+      <div class="sc-desc">A state actor already has cryptographically relevant capability but hasn't revealed it.</div>
+      <div class="sc-indicator">
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+      </div>
+    </div>
+    <div class="scenario-card" id="sc-vendor" onclick="setScenario('vendor',this)">
+      <div class="sc-name">Vendor Lag</div>
+      <div class="sc-date">Suppliers delay PQC by 2+ years</div>
+      <div class="sc-desc">Key vendors (HSM, VPN, PKI) fail to deliver PQC support on schedule, blocking migration.</div>
+      <div class="sc-indicator">
+        <div class="sc-dot" style="background:var(--green)"></div>
+        <div class="sc-dot" style="background:var(--amber)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--bg5)"></div>
+      </div>
+    </div>
+    <div class="scenario-card" id="sc-compliance" onclick="setScenario('compliance',this)">
+      <div class="sc-name">Compliance Pressure</div>
+      <div class="sc-date">Regulator mandate: 2027</div>
+      <div class="sc-desc">Financial regulator requires PQC certification by end of 2027. Non-compliance = fine.</div>
+      <div class="sc-indicator">
+        <div class="sc-dot" style="background:var(--green)"></div>
+        <div class="sc-dot" style="background:var(--amber)"></div>
+        <div class="sc-dot" style="background:var(--amber)"></div>
+        <div class="sc-dot" style="background:var(--red)"></div>
+        <div class="sc-dot" style="background:var(--bg5)"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="scenario-results">
+    <!-- Rendered by JS -->
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- VIEW: MIGRATION -->
+<!-- ══════════════════════════════════════ -->
+<div class="view" id="view-migration">
+  <div class="view-title">Migration Waves</div>
+  <div class="view-sub">Dependency-aware migration plan · Generated by Migration Planner Agent · Scenario: Public Timeline</div>
+
+  <div class="grid3 mb22">
+    <div class="card card-sm">
+      <div class="stat-lbl">Wave 1 Assets</div>
+      <div class="stat-val" style="color:var(--red);">15</div>
+      <div class="stat-delta" style="color:var(--orange);">Target: Q3 2026</div>
+    </div>
+    <div class="card card-sm">
+      <div class="stat-lbl">Wave 2 Assets</div>
+      <div class="stat-val" style="color:var(--amber);">47</div>
+      <div class="stat-delta" style="color:var(--amber);">Target: Q2 2027</div>
+    </div>
+    <div class="card card-sm">
+      <div class="stat-lbl">Wave 3 Assets</div>
+      <div class="stat-val" style="color:var(--green);">250</div>
+      <div class="stat-delta" style="color:var(--green);">Target: Q4 2028</div>
+    </div>
+  </div>
+
+  <div class="wave-container">
+    <div class="wave-col">
+      <div class="wave-header wave-w1">
+        <span>WAVE 1 — Immediate</span><span>Q3 2026</span>
+      </div>
+      <div class="wave-body">
+        <div class="wave-item">
+          <div class="wave-item-name">Internal Root CA rebuild</div>
+          <div class="wave-item-meta">RSA-4096 → ML-DSA-87 · 3 months · PKI team</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">HSM Code Signing migration</div>
+          <div class="wave-item-meta">RSA-2048 → SLH-DSA-256 · Thales HSM update required</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">Document Archive re-encryption</div>
+          <div class="wave-item-meta">RSA+AES → ML-KEM-1024+AES-256 · 847 TB</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">SSH Fleet key rotation (critical hosts)</div>
+          <div class="wave-item-meta">ECDSA → ML-DSA-65 · 247 critical servers</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">Backup encryption upgrade</div>
+          <div class="wave-item-meta">RSA key wrap → ML-KEM · Veeam + backup targets</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wave-col">
+      <div class="wave-header wave-w2">
+        <span>WAVE 2 — High Priority</span><span>Q2 2027</span>
+      </div>
+      <div class="wave-body">
+        <div class="wave-item">
+          <div class="wave-item-name">VPN Gateway upgrade (Cisco)</div>
+          <div class="wave-item-meta">ECDH-256 → hybrid ML-KEM+ECDH · Cisco firmware</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">External TLS endpoints</div>
+          <div class="wave-item-meta">ECDSA P-256 → hybrid TLS 1.3+PQC · 23 endpoints</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">Mobile Banking API TLS</div>
+          <div class="wave-item-meta">ECDH-384 → X25519Kyber768 hybrid · DigiCert</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">SSH Fleet (remaining hosts)</div>
+          <div class="wave-item-meta">RSA/ECDSA → ML-DSA-65 · 1,600 hosts</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">CI/CD Signing Pipeline</div>
+          <div class="wave-item-meta">ECDSA → SLH-DSA · Jenkins + Sigstore integration</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wave-col">
+      <div class="wave-header wave-w3">
+        <span>WAVE 3 — Planned</span><span>Q4 2028</span>
+      </div>
+      <div class="wave-body">
+        <div class="wave-item">
+          <div class="wave-item-name">Internal service mesh TLS</div>
+          <div class="wave-item-meta">ECDH → ML-KEM · 250+ microservices · Istio</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">Database encryption at rest</div>
+          <div class="wave-item-meta">RSA key exchange → ML-KEM · PostgreSQL + Oracle</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">Legacy mail gateway (Postfix)</div>
+          <div class="wave-item-meta">RSA-2048 → ML-DSA · SMTP/TLS upgrade</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">Cloud KMS migration (AWS)</div>
+          <div class="wave-item-meta">AWS KMS → ML-KEM native · pending AWS GA</div>
+        </div>
+        <div class="wave-item">
+          <div class="wave-item-name">Vendor estate remediation</div>
+          <div class="wave-item-meta">8 vendors · firmware/software updates · tracked</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════ -->
+<!-- VIEW: COPILOT -->
+<!-- ══════════════════════════════════════ -->
+<div class="view" id="view-copilot" style="padding:0;display:none;flex-direction:column;">
+  <div class="copilot-layout">
+    <div class="copilot-messages" id="copilot-messages">
+      <!-- Welcome message -->
+      <div class="msg-ai">
+        <div class="ai-avatar">QR</div>
+        <div class="msg-bubble">
+          <strong>QRP Copilot ready.</strong><br><br>
+          I have full context of SecureBank AG's crypto asset inventory: <strong>847 assets</strong>, <strong>312 classical-only</strong>, <strong>47 critical risk</strong>.<br><br>
+          Ask me anything about your PQC readiness — risk priorities, migration sequencing, vendor blockers, compliance timelines, or specific asset analysis. I can generate migration plans, explain risk scores, and translate standards into actionable tasks.
+        </div>
+      </div>
+    </div>
+
+    <div class="copilot-input-area">
+      <div class="copilot-chips">
+        <div class="chip" onclick="sendChip(this.textContent)">What are my most critical signing dependencies?</div>
+        <div class="chip" onclick="sendChip(this.textContent)">Show archives with confidentiality > 7 years</div>
+        <div class="chip" onclick="sendChip(this.textContent)">Generate Wave 1 plan for Linux fleet</div>
+        <div class="chip" onclick="sendChip(this.textContent)">Which vendor blockers are highest risk?</div>
+        <div class="chip" onclick="sendChip(this.textContent)">Explain the HNDL risk to our document archive</div>
+        <div class="chip" onclick="sendChip(this.textContent)">What's our NIS2 compliance gap?</div>
+      </div>
+      <div class="copilot-input-row">
+        <input class="copilot-input" id="copilot-input" type="text"
+          placeholder="Ask about your quantum readiness, risk priorities, migration planning..."
+          onkeydown="if(event.key==='Enter')sendMessage()">
+        <button class="copilot-send" id="copilot-send" onclick="sendMessage()">Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- app-body -->
+
+<script>
+/* ═══════════════════════════════════════
+   NAV
+═══════════════════════════════════════ */
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => { v.classList.remove('active'); v.style.display = 'none'; });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+  const v = document.getElementById('view-' + name);
+  if (name === 'copilot') {
+    v.style.display = 'flex';
+  } else {
+    v.classList.add('active');
+    v.style.display = 'block';
+  }
+  event.currentTarget.classList.add('active');
+
+  if (name === 'assets') renderAssets();
+  if (name === 'scenarios') renderScenario('public');
+  if (name === 'executive') drawRing();
+}
+
+/* ═══════════════════════════════════════
+   DONUT RING
+═══════════════════════════════════════ */
+function drawRing() {
+  const canvas = document.getElementById('ring-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const cx = 60, cy = 60, R = 52, ri = 34;
+  ctx.clearRect(0,0,120,120);
+  const segs = [
+    {pct:.368, color:'#f87171'},
+    {pct:.184, color:'#fbbf24'},
+    {pct:.105, color:'#34d399'},
+    {pct:.342, color:'#334155'},
+  ];
+  let a = -Math.PI/2;
+  segs.forEach(s => {
+    const sw = s.pct * 2 * Math.PI;
+    ctx.beginPath(); ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,R,a,a+sw); ctx.closePath();
+    ctx.fillStyle = s.color; ctx.fill();
+    a += sw;
+  });
+  ctx.beginPath(); ctx.arc(cx,cy,ri,0,2*Math.PI);
+  ctx.fillStyle = '#0a1220'; ctx.fill();
+}
+setTimeout(drawRing, 100);
+
+/* ═══════════════════════════════════════
+   ASSET DATA
+═══════════════════════════════════════ */
+const ASSETS = [
+  {name:'HSM Signing Cluster', service:'Code signing pipeline', type:'HSM', algo:'RSA-2048', pqc:'classical', risk:9.4, level:'critical', vendor:'Thales', owner:'Security Ops'},
+  {name:'Internal Root CA', service:'PKI trust anchor', type:'PKI', algo:'RSA-4096', pqc:'classical', risk:9.2, level:'critical', vendor:'Internal', owner:'PKI Team'},
+  {name:'Document Archive (7yr)', service:'Long-term records', type:'Storage', algo:'RSA-2048+AES', pqc:'classical', risk:9.1, level:'critical', vendor:'NetApp', owner:'Compliance'},
+  {name:'Backup Encryption', service:'Nightly backups', type:'Backup', algo:'RSA-2048', pqc:'classical', risk:8.6, level:'critical', vendor:'Veeam', owner:'Infrastructure'},
+  {name:'SSH Fleet (critical)', service:'247 critical servers', type:'SSH', algo:'ECDSA-256', pqc:'classical', risk:8.4, level:'critical', vendor:'OpenSSH', owner:'Infra Ops'},
+  {name:'VPN Gateway Cluster', service:'Cisco ASA · 4 nodes', type:'Network', algo:'ECDH-256', pqc:'classical', risk:8.1, level:'critical', vendor:'Cisco', owner:'Network Ops'},
+  {name:'Code Signing Cert', service:'Mobile + firmware', type:'PKI', algo:'RSA-2048', pqc:'classical', risk:7.9, level:'critical', vendor:'Internal/HSM', owner:'DevSecOps'},
+  {name:'Issuing CA — Tier 2', service:'Intermediate CA', type:'PKI', algo:'RSA-2048', pqc:'classical', risk:7.6, level:'critical', vendor:'Internal', owner:'PKI Team'},
+  {name:'Mail Gateway (MTA)', service:'Postfix SMTP', type:'Mail', algo:'RSA-2048', pqc:'classical', risk:7.2, level:'critical', vendor:'Postfix', owner:'Messaging'},
+  {name:'Legacy Core Banking', service:'COBOL + OpenSSL 1.0', type:'Application', algo:'RSA-1024', pqc:'classical', risk:9.8, level:'critical', vendor:'IBM', owner:'Core Banking'},
+  {name:'Mobile Banking API', service:'External TLS endpoint', type:'API', algo:'ECDH-384', pqc:'hybrid', risk:6.8, level:'high', vendor:'nginx/DigiCert', owner:'API Team'},
+  {name:'api.securebank.com', service:'Public REST API', type:'API', algo:'ECDSA P-256', pqc:'hybrid', risk:6.4, level:'high', vendor:'DigiCert', owner:'Platform'},
+  {name:'CI/CD Pipeline', service:'Jenkins signing workflow', type:'DevOps', algo:'ECDSA-256', pqc:'classical', risk:6.1, level:'high', vendor:'Jenkins', owner:'DevOps'},
+  {name:'Kubernetes Ingress', service:'Internal mesh TLS', type:'Network', algo:'ECDSA P-384', pqc:'hybrid', risk:5.8, level:'high', vendor:'Let\'s Encrypt', owner:'Platform'},
+  {name:'AWS KMS Integration', service:'Cloud key management', type:'Cloud', algo:'RSA-2048', pqc:'hybrid', risk:5.4, level:'high', vendor:'AWS', owner:'Cloud'},
+  {name:'PostgreSQL at-rest', service:'Primary DB encryption', type:'Database', algo:'AES-256+RSA', pqc:'classical', risk:5.1, level:'high', vendor:'Percona', owner:'DBA Team'},
+  {name:'SSH Fleet (standard)', service:'1,600 servers', type:'SSH', algo:'ECDSA-256', pqc:'classical', risk:4.8, level:'medium', vendor:'OpenSSH', owner:'Infra Ops'},
+  {name:'OAuth Token Signing', service:'JWT RS256', type:'Auth', algo:'RSA-2048', pqc:'classical', risk:4.6, level:'medium', vendor:'Keycloak', owner:'IAM'},
+  {name:'S3 Backup Bucket', service:'Long-term object storage', type:'Cloud', algo:'AES-256', pqc:'unknown', risk:4.2, level:'medium', vendor:'AWS', owner:'Cloud'},
+  {name:'LDAP/AD Integration', service:'Directory services TLS', type:'Directory', algo:'RSA-2048', pqc:'classical', risk:3.8, level:'medium', vendor:'Microsoft', owner:'IAM'},
+  {name:'Monitoring Stack TLS', service:'Prometheus/Grafana', type:'Monitoring', algo:'Self-signed RSA', pqc:'classical', risk:3.2, level:'medium', vendor:'Internal', owner:'SRE'},
+  {name:'AWS CloudFront CDN', service:'Public content delivery', type:'Cloud', algo:'ECDSA P-256', pqc:'hybrid', risk:2.8, level:'low', vendor:'AWS', owner:'Platform'},
+  {name:'Internal Wiki TLS', service:'Confluence HTTPS', type:'Web', algo:'ECDSA P-256', pqc:'hybrid', risk:2.1, level:'low', vendor:'Atlassian', owner:'IT'},
+  {name:'New Microservice (2025)', service:'Payment processing v2', type:'API', algo:'ML-KEM-768', pqc:'pqc', risk:1.2, level:'low', vendor:'Internal', owner:'Payments'},
+  {name:'Dev Environment', service:'Test infrastructure', type:'Infrastructure', algo:'ML-DSA-65', pqc:'pqc', risk:0.8, level:'low', vendor:'Internal', owner:'DevOps'},
+];
+
+let assetFilter = 'all';
+let assetSearch = '';
+function filterAssets(f, btn) {
+  assetFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAssets();
+}
+function searchAssets(q) { assetSearch = q.toLowerCase(); renderAssets(); }
+function renderAssets() {
+  const tbody = document.getElementById('asset-tbody');
+  let data = ASSETS.filter(a => {
+    if (assetFilter === 'critical' && a.level !== 'critical') return false;
+    if (assetFilter === 'high' && a.level !== 'high') return false;
+    if (assetFilter === 'classical' && a.pqc !== 'classical') return false;
+    if (assetFilter === 'unknown' && a.pqc !== 'unknown') return false;
+    if (assetFilter === 'pqc' && a.pqc !== 'pqc') return false;
+    if (assetSearch && !a.name.toLowerCase().includes(assetSearch) && !a.service.toLowerCase().includes(assetSearch) && !a.algo.toLowerCase().includes(assetSearch)) return false;
+    return true;
+  });
+  const pqcClass = {classical:'cb-classical',hybrid:'cb-hybrid',pqc:'cb-pqc',unknown:'cb-unknown',vendor:'cb-vendor'};
+  const riskClass = {critical:'rb-critical',high:'rb-high',medium:'rb-medium',low:'rb-low'};
+  const riskDot = {critical:'🔴',high:'🟠',medium:'🟡',low:'🟢'};
+  tbody.innerHTML = data.map(a => `
+    <tr>
+      <td><div style="font-weight:500;font-size:13px;">${a.name}</div><div style="font-size:10px;color:var(--t3);">${a.service}</div></td>
+      <td style="font-size:11px;color:var(--t2);font-family:var(--mono);">${a.type}</td>
+      <td><code style="font-family:var(--mono);font-size:11px;background:var(--bg4);padding:2px 6px;border-radius:3px;">${a.algo}</code></td>
+      <td><span class="crypto-badge ${pqcClass[a.pqc]}">${a.pqc}</span></td>
+      <td>
+        <div style="font-family:var(--mono);font-size:13px;font-weight:700;color:${a.risk>=8?'var(--red)':a.risk>=6?'var(--orange)':a.risk>=4?'var(--amber)':'var(--green)'}">${a.risk.toFixed(1)}</div>
+        <div style="height:3px;background:var(--bg5);border-radius:2px;margin-top:3px;width:60px;overflow:hidden;">
+          <div style="height:100%;width:${a.risk*10}%;background:${a.risk>=8?'var(--red)':a.risk>=6?'var(--orange)':a.risk>=4?'var(--amber)':'var(--green)'};border-radius:2px;"></div>
+        </div>
+      </td>
+      <td><span class="risk-badge ${riskClass[a.level]}">${riskDot[a.level]} ${a.level.toUpperCase()}</span></td>
+      <td style="font-size:11px;color:var(--t2);">${a.vendor}</td>
+      <td style="font-size:11px;color:var(--t2);">${a.owner}</td>
+    </tr>
+  `).join('');
+}
+
+/* ═══════════════════════════════════════
+   SCENARIO ENGINE
+═══════════════════════════════════════ */
+const SCENARIOS = {
+  public: {
+    label:'Public Timeline (2029–2031)',
+    critical:47, high:128, changed:0,
+    description:'Standard consensus timeline. Sufficient time for planned migration if started now.',
+    scores:{hsm:9.4, ca:9.2, archive:9.1, vpn:8.1, api:6.8, signing:7.9},
+    readiness:23, urgency:'medium',
+    insight:'With 3–5 years available, Wave 1 can proceed in controlled sprints. Focus: HSM signing chain and Root CA rebuild first.'
+  },
+  early: {
+    label:'Early Break (2026–2027)',
+    critical:89, high:180, changed:42,
+    description:'Accelerated scenario. Q-day arrives before most vendor PQC support is production-ready.',
+    scores:{hsm:9.9, ca:9.8, archive:9.7, vpn:9.4, api:8.9, signing:9.6},
+    readiness:23, urgency:'high',
+    insight:'IMMEDIATE: Freeze all new classical-only deployments. Prioritize HSM vendor SLA enforcement. Emergency migration sprint for Root CA and archive re-encryption.'
+  },
+  hndl: {
+    label:'HNDL Active Now',
+    critical:127, high:200, changed:80,
+    description:'Harvest now, decrypt later is already underway. Any long-term sensitive data is compromised.',
+    scores:{hsm:9.6, ca:9.5, archive:10.0, vpn:9.2, api:7.8, signing:9.4},
+    readiness:23, urgency:'critical',
+    insight:'CRITICAL: Document Archive risk is now 10.0 — data already captured by adversaries. Immediate re-encryption of all 7yr+ archives. Treat as active breach scenario.'
+  },
+  hidden: {
+    label:'Hidden Capability',
+    critical:134, high:210, changed:87,
+    description:'A state actor already has CRQC. All RSA/ECC key exchanges must be treated as compromised.',
+    scores:{hsm:10.0, ca:10.0, archive:10.0, vpn:9.8, api:9.2, signing:10.0},
+    readiness:23, urgency:'critical',
+    insight:'MAXIMUM ALERT: Assume all classical key material is compromised. Incident response posture. Activate emergency PQC bridge protocols. Isolate HSM signing cluster pending emergency migration.'
+  },
+  vendor: {
+    label:'Vendor Lag',
+    critical:52, high:145, changed:5,
+    description:'Your crypto risk is standard, but Cisco, Thales HSM, and AWS KMS delay PQC by 2+ years.',
+    scores:{hsm:9.4, ca:9.2, archive:9.1, vpn:9.0, api:7.1, signing:8.8},
+    readiness:23, urgency:'medium',
+    insight:'Vendor dependency is the primary blocker. Escalate Cisco and Thales SLAs immediately. Identify bypass strategies: software-based signing fallback, alternative HSM vendor, open-source PKI bridge.'
+  },
+  compliance: {
+    label:'Compliance Pressure',
+    critical:47, high:128, changed:0,
+    description:'Financial regulator mandates PQC certification by Q4 2027. Fine exposure: €50M.',
+    scores:{hsm:9.4, ca:9.2, archive:9.1, vpn:8.5, api:7.2, signing:8.4},
+    readiness:23, urgency:'high',
+    insight:'Compliance deadline drives Wave 1 and 2 to overlap. Priority: assets the regulator will audit first — code signing, external TLS, archive encryption. Build audit evidence trail from day 1.'
+  }
+};
+
+let currentScenario = 'public';
+function setScenario(name, el) {
+  currentScenario = name;
+  document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderScenario(name);
+}
+function renderScenario(name) {
+  const s = SCENARIOS[name];
+  const urgencyColor = {medium:'var(--amber)',high:'var(--orange)',critical:'var(--red)'};
+  const uc = urgencyColor[s.urgency] || 'var(--amber)';
+
+  const critDelta = name === 'public' ? '' : `<span style="color:var(--red);font-size:11px;"> (+${s.changed})</span>`;
+
+  document.getElementById('scenario-results').innerHTML = `
+    <div class="card mb14">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:15px;font-weight:600;">${s.label}</div>
+          <div style="font-size:12px;color:var(--t2);margin-top:3px;">${s.description}</div>
+        </div>
+        <div style="padding:5px 14px;border-radius:5px;border:1px solid ${uc};background:rgba(255,255,255,.03);font-family:var(--mono);font-size:11px;color:${uc};font-weight:700;">
+          URGENCY: ${s.urgency.toUpperCase()}
+        </div>
+      </div>
+
+      <div class="grid4" style="margin-bottom:16px;">
+        <div style="background:var(--bg4);border-radius:6px;padding:12px;">
+          <div style="font-size:10px;color:var(--t3);margin-bottom:4px;font-family:var(--mono);">CRITICAL</div>
+          <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--red);">${s.critical}${critDelta}</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:6px;padding:12px;">
+          <div style="font-size:10px;color:var(--t3);margin-bottom:4px;font-family:var(--mono);">HIGH RISK</div>
+          <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--orange);">${s.high}</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:6px;padding:12px;">
+          <div style="font-size:10px;color:var(--t3);margin-bottom:4px;font-family:var(--mono);">READINESS</div>
+          <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:var(--amber);">${s.readiness}%</div>
+        </div>
+        <div style="background:var(--bg4);border-radius:6px;padding:12px;">
+          <div style="font-size:10px;color:var(--t3);margin-bottom:4px;font-family:var(--mono);">ASSETS AT RISK</div>
+          <div style="font-family:var(--mono);font-size:20px;font-weight:700;color:${uc};">${s.critical + s.high}</div>
+        </div>
+      </div>
+
+      <div class="section-hdr">Risk Score Impact — Top Assets</div>
+      <div class="score-matrix">
+        ${Object.entries({
+          'HSM Signing Cluster': s.scores.hsm,
+          'Internal Root CA': s.scores.ca,
+          'Document Archive (7yr)': s.scores.archive,
+          'VPN Gateway Cluster': s.scores.vpn,
+          'Mobile Banking API': s.scores.api,
+          'Code Signing Cert': s.scores.signing,
+        }).map(([k,v]) => `
+          <div style="background:var(--bg4);border-radius:6px;padding:12px;">
+            <div style="font-size:11px;color:var(--t2);margin-bottom:5px;">${k}</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:${v>=9?'var(--red)':v>=7?'var(--orange)':'var(--amber)'};">${v.toFixed(1)}</div>
+              <div style="flex:1;height:4px;background:var(--bg5);border-radius:2px;overflow:hidden;">
+                <div style="width:${v*10}%;height:100%;background:${v>=9?'var(--red)':v>=7?'var(--orange)':'var(--amber)'};border-radius:2px;transition:width .6s;"></div>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div style="margin-top:16px;padding:12px 16px;background:${s.urgency==='critical'?'var(--rd)':s.urgency==='high'?'rgba(251,146,60,.1)':'var(--ad)'};border:1px solid ${uc}30;border-radius:6px;">
+        <div style="font-size:10px;font-family:var(--mono);color:${uc};margin-bottom:5px;">COPILOT ANALYSIS</div>
+        <div style="font-size:12px;color:var(--t1);line-height:1.6;">${s.insight}</div>
+      </div>
+    </div>
+  `;
+}
+
+/* ═══════════════════════════════════════
+   COPILOT (REAL API)
+═══════════════════════════════════════ */
+const SYSTEM_PROMPT = `You are QRP Copilot — the AI assistant embedded in the Quantum Readiness Platform deployed at SecureBank AG, a European financial institution.
+
+You have full context of their crypto asset inventory:
+- 847 total assets indexed
+- 312 classical-only (36.8%): RSA/ECDSA/ECDH — quantum vulnerable
+- 156 hybrid-capable (18.4%): can support dual classical+PQC
+- 89 PQC-ready (10.5%): already running ML-KEM/ML-DSA
+- 290 unknown/vendor-blocked (34.2%): status unclear or vendor hasn't shipped PQC
+
+Key critical assets:
+1. HSM Signing Cluster (Thales): RSA-2048 code signing, risk 9.4 — CRITICAL
+2. Internal Root CA: RSA-4096, signs 67 subordinate certs, risk 9.2 — CRITICAL
+3. Document Archive 7yr: RSA-2048+AES, 847 TB sensitive records, risk 9.1 — CRITICAL
+4. Legacy Core Banking (IBM): RSA-1024, risk 9.8 — CRITICAL (most urgent)
+5. VPN Cluster (Cisco ASA x4): ECDH-256, vendor PQC roadmap Q3 2026, risk 8.1
+6. Code Signing Cert: RSA-2048, signs mobile app + firmware, risk 7.9
+7. Mobile Banking API: ECDH-384, external facing, risk 6.8
+
+NIST standards: FIPS 203 (ML-KEM), FIPS 204 (ML-DSA), FIPS 205 (SLH-DSA) finalized Aug 2024.
+EU PQC Roadmap: all member states transition by end 2026, critical infra by 2030.
+Google internal timeline: 2029.
+
+Migration waves planned:
+- Wave 1 (Q3 2026): Root CA, HSM signing, archive re-encryption, critical SSH hosts
+- Wave 2 (Q2 2027): VPN, external TLS, CI/CD signing, SSH fleet
+- Wave 3 (Q4 2028): Internal mesh, DB encryption, cloud KMS, legacy systems
+
+Vendor blockers: Cisco (VPN firmware, Q3 2026), Thales HSM (PQC module, Q4 2026), AWS KMS (ML-KEM GA, timeline unclear), IBM (Core Banking, no PQC roadmap announced).
+
+Your role: be specific, technical, and actionable. Reference actual asset names and risk scores. Give concrete recommendations. You are the bridge between raw crypto data and human decision-making. Be direct — this is a security context, not a chat assistant.
+
+Format your responses clearly with structure when helpful. Use bold for key terms. Keep responses focused and actionable.`;
+
+let chatHistory = [];
+
+async function sendMessage() {
+  const input = document.getElementById('copilot-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  input.value = '';
+  addUserMsg(msg);
+  await callCopilot(msg);
+}
+
+function sendChip(text) {
+  addUserMsg(text);
+  callCopilot(text);
+}
+
+function addUserMsg(text) {
+  const msgs = document.getElementById('copilot-messages');
+  msgs.innerHTML += `<div class="msg-user"><div class="msg-bubble">${text}</div></div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function addTyping() {
+  const msgs = document.getElementById('copilot-messages');
+  const id = 'typing-' + Date.now();
+  msgs.innerHTML += `<div class="msg-ai" id="${id}">
+    <div class="ai-avatar">QR</div>
+    <div class="msg-bubble"><div class="typing-indicator">
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+      <div class="typing-dot"></div>
+    </div></div>
+  </div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+  return id;
+}
+
+function addAIMsg(text, typingId) {
+  const el = document.getElementById(typingId);
+  if (el) el.remove();
+  const msgs = document.getElementById('copilot-messages');
+  // Format text: **bold**, bullet lists, code
+  let formatted = text
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/^- (.*)/gm, '<li>$1</li>')
+    .replace(/(<li>.*<\/li>\n?)+/g, '<ul>$&</ul>')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+  msgs.innerHTML += `<div class="msg-ai">
+    <div class="ai-avatar">QR</div>
+    <div class="msg-bubble">${formatted}</div>
+  </div>`;
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+async function callCopilot(userMsg) {
+  const sendBtn = document.getElementById('copilot-send');
+  const input = document.getElementById('copilot-input');
+  sendBtn.disabled = true; input.disabled = true;
+
+  chatHistory.push({ role: 'user', content: userMsg });
+  const typingId = addTyping();
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: chatHistory
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || 'Unable to process response.';
+    chatHistory.push({ role: 'assistant', content: reply });
+    addAIMsg(reply, typingId);
+  } catch(e) {
+    addAIMsg('⚠ Connection error. The copilot API is unavailable. Please check your network.', typingId);
+  }
+
+  sendBtn.disabled = false; input.disabled = false;
+  input.focus();
+}
+
+/* Init */
+renderAssets();
+renderScenario('public');
+</script>
+</body>
+</html>

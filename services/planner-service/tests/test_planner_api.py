@@ -40,3 +40,21 @@ def test_waves(monkeypatch) -> None:
     assert response.status_code == 200
     data = response.json()
     assert len(data["wave_1"]) == 1
+
+
+def test_export_tasks(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.inventory.get_assets", lambda: [
+        {"name": "google.com:443", "asset_type": "endpoint"},
+        {"name": "stenly-Latitude-E6230", "asset_type": "server"},
+    ])
+    monkeypatch.setattr("app.main.inventory.get_risks", lambda: [
+        {"asset_name": "google.com:443", "rating": "high", "normalized_score_100": 68.0, "scenario": "public_timeline"},
+        {"asset_name": "stenly-Latitude-E6230", "rating": "high", "normalized_score_100": 64.0, "scenario": "public_timeline"},
+    ])
+    monkeypatch.setattr("app.main.workflow.create_task", lambda payload: {"id": "task-1", **payload})
+
+    response = client.post("/export-tasks", json={"waves": ["wave_1", "wave_2"]})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["created_count"] == 2
+    assert len(data["tasks"]) == 2

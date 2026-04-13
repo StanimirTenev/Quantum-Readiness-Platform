@@ -8,6 +8,7 @@ import (
 	"crypto/tls"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/json"
 	"strings"
 	"testing"
 )
@@ -138,5 +139,64 @@ func TestCertificateChainDetailsReturnsVerifiedLengthWhenAvailable(t *testing.T)
 	}
 	if !details.VerifiedChainAvailable {
 		t.Fatal("expected verified_chain_available to be true")
+	}
+}
+
+func TestCertificateInfoUsesStructuredJSONFields(t *testing.T) {
+	certificate := CertificateInfo{
+		Subject: CertificateParty{
+			DisplayDN:   "CN=example.com,O=Example Corp",
+			Fingerprint: "SHA256:ABC",
+		},
+		Issuer: CertificateParty{
+			DisplayDN:   "CN=Example CA",
+			Fingerprint: "SHA256:DEF",
+		},
+		Validity: CertificateValidity{
+			NotBefore: "2026-01-01T00:00:00Z",
+			NotAfter:  "2027-01-01T00:00:00Z",
+		},
+		Algorithms: CertificateAlgorithms{
+			Signature: "SHA256-RSA",
+			PublicKey: "RSA",
+		},
+		Key: CertificateKeyData{
+			Type: "RSA",
+		},
+		SAN: CertificateSAN{
+			DNSNames: []string{"example.com"},
+		},
+	}
+
+	payload, err := json.Marshal(certificate)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+
+	jsonOutput := string(payload)
+	for _, expected := range []string{
+		`"subject":{"display_dn":"CN=example.com,O=Example Corp","fingerprint":"SHA256:ABC"}`,
+		`"issuer":{"display_dn":"CN=Example CA","fingerprint":"SHA256:DEF"}`,
+		`"validity":{"not_before":"2026-01-01T00:00:00Z","not_after":"2027-01-01T00:00:00Z"}`,
+		`"algorithms":{"signature":"SHA256-RSA","public_key":"RSA"}`,
+		`"key":{"type":"RSA"}`,
+		`"san":{"dns_names":["example.com"]}`,
+	} {
+		if !strings.Contains(jsonOutput, expected) {
+			t.Fatalf("expected JSON to contain %q, got %s", expected, jsonOutput)
+		}
+	}
+
+	for _, legacyField := range []string{
+		`"subject_fingerprint"`,
+		`"issuer_fingerprint"`,
+		`"signature_algorithm"`,
+		`"public_key_algorithm"`,
+		`"key_type"`,
+		`"key_size_bits"`,
+	} {
+		if strings.Contains(jsonOutput, legacyField) {
+			t.Fatalf("expected legacy field %q to be absent, got %s", legacyField, jsonOutput)
+		}
 	}
 }

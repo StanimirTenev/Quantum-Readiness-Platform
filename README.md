@@ -24,3 +24,7 @@ Project skeleton for the Quantum Readiness Platform with LLM Copilot.
 2. Risk engine
 3. Linux host agent
 4. TLS/SSH scanner
+
+## Architecture and delivery navigation
+- Core architecture: `docs/architecture.md`
+- TRL5 execution roadmap: `docs/trl5-working-navigator.md`

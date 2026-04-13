@@ -56,17 +56,29 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 		CipherSuite: tls.CipherSuiteName(state.CipherSuite),
 		ServerName:  serverName,
 		Certificate: CertificateInfo{
-			Subject:            cert.Subject.String(),
-			Issuer:             cert.Issuer.String(),
-			SubjectFingerprint: nameFingerprint(cert.RawSubject),
-			IssuerFingerprint:  nameFingerprint(cert.RawIssuer),
-			NotBefore:          cert.NotBefore.Format(time.RFC3339),
-			NotAfter:           cert.NotAfter.Format(time.RFC3339),
-			SignatureAlgorithm: cert.SignatureAlgorithm.String(),
-			PublicKeyAlgorithm: cert.PublicKeyAlgorithm.String(),
-			KeyType:            keyType,
-			KeySizeBits:        keySizeBits,
-			DNSNames:           cert.DNSNames,
+			Subject: CertificateParty{
+				DisplayDN:   cert.Subject.String(),
+				Fingerprint: nameFingerprint(cert.RawSubject),
+			},
+			Issuer: CertificateParty{
+				DisplayDN:   cert.Issuer.String(),
+				Fingerprint: nameFingerprint(cert.RawIssuer),
+			},
+			Validity: CertificateValidity{
+				NotBefore: cert.NotBefore.Format(time.RFC3339),
+				NotAfter:  cert.NotAfter.Format(time.RFC3339),
+			},
+			Algorithms: CertificateAlgorithms{
+				Signature: cert.SignatureAlgorithm.String(),
+				PublicKey: cert.PublicKeyAlgorithm.String(),
+			},
+			Key: CertificateKeyData{
+				Type:     keyType,
+				SizeBits: keySizeBits,
+			},
+			SAN: CertificateSAN{
+				DNSNames: cert.DNSNames,
+			},
 		},
 		CertificateChainInfo: chainInfo,
 	}

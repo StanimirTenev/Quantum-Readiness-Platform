@@ -1,17 +1,36 @@
 package scanner
 
 type CertificateInfo struct {
-	Subject            string   `json:"subject"`
-	Issuer             string   `json:"issuer"`
-	SubjectFingerprint string   `json:"subject_fingerprint,omitempty"`
-	IssuerFingerprint  string   `json:"issuer_fingerprint,omitempty"`
-	NotBefore          string   `json:"not_before"`
-	NotAfter           string   `json:"not_after"`
-	SignatureAlgorithm string   `json:"signature_algorithm"`
-	PublicKeyAlgorithm string   `json:"public_key_algorithm"`
-	KeyType            string   `json:"key_type,omitempty"`
-	KeySizeBits        *int     `json:"key_size_bits,omitempty"`
-	DNSNames           []string `json:"dns_names"`
+	Subject    CertificateParty      `json:"subject"`
+	Issuer     CertificateParty      `json:"issuer"`
+	Validity   CertificateValidity   `json:"validity"`
+	Algorithms CertificateAlgorithms `json:"algorithms"`
+	Key        CertificateKeyData    `json:"key"`
+	SAN        CertificateSAN        `json:"san"`
+}
+
+type CertificateParty struct {
+	DisplayDN   string `json:"display_dn"`
+	Fingerprint string `json:"fingerprint,omitempty"`
+}
+
+type CertificateValidity struct {
+	NotBefore string `json:"not_before"`
+	NotAfter  string `json:"not_after"`
+}
+
+type CertificateAlgorithms struct {
+	Signature string `json:"signature"`
+	PublicKey string `json:"public_key"`
+}
+
+type CertificateKeyData struct {
+	Type     string `json:"type,omitempty"`
+	SizeBits *int   `json:"size_bits,omitempty"`
+}
+
+type CertificateSAN struct {
+	DNSNames []string `json:"dns_names"`
 }
 
 type CertificateChainDetails struct {

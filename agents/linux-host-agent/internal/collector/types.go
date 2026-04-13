@@ -9,10 +9,17 @@ type HostInventory struct {
 }
 
 type CryptoEvidence struct {
-	OpenSSLAvailable bool     `json:"openssl_available"`
-	OpenSSLVersion   string   `json:"openssl_version,omitempty"`
-	SSHConfigPath    string   `json:"ssh_config_path,omitempty"`
-	KnownCryptoFiles []string `json:"known_crypto_files"`
+	OpenSSLAvailable   bool            `json:"openssl_available"`
+	OpenSSLVersion     string          `json:"openssl_version,omitempty"`
+	SSHConfigPath      string          `json:"ssh_config_path,omitempty"`
+	KnownCryptoFiles   []string        `json:"known_crypto_files"`
+	PackageManagerType string          `json:"package_manager_type"`
+	CryptoPackages     []CryptoPackage `json:"crypto_packages"`
+}
+
+type CryptoPackage struct {
+	Name    string `json:"name"`
+	Version string `json:"version,omitempty"`
 }
 
 type AssetPayload struct {

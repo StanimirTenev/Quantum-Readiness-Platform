@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 )
 
@@ -26,6 +27,8 @@ func Collect() (ScanOutput, error) {
 	}
 
 	knownFiles := collectKnownCryptoFiles()
+	packageManagerType := detectPackageManagerType()
+	cryptoPackages := collectCryptoPackages(packageManagerType)
 
 	output := ScanOutput{
 		Source: "host",
@@ -37,10 +40,12 @@ func Collect() (ScanOutput, error) {
 			IPs:          ips,
 		},
 		CryptoEvidence: CryptoEvidence{
-			OpenSSLAvailable: opensslAvailable,
-			OpenSSLVersion:   opensslVersion,
-			SSHConfigPath:    sshConfigPath,
-			KnownCryptoFiles: knownFiles,
+			OpenSSLAvailable:   opensslAvailable,
+			OpenSSLVersion:     opensslVersion,
+			SSHConfigPath:      sshConfigPath,
+			KnownCryptoFiles:   knownFiles,
+			PackageManagerType: packageManagerType,
+			CryptoPackages:     cryptoPackages,
 		},
 		Assets: buildAssets(hostname),
 	}
@@ -100,6 +105,116 @@ func collectKnownCryptoFiles() []string {
 func fileExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
+}
+
+func commandExists(name string) bool {
+	_, err := exec.LookPath(name)
+	return err == nil
+}
+
+func detectPackageManagerType() string {
+	switch {
+	case commandExists("dpkg-query"):
+		return "dpkg"
+	case commandExists("rpm"):
+		return "rpm"
+	case commandExists("pacman"):
+		return "pacman"
+	case commandExists("apk"):
+		return "apk"
+	default:
+		return "unknown"
+	}
+}
+
+func collectCryptoPackages(packageManagerType string) []CryptoPackage {
+	raw := listInstalledPackages(packageManagerType)
+	if len(raw) == 0 {
+		return []CryptoPackage{}
+	}
+
+	relevant := make([]CryptoPackage, 0)
+	for _, pkg := range raw {
+		if isRelevantCryptoPackage(pkg.Name) {
+			relevant = append(relevant, pkg)
+		}
+	}
+
+	sort.Slice(relevant, func(i, j int) bool {
+		return relevant[i].Name < relevant[j].Name
+	})
+
+	return relevant
+}
+
+func listInstalledPackages(packageManagerType string) []CryptoPackage {
+	var output string
+
+	switch packageManagerType {
+	case "dpkg":
+		output = runCommand("dpkg-query", "-W", "-f=${Package}\t${Version}\n")
+	case "rpm":
+		output = runCommand("rpm", "-qa", "--qf", "%{NAME}\t%{VERSION}-%{RELEASE}\n")
+	case "pacman":
+		output = runCommand("pacman", "-Q")
+	case "apk":
+		output = runCommand("apk", "info", "-v")
+	default:
+		return []CryptoPackage{}
+	}
+
+	if output == "" {
+		return []CryptoPackage{}
+	}
+
+	lines := strings.Split(output, "\n")
+	packages := make([]CryptoPackage, 0, len(lines))
+	for _, line := range lines {
+		parsed, ok := parsePackageLine(line)
+		if ok {
+			packages = append(packages, parsed)
+		}
+	}
+
+	return packages
+}
+
+func parsePackageLine(line string) (CryptoPackage, bool) {
+	line = strings.TrimSpace(line)
+	if line == "" {
+		return CryptoPackage{}, false
+	}
+
+	fields := strings.Fields(line)
+	if len(fields) == 0 {
+		return CryptoPackage{}, false
+	}
+
+	name := fields[0]
+	version := ""
+	if len(fields) > 1 {
+		version = strings.Join(fields[1:], " ")
+	}
+
+	return CryptoPackage{
+		Name:    name,
+		Version: version,
+	}, true
+}
+
+func isRelevantCryptoPackage(packageName string) bool {
+	packageName = strings.ToLower(packageName)
+	return strings.Contains(packageName, "openssl") ||
+		strings.Contains(packageName, "libssl") ||
+		strings.Contains(packageName, "openssh") ||
+		strings.Contains(packageName, "gnutls") ||
+		strings.Contains(packageName, "libgcrypt") ||
+		strings.Contains(packageName, "libnss") ||
+		strings.HasPrefix(packageName, "nss") ||
+		strings.Contains(packageName, "mbedtls") ||
+		strings.Contains(packageName, "wolfssl") ||
+		strings.Contains(packageName, "liboqs") ||
+		strings.Contains(packageName, "boringssl")
 }
 
 func runCommand(name string, args ...string) string {

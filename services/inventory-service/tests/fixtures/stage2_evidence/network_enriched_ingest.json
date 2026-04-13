@@ -1,0 +1,59 @@
+{
+  "source": "network",
+  "assets": [
+    {
+      "asset_type": "endpoint",
+      "name": "payments.example.com:443",
+      "criticality": 4,
+      "environment": "production",
+      "lifecycle_years": 5,
+      "vendor": "payments-vendor"
+    }
+  ],
+  "tls_evidence": {
+    "target": "payments.example.com:443",
+    "tls_version": "TLS1.3",
+    "cipher_suite": "TLS_AES_128_GCM_SHA256",
+    "server_name": "payments.example.com",
+    "certificate": {
+      "subject": {
+        "display_dn": "CN=payments.example.com,O=Payments Vendor Inc"
+      },
+      "issuer": {
+        "display_dn": "CN=Vendor Issuing CA 2026,O=Payments Vendor PKI"
+      },
+      "validity": {
+        "not_before": "2026-03-01T00:00:00Z",
+        "not_after": "2027-03-01T00:00:00Z"
+      },
+      "algorithms": {
+        "signature": "RSA-PSS-SHA256",
+        "public_key": "RSA"
+      },
+      "san": {
+        "dns_names": [
+          "payments.example.com",
+          "payments-api.example.com"
+        ]
+      }
+    },
+    "certificate_chain": {
+      "available": true,
+      "presented_chain_length": 3,
+      "summary": "leaf + intermediate + root sent"
+    }
+  },
+  "crypto_evidence": {
+    "openssl_available": true,
+    "openssl_version": "OpenSSL 3.0.15",
+    "known_crypto_files": [
+      "/etc/ssl/openssl.cnf"
+    ],
+    "package_metadata": {
+      "package_manager_type": "apt",
+      "crypto_packages": [
+        "openssl 3.0.15-1"
+      ]
+    }
+  }
+}

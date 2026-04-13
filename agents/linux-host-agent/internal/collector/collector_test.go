@@ -1,6 +1,9 @@
 package collector
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestCollect(t *testing.T) {
 	result, err := Collect()
@@ -87,5 +90,44 @@ func TestCollectCryptoPackagesReturnsOnlyRelevantEntries(t *testing.T) {
 
 	if filtered[1].Name != "openssh-client" {
 		t.Fatalf("expected second package openssh-client, got %s", filtered[1].Name)
+	}
+}
+
+func TestCryptoEvidenceJSONShapeHasNoParsedCryptoDetailDuplication(t *testing.T) {
+	evidence := CryptoEvidence{
+		OpenSSLAvailable:   true,
+		OpenSSLVersion:     "3.0.2",
+		SSHConfigPath:      "/etc/ssh/ssh_config",
+		KnownCryptoFiles:   []string{"/etc/ssl/openssl.cnf"},
+		PackageManagerType: "dpkg",
+		CryptoPackages: []CryptoPackage{
+			{Name: "openssl", Version: "3.0.2"},
+		},
+	}
+
+	raw, err := json.Marshal(evidence)
+	if err != nil {
+		t.Fatalf("marshal crypto evidence: %v", err)
+	}
+
+	var payload map[string]any
+	if err := json.Unmarshal(raw, &payload); err != nil {
+		t.Fatalf("unmarshal crypto evidence: %v", err)
+	}
+
+	if _, exists := payload["parsed_crypto_detail"]; exists {
+		t.Fatal("expected parsed_crypto_detail to be absent to avoid duplicate sources of truth")
+	}
+
+	for _, field := range []string{
+		"openssl_available",
+		"openssl_version",
+		"ssh_config_path",
+		"package_manager_type",
+		"crypto_packages",
+	} {
+		if _, exists := payload[field]; !exists {
+			t.Fatalf("expected top-level field %s to be present", field)
+		}
 	}
 }

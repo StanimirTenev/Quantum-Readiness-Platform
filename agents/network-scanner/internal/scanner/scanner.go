@@ -1,12 +1,14 @@
 package scanner
 
 import (
+	"crypto/sha256"
 	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"strings"
@@ -42,6 +44,7 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 
 	cert := state.PeerCertificates[0]
 	keyType, keySizeBits := certificateKeyMetadata(cert)
+	chainInfo := certificateChainDetails(state, insecure)
 	serverName := state.ServerName
 	if strings.TrimSpace(serverName) == "" {
 		serverName = host
@@ -55,6 +58,8 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 		Certificate: CertificateInfo{
 			Subject:            cert.Subject.String(),
 			Issuer:             cert.Issuer.String(),
+			SubjectFingerprint: nameFingerprint(cert.RawSubject),
+			IssuerFingerprint:  nameFingerprint(cert.RawIssuer),
 			NotBefore:          cert.NotBefore.Format(time.RFC3339),
 			NotAfter:           cert.NotAfter.Format(time.RFC3339),
 			SignatureAlgorithm: cert.SignatureAlgorithm.String(),
@@ -63,6 +68,7 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 			KeySizeBits:        keySizeBits,
 			DNSNames:           cert.DNSNames,
 		},
+		CertificateChainInfo: chainInfo,
 	}
 
 	return ScanOutput{
@@ -128,4 +134,61 @@ func certificateKeyMetadata(cert *x509.Certificate) (string, *int) {
 	default:
 		return "", nil
 	}
+}
+
+func nameFingerprint(raw []byte) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	sum := sha256.Sum256(raw)
+	return "SHA256:" + strings.ToUpper(hex.EncodeToString(sum[:]))
+}
+
+func certificateChainDetails(state tls.ConnectionState, insecure bool) CertificateChainDetails {
+	presented := len(state.PeerCertificates)
+	info := CertificateChainDetails{
+		Available:              true,
+		Presence:               presented > 0,
+		PresentedChainLength:   presented,
+		VerificationPerformed:  !insecure,
+		VerifiedChainAvailable: false,
+	}
+
+	if len(state.VerifiedChains) > 0 {
+		length := len(state.VerifiedChains[0])
+		info.VerifiedChainLength = &length
+		info.VerifiedChainAvailable = true
+	}
+
+	switch {
+	case presented == 0:
+		info.Available = false
+		reason := "peer did not present certificates"
+		info.UnavailableReason = &reason
+		info.Summary = "No certificate chain was presented by the peer."
+	case insecure:
+		reason := "verification skipped because insecure mode is enabled"
+		info.UnavailableReason = &reason
+		info.Summary = fmt.Sprintf(
+			"Presented chain length: %d. Verified chain unavailable (%s).",
+			presented,
+			reason,
+		)
+	case !info.VerifiedChainAvailable:
+		reason := "verified chain unavailable from TLS state"
+		info.UnavailableReason = &reason
+		info.Summary = fmt.Sprintf(
+			"Presented chain length: %d. Verified chain unavailable (%s).",
+			presented,
+			reason,
+		)
+	default:
+		info.Summary = fmt.Sprintf(
+			"Presented chain length: %d. Verified chain length: %d.",
+			presented,
+			*info.VerifiedChainLength,
+		)
+	}
+
+	return info
 }

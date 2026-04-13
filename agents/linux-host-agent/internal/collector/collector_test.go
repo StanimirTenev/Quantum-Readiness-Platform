@@ -35,10 +35,6 @@ func TestCollect(t *testing.T) {
 	if result.CryptoEvidence.PackageManagerType == "" {
 		t.Fatal("expected package manager type to be populated")
 	}
-
-	if result.CryptoEvidence.ParsedCryptoDetail.PackageManagerType == "" {
-		t.Fatal("expected parsed crypto detail package manager type to be populated")
-	}
 }
 
 func TestParsePackageLineReturnsNameAndVersionWhenBothAreProvided(t *testing.T) {

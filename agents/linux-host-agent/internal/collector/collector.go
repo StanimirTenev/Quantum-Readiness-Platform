@@ -9,6 +9,18 @@ import (
 	"strings"
 )
 
+var standardCertificateLocations = []string{
+	"/etc/ssl/certs",
+	"/etc/ssl/private",
+	"/usr/local/share/ca-certificates",
+	"/etc/ca-certificates",
+	"/etc/pki/tls/certs",
+	"/etc/pki/tls/private",
+	"/etc/pki/ca-trust/source/anchors",
+}
+
+const maxCertificateIndicators = 250
+
 func Collect() (ScanOutput, error) {
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -27,8 +39,16 @@ func Collect() (ScanOutput, error) {
 	}
 
 	knownFiles := collectKnownCryptoFiles()
+	fileIndicators := discoverCertificateFileIndicators()
 	packageManagerType := detectPackageManagerType()
 	cryptoPackages := collectCryptoPackages(packageManagerType)
+	parsedCryptoDetail := ParsedCryptoDetail{
+		OpenSSLAvailable:   opensslAvailable,
+		OpenSSLVersion:     opensslVersion,
+		SSHConfigPath:      sshConfigPath,
+		PackageManagerType: packageManagerType,
+		CryptoPackages:     cryptoPackages,
+	}
 
 	output := ScanOutput{
 		Source: "host",
@@ -44,6 +64,8 @@ func Collect() (ScanOutput, error) {
 			OpenSSLVersion:     opensslVersion,
 			SSHConfigPath:      sshConfigPath,
 			KnownCryptoFiles:   knownFiles,
+			FileIndicators:     fileIndicators,
+			ParsedCryptoDetail: parsedCryptoDetail,
 			PackageManagerType: packageManagerType,
 			CryptoPackages:     cryptoPackages,
 		},
@@ -100,6 +122,92 @@ func collectKnownCryptoFiles() []string {
 		}
 	}
 	return found
+}
+
+func discoverCertificateFileIndicators() []string {
+	return discoverCertificateFileIndicatorsInPaths(standardCertificateLocations, maxCertificateIndicators)
+}
+
+func discoverCertificateFileIndicatorsInPaths(paths []string, maxIndicators int) []string {
+	if maxIndicators <= 0 {
+		return []string{}
+	}
+
+	seen := make(map[string]struct{})
+	indicators := make([]string, 0, maxIndicators)
+
+	addIfIndicator := func(path string, entryName string) {
+		if !looksLikeCertificateOrKeyFile(entryName) {
+			return
+		}
+		cleaned := filepath.Clean(path)
+		if _, exists := seen[cleaned]; exists {
+			return
+		}
+		seen[cleaned] = struct{}{}
+		indicators = append(indicators, cleaned)
+	}
+
+	for _, location := range paths {
+		if len(indicators) >= maxIndicators {
+			break
+		}
+
+		info, err := os.Stat(location)
+		if err != nil {
+			continue
+		}
+
+		if !info.IsDir() {
+			addIfIndicator(location, filepath.Base(location))
+			continue
+		}
+
+		entries, err := os.ReadDir(location)
+		if err != nil {
+			continue
+		}
+
+		for _, entry := range entries {
+			if len(indicators) >= maxIndicators {
+				break
+			}
+			if entry.IsDir() {
+				continue
+			}
+			addIfIndicator(filepath.Join(location, entry.Name()), entry.Name())
+		}
+	}
+
+	sort.Strings(indicators)
+	return indicators
+}
+
+func looksLikeCertificateOrKeyFile(fileName string) bool {
+	lower := strings.ToLower(strings.TrimSpace(fileName))
+	if lower == "" {
+		return false
+	}
+
+	extensions := []string{
+		".crt",
+		".cer",
+		".pem",
+		".key",
+		".p12",
+		".pfx",
+		".jks",
+		".keystore",
+	}
+	for _, extension := range extensions {
+		if strings.HasSuffix(lower, extension) {
+			return true
+		}
+	}
+
+	return strings.Contains(lower, "cert") ||
+		strings.Contains(lower, "ca") ||
+		strings.Contains(lower, "key")
 }
 
 func fileExists(path string) bool {

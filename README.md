@@ -43,3 +43,74 @@ This smoke path validates:
 - scans are stored and retrievable
 - risk results are still generated after ingest
 - planner service still returns a plan response
+
+## Stage 2 documentation update (current code + fixtures)
+
+### 1) New evidence collected by `linux-host-agent`
+- `crypto_evidence.config_indicators`:
+  - `ssh_config_indicators` (path + presence)
+  - `tls_config_indicators` (path + presence)
+  - `service_config_hints` (detected service + likely config paths)
+- `crypto_evidence.cert_indicators`:
+  - `trust_store_indicators` (path + presence)
+  - `key_store_indicators` (path + presence)
+  - `certificate_file_indicators` (flat, non-recursive discovery of cert/key-like files)
+- `crypto_evidence.package_metadata`:
+  - `package_manager_type` (`dpkg`/`rpm`/`pacman`/`apk`/`unknown`)
+  - `crypto_packages` filtered by crypto-relevant names (e.g. openssl/libssl/openssh/gnutls/...)
+
+### 2) New evidence collected by `network-scanner`
+- `tls_evidence.certificate` is Stage 2 structured:
+  - `subject.display_dn`, `subject.fingerprint`
+  - `issuer.display_dn`, `issuer.fingerprint`
+  - `validity.not_before`, `validity.not_after`
+  - `algorithms.signature`, `algorithms.public_key`
+  - `key.type`, `key.size_bits`
+  - `san.dns_names`
+- `tls_evidence.certificate_chain` includes chain presence/length/summary and verification metadata.
+
+### 3) Current Stage 2 payload patterns
+- `source=host` minimal: `assets` + `host_inventory`.
+- `source=host` enriched: adds `crypto_evidence` + optional `tls_evidence` with structured certificate object.
+- `source=network` minimal: `assets` + `tls_evidence` with flattened certificate fields.
+- `source=network` enriched: `tls_evidence` with structured certificate object + `certificate_chain`; may include `crypto_evidence`.
+
+Reference fixtures:
+- `services/inventory-service/tests/fixtures/stage2_evidence/host_minimal_ingest.json`
+- `services/inventory-service/tests/fixtures/stage2_evidence/host_enriched_ingest.json`
+- `services/inventory-service/tests/fixtures/stage2_evidence/network_minimal_ingest.json`
+- `services/inventory-service/tests/fixtures/stage2_evidence/network_enriched_ingest.json`
+
+### 4) Reliable vs best-effort
+- Reliable (contract-level):
+  - `/scans/ingest` requires `source` + `assets`; accepted `source` values are `host|network|repo|manual`.
+  - Stage 2 structured certificate payload is accepted and normalized for storage.
+  - Smoke path verifies ingest + retrieval + risk generation + planner API response.
+- Best-effort:
+  - Host command-based collection (`openssl`, package manager queries, service binaries) returns partial/empty data when commands or files are unavailable.
+  - Certificate/key file indicators are bounded and non-recursive (top-level entries only, capped list).
+  - Network chain verification details depend on TLS state and `-insecure` mode.
+
+### 5) Ingest boundary vs normalization
+- Ingest boundary: `inventory-service` `/scans/ingest` accepts payloads shaped by `ScanIngestRequest` (`assets`, optional `host_inventory`, `crypto_evidence`, `tls_evidence`).
+- Normalization currently performed at ingest:
+  - trim/clean optional strings
+  - normalize list-like fields to `list[str]`
+  - drop invalid object types for optional blocks
+  - accept both flattened and Stage 2 structured TLS certificate forms
+  - carry normalization warnings in `_normalization_warnings`
+
+### 6) How to run Stage 2 smoke validation
+```bash
+./scripts/run_stage2_smoke_validation.sh
+```
+
+It runs:
+- `services/inventory-service/tests/test_stage2_smoke_validation.py`
+- `services/planner-service/tests/test_planner_api.py::test_plan`
+
+### 7) Known limitations (current state)
+- `network-scanner` currently performs TLS scan (`-target host:port`); README headline still mentions TLS/SSH/VPN but current implementation is TLS-focused.
+- `linux-host-agent` evidence depth is environment-dependent (OS/files/packages/permissions).
+- Inventory keeps evidence JSON blobs as-is after model normalization; no deep semantic enrichment beyond current validators.
+- Stage 2 smoke is a short-path validation, not a full multi-service deployment conformance suite.

@@ -14,12 +14,16 @@ def test_health() -> None:
 def test_scan_ingest_and_list_scans(monkeypatch) -> None:
     def fake_score(self, payload):
         return {
+            "contract_version": payload["contract_version"],
+            "asset_name": payload["asset_name"],
             "scenario": payload["scenario"],
             "scenario_multiplier": 1.0,
             "base_score": 3.4,
             "final_score": 3.4,
             "normalized_score_100": 68.0,
             "rating": "high",
+            "dependency_count": payload["dependency_count"],
+            "vendor_blocked": payload["vendor_blocked"],
             "rationale": payload,
         }
 
@@ -70,3 +74,4 @@ def test_scan_ingest_and_list_scans(monkeypatch) -> None:
     risks = risks_response.json()
     assert len(risks) >= 1
     assert risks[0]["rating"] == "high"
+    assert risks[0]["contract_version"] == "stage1-v1"

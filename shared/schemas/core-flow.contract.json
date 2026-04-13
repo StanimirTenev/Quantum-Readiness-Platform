@@ -1,0 +1,140 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qrp.local/schemas/core-flow.contract.json",
+  "title": "QRP Core Flow Contract",
+  "description": "Canonical contract for Stage 1 flow: evidence -> inventory -> risk -> planning -> workflow -> dashboard.",
+  "type": "object",
+  "required": ["contract_version", "stages"],
+  "properties": {
+    "contract_version": {
+      "type": "string",
+      "const": "stage1-v1"
+    },
+    "stages": {
+      "type": "object",
+      "required": ["evidence", "inventory", "risk", "planning", "workflow", "dashboard"],
+      "properties": {
+        "evidence": {
+          "$ref": "#/$defs/stageMetadata"
+        },
+        "inventory": {
+          "$ref": "#/$defs/stageMetadata"
+        },
+        "risk": {
+          "$ref": "#/$defs/stageMetadata"
+        },
+        "planning": {
+          "$ref": "#/$defs/stageMetadata"
+        },
+        "workflow": {
+          "$ref": "#/$defs/stageMetadata"
+        },
+        "dashboard": {
+          "$ref": "#/$defs/stageMetadata"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "stageMetadata": {
+      "type": "object",
+      "required": ["entity", "implementation_status"],
+      "properties": {
+        "entity": {"type": "string"},
+        "implementation_status": {
+          "type": "string",
+          "enum": ["real_logic", "placeholder"]
+        },
+        "notes": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "riskEngineScoreRequest": {
+      "type": "object",
+      "required": [
+        "contract_version",
+        "asset_name",
+        "criticality",
+        "confidentiality_lifetime",
+        "quantum_exposure",
+        "blast_radius",
+        "vendor_lock_in",
+        "migration_difficulty",
+        "dependency_count",
+        "vendor_blocked",
+        "scenario"
+      ],
+      "properties": {
+        "contract_version": {"type": "string", "const": "stage1-v1"},
+        "asset_name": {"type": "string", "minLength": 1},
+        "criticality": {"type": "number", "minimum": 0, "maximum": 5},
+        "confidentiality_lifetime": {"type": "number", "minimum": 0, "maximum": 5},
+        "quantum_exposure": {"type": "number", "minimum": 0, "maximum": 5},
+        "blast_radius": {"type": "number", "minimum": 0, "maximum": 5},
+        "vendor_lock_in": {"type": "number", "minimum": 0, "maximum": 5},
+        "migration_difficulty": {"type": "number", "minimum": 0, "maximum": 5},
+        "dependency_count": {"type": "integer", "minimum": 0},
+        "vendor_blocked": {"type": "boolean"},
+        "scenario": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "riskEngineScoreResponse": {
+      "type": "object",
+      "required": [
+        "contract_version",
+        "asset_name",
+        "scenario",
+        "scenario_multiplier",
+        "base_score",
+        "final_score",
+        "normalized_score_100",
+        "rating",
+        "dependency_count",
+        "vendor_blocked",
+        "rationale"
+      ],
+      "properties": {
+        "contract_version": {"type": "string", "const": "stage1-v1"},
+        "asset_name": {"type": "string", "minLength": 1},
+        "scenario": {"type": "string"},
+        "scenario_multiplier": {"type": "number"},
+        "base_score": {"type": "number"},
+        "final_score": {"type": "number"},
+        "normalized_score_100": {"type": "number", "minimum": 0, "maximum": 100},
+        "rating": {"type": "string"},
+        "dependency_count": {"type": "integer", "minimum": 0},
+        "vendor_blocked": {"type": "boolean"},
+        "rationale": {"type": "object"}
+      },
+      "additionalProperties": false
+    },
+    "plannerItem": {
+      "type": "object",
+      "required": [
+        "asset_name",
+        "asset_type",
+        "rating",
+        "normalized_score_100",
+        "priority_score_100",
+        "scenario",
+        "dependency_count",
+        "vendor_blocked",
+        "recommended_action"
+      ],
+      "properties": {
+        "asset_name": {"type": "string"},
+        "asset_type": {"type": "string"},
+        "rating": {"type": "string"},
+        "normalized_score_100": {"type": "number"},
+        "priority_score_100": {"type": "number"},
+        "scenario": {"type": "string"},
+        "dependency_count": {"type": "integer", "minimum": 0},
+        "vendor_blocked": {"type": "boolean"},
+        "recommended_action": {"type": "string"}
+      },
+      "additionalProperties": false
+    }
+  }
+}

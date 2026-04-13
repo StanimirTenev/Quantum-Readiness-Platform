@@ -39,6 +39,8 @@ def test_calculate_base_score() -> None:
 
 def test_score_endpoint() -> None:
     payload = {
+        "contract_version": "stage1-v1",
+        "asset_name": "vpn-gateway-01",
         "criticality": 5,
         "confidentiality_lifetime": 5,
         "quantum_exposure": 5,
@@ -52,6 +54,8 @@ def test_score_endpoint() -> None:
 
     data = response.json()
     assert data["scenario"] == "hidden_capability"
+    assert data["contract_version"] == "stage1-v1"
+    assert data["asset_name"] == "vpn-gateway-01"
     assert data["scenario_multiplier"] == 1.35
     assert data["base_score"] > 0
     assert data["final_score"] >= data["base_score"]
@@ -60,6 +64,8 @@ def test_score_endpoint() -> None:
 
 def test_score_validation() -> None:
     payload = {
+        "contract_version": "stage1-v1",
+        "asset_name": "vpn-gateway-01",
         "criticality": 7,
         "confidentiality_lifetime": 5,
         "quantum_exposure": 5,
@@ -74,6 +80,8 @@ def test_score_validation() -> None:
 
 def test_score_endpoint_supports_compliance_pressure() -> None:
     payload = {
+        "contract_version": "stage1-v1",
+        "asset_name": "ca-service",
         "criticality": 4,
         "confidentiality_lifetime": 4,
         "quantum_exposure": 4,
@@ -92,6 +100,8 @@ def test_score_endpoint_supports_compliance_pressure() -> None:
 
 def test_score_endpoint_supports_partial_break() -> None:
     payload = {
+        "contract_version": "stage1-v1",
+        "asset_name": "legacy-endpoint",
         "criticality": 3,
         "confidentiality_lifetime": 3,
         "quantum_exposure": 3,

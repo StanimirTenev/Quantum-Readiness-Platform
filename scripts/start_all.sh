@@ -28,17 +28,21 @@ start_service() {
   fi
 
   echo "[START] $name on port $port"
-  (
-    cd "$workdir"
+  pushd "$workdir" >/dev/null
+  if [[ -f ".venv/bin/activate" ]]; then
+    # shellcheck disable=SC1091
     source .venv/bin/activate
-    nohup env PYTHONPATH=. uvicorn "$app" --host 127.0.0.1 --port "$port" > "$logfile" 2>&1 &
-    echo $! > "$pidfile"
-  )
+  else
+    echo "[WARN] $name .venv not found; using current shell Python environment"
+  fi
+
+  env PYTHONPATH=. uvicorn "$app" --host 127.0.0.1 --port "$port" > "$logfile" 2>&1 &
+  local newpid=$!
+  echo "$newpid" > "$pidfile"
+  popd >/dev/null
 
   sleep 1
-  local newpid
-  newpid="$(cat "$pidfile")"
-  if kill -0 "$newpid" 2>/dev/null; then
+  if kill -0 "$newpid" 2>/dev/null && [[ "$(ps -p "$newpid" -o stat= 2>/dev/null | tr -d ' ')" != Z* ]]; then
     echo "[OK] $name started with PID $newpid"
   else
     echo "[FAIL] $name failed to start. Check $logfile"

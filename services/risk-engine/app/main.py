@@ -9,7 +9,9 @@ ScenarioName = Literal[
     "early_break",
     "hidden_capability",
     "hndl_active_now",
+    "partial_break",
     "vendor_lag",
+    "compliance_pressure",
 ]
 
 SCENARIO_MULTIPLIERS: dict[str, float] = {
@@ -17,7 +19,9 @@ SCENARIO_MULTIPLIERS: dict[str, float] = {
     "early_break": 1.20,
     "hidden_capability": 1.35,
     "hndl_active_now": 1.40,
+    "partial_break": 1.10,
     "vendor_lag": 1.15,
+    "compliance_pressure": 1.18,
 }
 
 

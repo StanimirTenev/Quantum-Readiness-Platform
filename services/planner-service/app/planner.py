@@ -31,6 +31,7 @@ def build_plan(assets: list[dict[str, Any]], risks: list[dict[str, Any]]) -> dic
         asset = asset_map.get(asset_name, {"name": asset_name, "asset_type": "unknown"})
 
         item = {
+            "contract_version": risk.get("contract_version", "stage1-v1"),
             "asset_name": asset_name,
             "asset_type": asset.get("asset_type", "unknown"),
             "rating": risk.get("rating"),

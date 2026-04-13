@@ -92,12 +92,16 @@ def test_scan_and_risk_persistence(tmp_path: Path) -> None:
         scan_id=scan_id,
         asset_name="google.com:443",
         payload={
+            "contract_version": "stage1-v1",
+            "asset_name": "google.com:443",
             "scenario": "public_timeline",
             "scenario_multiplier": 1.0,
             "base_score": 3.4,
             "final_score": 3.4,
             "normalized_score_100": 68.0,
             "rating": "high",
+            "dependency_count": 3,
+            "vendor_blocked": False,
             "rationale": {"criticality": 3},
         },
     )
@@ -115,6 +119,7 @@ def test_scan_and_risk_persistence(tmp_path: Path) -> None:
     assert len(risks) == 1
     assert risks[0].asset_name == "google.com:443"
     assert risks[0].rating == "high"
+    assert risks[0].contract_version == "stage1-v1"
 
 
 def test_cleanup_duplicate_assets(tmp_path: Path) -> None:

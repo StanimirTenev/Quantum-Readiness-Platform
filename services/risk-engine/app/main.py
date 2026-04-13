@@ -26,23 +26,31 @@ SCENARIO_MULTIPLIERS: dict[str, float] = {
 
 
 class RiskInput(BaseModel):
+    contract_version: str = "stage1-v1"
+    asset_name: str = Field(..., min_length=1)
     criticality: float = Field(..., ge=0, le=5)
     confidentiality_lifetime: float = Field(..., ge=0, le=5)
     quantum_exposure: float = Field(..., ge=0, le=5)
     blast_radius: float = Field(..., ge=0, le=5)
     vendor_lock_in: float = Field(..., ge=0, le=5)
     migration_difficulty: float = Field(..., ge=0, le=5)
+    dependency_count: int = Field(default=0, ge=0)
+    vendor_blocked: bool = False
     scenario: ScenarioName = "public_timeline"
 
 
 class RiskOutput(BaseModel):
+    contract_version: str
+    asset_name: str
     scenario: str
     scenario_multiplier: float
     base_score: float
     final_score: float
     normalized_score_100: float
     rating: str
-    rationale: dict[str, float]
+    dependency_count: int
+    vendor_blocked: bool
+    rationale: dict[str, float | int | bool]
 
 
 def calculate_base_score(data: RiskInput) -> float:
@@ -90,12 +98,16 @@ def score(data: RiskInput) -> RiskOutput:
     rating = classify_rating(normalized_score_100)
 
     return RiskOutput(
+        contract_version=data.contract_version,
+        asset_name=data.asset_name,
         scenario=data.scenario,
         scenario_multiplier=scenario_multiplier,
         base_score=round(base_score, 4),
         final_score=round(final_score, 4),
         normalized_score_100=round(normalized_score_100, 2),
         rating=rating,
+        dependency_count=data.dependency_count,
+        vendor_blocked=data.vendor_blocked,
         rationale={
             "criticality": data.criticality,
             "confidentiality_lifetime": data.confidentiality_lifetime,
@@ -103,5 +115,7 @@ def score(data: RiskInput) -> RiskOutput:
             "blast_radius": data.blast_radius,
             "vendor_lock_in": data.vendor_lock_in,
             "migration_difficulty": data.migration_difficulty,
+            "dependency_count": data.dependency_count,
+            "vendor_blocked": data.vendor_blocked,
         },
     )

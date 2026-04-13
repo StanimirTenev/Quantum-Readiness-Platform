@@ -53,6 +53,7 @@ class AssetRepository:
                 CREATE TABLE IF NOT EXISTS risk_results (
                     id TEXT PRIMARY KEY,
                     scan_id TEXT NOT NULL,
+                    contract_version TEXT NOT NULL DEFAULT 'stage1-v1',
                     asset_name TEXT NOT NULL,
                     scenario TEXT NOT NULL,
                     scenario_multiplier REAL NOT NULL,
@@ -60,11 +61,33 @@ class AssetRepository:
                     final_score REAL NOT NULL,
                     normalized_score_100 REAL NOT NULL,
                     rating TEXT NOT NULL,
+                    dependency_count INTEGER NOT NULL DEFAULT 0,
+                    vendor_blocked INTEGER NOT NULL DEFAULT 0,
                     rationale TEXT NOT NULL
                 )
                 """
             )
+            self._ensure_risk_result_columns(connection)
             connection.commit()
+
+    @staticmethod
+    def _ensure_risk_result_columns(connection: sqlite3.Connection) -> None:
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(risk_results)").fetchall()
+        }
+        if "contract_version" not in columns:
+            connection.execute(
+                "ALTER TABLE risk_results ADD COLUMN contract_version TEXT NOT NULL DEFAULT 'stage1-v1'"
+            )
+        if "dependency_count" not in columns:
+            connection.execute(
+                "ALTER TABLE risk_results ADD COLUMN dependency_count INTEGER NOT NULL DEFAULT 0"
+            )
+        if "vendor_blocked" not in columns:
+            connection.execute(
+                "ALTER TABLE risk_results ADD COLUMN vendor_blocked INTEGER NOT NULL DEFAULT 0"
+            )
 
     def _find_existing_asset(self, payload: AssetCreate) -> Asset | None:
         with self._connect() as connection:
@@ -189,14 +212,15 @@ class AssetRepository:
             connection.execute(
                 """
                 INSERT INTO risk_results (
-                    id, scan_id, asset_name, scenario, scenario_multiplier, base_score,
-                    final_score, normalized_score_100, rating, rationale
+                    id, scan_id, contract_version, asset_name, scenario, scenario_multiplier, base_score,
+                    final_score, normalized_score_100, rating, dependency_count, vendor_blocked, rationale
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     result_id,
                     scan_id,
+                    payload.get("contract_version", "stage1-v1"),
                     asset_name,
                     payload["scenario"],
                     payload["scenario_multiplier"],
@@ -204,6 +228,8 @@ class AssetRepository:
                     payload["final_score"],
                     payload["normalized_score_100"],
                     payload["rating"],
+                    int(payload.get("dependency_count", 0)),
+                    int(bool(payload.get("vendor_blocked", False))),
                     json.dumps(payload["rationale"]),
                 ),
             )
@@ -265,6 +291,7 @@ class AssetRepository:
         return RiskRecord(
             id=row["id"],
             scan_id=row["scan_id"],
+            contract_version=row["contract_version"],
             asset_name=row["asset_name"],
             scenario=row["scenario"],
             scenario_multiplier=row["scenario_multiplier"],
@@ -272,6 +299,8 @@ class AssetRepository:
             final_score=row["final_score"],
             normalized_score_100=row["normalized_score_100"],
             rating=row["rating"],
+            dependency_count=row["dependency_count"],
+            vendor_blocked=bool(row["vendor_blocked"]),
             rationale=json.loads(row["rationale"]),
         )
 

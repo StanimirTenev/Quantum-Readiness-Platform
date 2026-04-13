@@ -120,6 +120,7 @@ class ScanRecord(BaseModel):
 class RiskRecord(BaseModel):
     id: str
     scan_id: str
+    contract_version: str = "stage1-v1"
     asset_name: str
     scenario: str
     scenario_multiplier: float
@@ -127,6 +128,8 @@ class RiskRecord(BaseModel):
     final_score: float
     normalized_score_100: float
     rating: str
+    dependency_count: int = 0
+    vendor_blocked: bool = False
     rationale: dict[str, Any]
 
 

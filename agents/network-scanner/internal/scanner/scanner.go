@@ -1,7 +1,12 @@
 package scanner
 
 import (
+	"crypto/dsa"
+	"crypto/ecdsa"
+	"crypto/ed25519"
+	"crypto/rsa"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net"
 	"strings"
@@ -36,11 +41,17 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 	}
 
 	cert := state.PeerCertificates[0]
+	keyType, keySizeBits := certificateKeyMetadata(cert)
+	serverName := state.ServerName
+	if strings.TrimSpace(serverName) == "" {
+		serverName = host
+	}
+
 	evidence := TLSEvidence{
 		Target:      target,
 		TLSVersion:  tlsVersionString(state.Version),
 		CipherSuite: tls.CipherSuiteName(state.CipherSuite),
-		ServerName:  state.ServerName,
+		ServerName:  serverName,
 		Certificate: CertificateInfo{
 			Subject:            cert.Subject.String(),
 			Issuer:             cert.Issuer.String(),
@@ -48,6 +59,8 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 			NotAfter:           cert.NotAfter.Format(time.RFC3339),
 			SignatureAlgorithm: cert.SignatureAlgorithm.String(),
 			PublicKeyAlgorithm: cert.PublicKeyAlgorithm.String(),
+			KeyType:            keyType,
+			KeySizeBits:        keySizeBits,
 			DNSNames:           cert.DNSNames,
 		},
 	}
@@ -96,4 +109,23 @@ func IsTLSTarget(target string) bool {
 		return false
 	}
 	return strings.TrimSpace(host) != "" && strings.TrimSpace(port) != ""
+}
+
+func certificateKeyMetadata(cert *x509.Certificate) (string, *int) {
+	switch key := cert.PublicKey.(type) {
+	case *rsa.PublicKey:
+		bits := key.N.BitLen()
+		return "RSA", &bits
+	case *ecdsa.PublicKey:
+		bits := key.Params().BitSize
+		return "ECDSA", &bits
+	case ed25519.PublicKey:
+		bits := len(key) * 8
+		return "Ed25519", &bits
+	case *dsa.PublicKey:
+		bits := key.P.BitLen()
+		return "DSA", &bits
+	default:
+		return "", nil
+	}
 }

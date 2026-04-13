@@ -1,12 +1,14 @@
 package scanner
 
 type CertificateInfo struct {
-	Subject            string `json:"subject"`
-	Issuer             string `json:"issuer"`
-	NotBefore          string `json:"not_before"`
-	NotAfter           string `json:"not_after"`
-	SignatureAlgorithm string `json:"signature_algorithm"`
-	PublicKeyAlgorithm string `json:"public_key_algorithm"`
+	Subject            string   `json:"subject"`
+	Issuer             string   `json:"issuer"`
+	NotBefore          string   `json:"not_before"`
+	NotAfter           string   `json:"not_after"`
+	SignatureAlgorithm string   `json:"signature_algorithm"`
+	PublicKeyAlgorithm string   `json:"public_key_algorithm"`
+	KeyType            string   `json:"key_type,omitempty"`
+	KeySizeBits        *int     `json:"key_size_bits,omitempty"`
 	DNSNames           []string `json:"dns_names"`
 }
 
@@ -29,7 +31,7 @@ type AssetPayload struct {
 }
 
 type ScanOutput struct {
-	Source      string       `json:"source"`
-	TLSEvidence *TLSEvidence `json:"tls_evidence,omitempty"`
+	Source      string         `json:"source"`
+	TLSEvidence *TLSEvidence   `json:"tls_evidence,omitempty"`
 	Assets      []AssetPayload `json:"assets"`
 }

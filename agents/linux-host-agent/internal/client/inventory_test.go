@@ -15,13 +15,22 @@ func TestPostScan(t *testing.T) {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 
-		var payload collector.ScanOutput
+		var payload map[string]any
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 			t.Fatalf("failed to decode request body: %v", err)
 		}
 
-		if payload.Source != "host" {
-			t.Fatalf("expected source host, got %s", payload.Source)
+		if payload["source"] != "host" {
+			t.Fatalf("expected source host, got %v", payload["source"])
+		}
+
+		cryptoEvidence, ok := payload["crypto_evidence"].(map[string]any)
+		if !ok {
+			t.Fatalf("expected crypto_evidence object, got %#v", payload["crypto_evidence"])
+		}
+
+		if _, exists := cryptoEvidence["package_metadata"]; exists {
+			t.Fatalf("did not expect package_metadata in Stage 1 ingest payload")
 		}
 
 		w.Header().Set("Content-Type", "application/json")
@@ -35,6 +44,16 @@ func TestPostScan(t *testing.T) {
 
 	response, err := PostScan(server.URL, collector.ScanOutput{
 		Source: "host",
+		CryptoEvidence: collector.CryptoEvidence{
+			OpenSSLAvailable: true,
+			OpenSSLVersion:   "OpenSSL 3.0.0",
+			SSHConfigPath:    "/etc/ssh/ssh_config",
+			KnownCryptoFiles: []string{"/etc/ssl/certs"},
+			PackageMetadata: collector.PackageMetadata{
+				PackageManagerType: "dpkg",
+				CryptoPackages:     []collector.CryptoPackage{{Name: "openssl", Version: "3.0.0"}},
+			},
+		},
 		Assets: []collector.AssetPayload{
 			{
 				AssetType: "server",

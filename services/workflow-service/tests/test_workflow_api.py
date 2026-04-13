@@ -63,3 +63,22 @@ def test_cleanup_duplicates() -> None:
     cleanup = client.post("/admin/cleanup-duplicates")
     assert cleanup.status_code == 200
     assert "deleted_tasks" in cleanup.json()
+
+
+def test_update_status_returns_conflict_for_invalid_transition() -> None:
+    create_response = client.post(
+        "/tasks",
+        json={
+            "title": "Prepare KMS migration",
+            "asset_name": "kms-core",
+            "wave": "wave_1",
+            "priority": "high",
+            "description": "Task should not skip approval.",
+            "recommended_action": "Follow workflow lifecycle.",
+        },
+    )
+    task_id = create_response.json()["id"]
+
+    status_response = client.post(f"/tasks/{task_id}/status", json={"status": "in_progress"})
+    assert status_response.status_code == 409
+    assert "Invalid task status transition" in status_response.json()["detail"]

@@ -188,3 +188,37 @@ Stage 1 е успешен, ако:
 - local demo е repeatable;
 - има freeze checklist и known issues list.
 
+---
+
+## 8) Test execution story closure (run: 2026-04-13)
+
+### 8.1 Stage 1 test suites (required by freeze checklist)
+
+- `services/inventory-service/tests` -> **6 passed**
+- `services/risk-engine/tests` -> **7 passed**
+- `services/planner-service/tests` -> **6 passed**
+- `services/workflow-service/tests` -> **7 passed**
+- `services/retrieval-service/tests` -> **6 passed**
+- `services/copilot-service/tests` -> **5 passed**
+
+**Total:** 37 passed, 0 failed (Python/pytest run with `PYTHONPATH=.` per service).
+
+### 8.2 Repeatable local demo verification
+
+- `scripts/start_all.sh` беше hard-failing в среди без per-service `.venv`; скриптът е коригиран да стартира и без `.venv` (fallback към текущия Python env).
+- Добавена е и защита в `scripts/status_all.sh` срещу false-positive статус при zombie PID.
+- End-to-end smoke (multi-service runtime + API flow) остава **частично верифициран** в текущата execution среда; процесите се маркират като стартирани, но в тази sandbox среда не остават routable за стабилен multi-service HTTP smoke.
+
+### 8.3 Known limitations (freeze-impacting)
+
+1. `docs/api-spec.md` е извън синхрон с реалните service contracts (вкл. endpoint и payload детайли).
+2. Има naming/contract drift в scenario стойности между документи и runtime валидатори (пример: `public_timeline` vs. `normal_public_timeline`).
+3. `auto_submit` в planner export request е placeholder поле без runtime ефект.
+4. Няма production-grade auth/RBAC boundary на service level.
+5. Dashboard слой е demo-oriented, не production-polished UI.
+
+### 8.4 Stage 1 freeze-ready decision
+
+**Decision (2026-04-13): NOT freeze-ready.**
+
+Причина: въпреки че required test suites минават (37/37), има freeze-impacting contract/documentation drift и непълна end-to-end demo верификация в текущата среда. Минимален prerequisite за freeze: contract/docs alignment (`docs/api-spec.md` + scenario/naming sync) и един валидиран reproducible smoke run artifact.

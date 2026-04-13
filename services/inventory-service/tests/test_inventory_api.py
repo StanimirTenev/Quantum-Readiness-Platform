@@ -70,3 +70,22 @@ def test_scan_ingest_and_list_scans(monkeypatch) -> None:
     risks = risks_response.json()
     assert len(risks) >= 1
     assert risks[0]["rating"] == "high"
+
+
+def test_scan_ingest_returns_422_when_network_source_missing_tls_evidence() -> None:
+    response = client.post(
+        "/scans/ingest",
+        json={
+            "source": "network",
+            "assets": [
+                {
+                    "asset_type": "endpoint",
+                    "name": "missing-tls-evidence",
+                    "criticality": 3,
+                    "environment": "unknown",
+                    "lifecycle_years": 3,
+                }
+            ],
+        },
+    )
+    assert response.status_code == 422

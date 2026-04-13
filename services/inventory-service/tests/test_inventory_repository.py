@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 from app.models import AssetCreate, AssetUpdate, CryptoEvidence, HostInventory, ScanIngestRequest, TLSEvidence, TLSEvidenceCertificate
 from app.repository import AssetRepository
 
@@ -115,6 +117,25 @@ def test_scan_and_risk_persistence(tmp_path: Path) -> None:
     assert len(risks) == 1
     assert risks[0].asset_name == "google.com:443"
     assert risks[0].rating == "high"
+
+
+def test_create_scan_raises_validation_error_when_network_scan_has_no_tls_evidence(tmp_path: Path) -> None:
+    with pytest.raises(ValueError, match="tls_evidence is required when source is 'network'"):
+        payload = ScanIngestRequest(
+            source="network",
+            assets=[
+                AssetCreate(
+                    asset_type="endpoint",
+                    name="missing-tls-evidence",
+                    criticality=2,
+                    environment="prod",
+                    lifecycle_years=2,
+                )
+            ],
+        )
+
+        # Payload validation should fail before repository write.
+        _ = payload
 
 
 def test_cleanup_duplicate_assets(tmp_path: Path) -> None:

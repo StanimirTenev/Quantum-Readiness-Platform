@@ -1,5 +1,5 @@
 from typing import Any, Literal, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 AssetType = Literal[
     "server",
@@ -99,6 +99,16 @@ class ScanIngestRequest(BaseModel):
     host_inventory: Optional[HostInventory] = None
     crypto_evidence: Optional[CryptoEvidence] = None
     tls_evidence: Optional[TLSEvidence] = None
+
+    @model_validator(mode="after")
+    def validate_source_evidence(self) -> "ScanIngestRequest":
+        if self.source == "network" and self.tls_evidence is None:
+            raise ValueError("tls_evidence is required when source is 'network'")
+        if self.source == "host" and self.host_inventory is None and self.crypto_evidence is None:
+            raise ValueError(
+                "host_inventory or crypto_evidence is required when source is 'host'"
+            )
+        return self
 
 
 class ScanIngestResponse(BaseModel):

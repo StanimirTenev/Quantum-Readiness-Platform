@@ -29,3 +29,17 @@ Project skeleton for the Quantum Readiness Platform with LLM Copilot.
 - Core architecture: `docs/architecture.md`
 - TRL5 execution roadmap: `docs/trl5-working-navigator.md`
 - Stage 1 core stabilization execution: `docs/stage1-core-stabilization.md`
+
+## Stage 2 smoke validation (short path)
+Run:
+
+```bash
+./scripts/run_stage2_smoke_validation.sh
+```
+
+This smoke path validates:
+- host enriched evidence ingest
+- network enriched evidence ingest
+- scans are stored and retrievable
+- risk results are still generated after ingest
+- planner service still returns a plan response

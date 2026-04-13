@@ -1,17 +1,24 @@
+import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app import main
+from app.repository import WorkflowRepository
 
-client = TestClient(app)
+
+@pytest.fixture()
+def client(tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "repository", WorkflowRepository(tmp_path / "workflow.db"))
+    with TestClient(main.app) as test_client:
+        yield test_client
 
 
-def test_health() -> None:
+def test_health(client: TestClient) -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "service": "workflow-service"}
 
 
-def test_task_lifecycle() -> None:
+def test_task_lifecycle(client: TestClient) -> None:
     create_response = client.post(
         "/tasks",
         json={
@@ -44,10 +51,10 @@ def test_task_lifecycle() -> None:
 
     approvals_response = client.get("/approvals")
     assert approvals_response.status_code == 200
-    assert len(approvals_response.json()) >= 1
+    assert len(approvals_response.json()) == 1
 
 
-def test_cleanup_duplicates() -> None:
+def test_cleanup_duplicates(client: TestClient) -> None:
     payload = {
         "title": "Review google endpoint",
         "asset_name": "google.com:443",
@@ -65,7 +72,7 @@ def test_cleanup_duplicates() -> None:
     assert "deleted_tasks" in cleanup.json()
 
 
-def test_update_status_returns_conflict_for_invalid_transition() -> None:
+def test_update_status_returns_conflict_for_invalid_transition(client: TestClient) -> None:
     create_response = client.post(
         "/tasks",
         json={

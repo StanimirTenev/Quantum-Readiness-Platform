@@ -1,17 +1,24 @@
+import pytest
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app import main
+from app.repository import AssetRepository
 
-client = TestClient(app)
+
+@pytest.fixture()
+def client(tmp_path, monkeypatch):
+    monkeypatch.setattr(main, "repository", AssetRepository(tmp_path / "inventory.db"))
+    with TestClient(main.app) as test_client:
+        yield test_client
 
 
-def test_health() -> None:
+def test_health(client: TestClient) -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json()["service"] == "inventory-service"
 
 
-def test_scan_ingest_and_list_scans(monkeypatch) -> None:
+def test_scan_ingest_and_list_scans(client: TestClient, monkeypatch) -> None:
     def fake_score(self, payload):
         return {
             "contract_version": payload["contract_version"],
@@ -67,11 +74,11 @@ def test_scan_ingest_and_list_scans(monkeypatch) -> None:
     scans_response = client.get("/scans")
     assert scans_response.status_code == 200
     scans = scans_response.json()
-    assert len(scans) >= 1
+    assert len(scans) == 1
 
     risks_response = client.get("/risks")
     assert risks_response.status_code == 200
     risks = risks_response.json()
-    assert len(risks) >= 1
+    assert len(risks) == 1
     assert risks[0]["rating"] == "high"
     assert risks[0]["contract_version"] == "stage1-v1"

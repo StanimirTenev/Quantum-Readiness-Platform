@@ -5,8 +5,10 @@ import (
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/tls"
 	"crypto/rsa"
 	"crypto/x509"
+	"strings"
 	"testing"
 )
 
@@ -88,5 +90,53 @@ func TestCertificateKeyMetadataReturnsUnavailableForUnsupportedKey(t *testing.T)
 	}
 	if keySizeBits != nil {
 		t.Fatalf("expected nil key size, got %d", *keySizeBits)
+	}
+}
+
+func TestNameFingerprintReturnsSHA256Value(t *testing.T) {
+	fingerprint := nameFingerprint([]byte("subject-data"))
+	if !strings.HasPrefix(fingerprint, "SHA256:") {
+		t.Fatalf("expected SHA256 prefix, got %q", fingerprint)
+	}
+	if len(fingerprint) != len("SHA256:")+64 {
+		t.Fatalf("expected 64 hex chars, got %q", fingerprint)
+	}
+}
+
+func TestNameFingerprintReturnsEmptyForMissingData(t *testing.T) {
+	if got := nameFingerprint(nil); got != "" {
+		t.Fatalf("expected empty fingerprint for nil input, got %q", got)
+	}
+}
+
+func TestCertificateChainDetailsReturnsUnavailableWhenInsecure(t *testing.T) {
+	state := tls.ConnectionState{
+		PeerCertificates: []*x509.Certificate{{}, {}},
+	}
+	details := certificateChainDetails(state, true)
+	if details.VerificationPerformed {
+		t.Fatal("expected verification_performed to be false")
+	}
+	if details.VerifiedChainAvailable {
+		t.Fatal("expected verified_chain_available to be false")
+	}
+	if details.UnavailableReason == nil {
+		t.Fatal("expected unavailable reason when insecure")
+	}
+}
+
+func TestCertificateChainDetailsReturnsVerifiedLengthWhenAvailable(t *testing.T) {
+	state := tls.ConnectionState{
+		PeerCertificates: []*x509.Certificate{{}, {}},
+		VerifiedChains: [][]*x509.Certificate{
+			{{}, {}, {}},
+		},
+	}
+	details := certificateChainDetails(state, false)
+	if details.VerifiedChainLength == nil || *details.VerifiedChainLength != 3 {
+		t.Fatalf("expected verified chain length 3, got %v", details.VerifiedChainLength)
+	}
+	if !details.VerifiedChainAvailable {
+		t.Fatal("expected verified_chain_available to be true")
 	}
 }

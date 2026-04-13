@@ -71,16 +71,9 @@ func Collect() (ScanOutput, error) {
 	keyStoreIndicators := buildPathIndicators(standardKeyStoreLocations)
 
 	knownFiles := collectKnownCryptoFiles()
-	fileIndicators := discoverCertificateFileIndicators()
+	certificateFileIndicators := discoverCertificateFileIndicators()
 	packageManagerType := detectPackageManagerType()
 	cryptoPackages := collectCryptoPackages(packageManagerType)
-	parsedCryptoDetail := ParsedCryptoDetail{
-		OpenSSLAvailable:   opensslAvailable,
-		OpenSSLVersion:     opensslVersion,
-		SSHConfigPath:      sshConfigPath,
-		PackageManagerType: packageManagerType,
-		CryptoPackages:     cryptoPackages,
-	}
 
 	output := ScanOutput{
 		Source: "host",
@@ -92,19 +85,24 @@ func Collect() (ScanOutput, error) {
 			IPs:          ips,
 		},
 		CryptoEvidence: CryptoEvidence{
-			OpenSSLAvailable:     opensslAvailable,
-			OpenSSLVersion:       opensslVersion,
-			SSHConfigPath:        sshConfigPath,
-			SSHConfigIndicators:  sshConfigIndicators,
-			TLSConfigIndicators:  tlsConfigIndicators,
-			ServiceConfigHints:   serviceConfigHints,
-			TrustStoreIndicators: trustStoreIndicators,
-			KeyStoreIndicators:   keyStoreIndicators,
-			KnownCryptoFiles:     knownFiles,
-			FileIndicators:       fileIndicators,
-			ParsedCryptoDetail:   parsedCryptoDetail,
-			PackageManagerType:   packageManagerType,
-			CryptoPackages:       cryptoPackages,
+			OpenSSLAvailable: opensslAvailable,
+			OpenSSLVersion:   opensslVersion,
+			SSHConfigPath:    sshConfigPath,
+			KnownCryptoFiles: knownFiles,
+			ConfigIndicators: ConfigIndicators{
+				SSHConfigIndicators: sshConfigIndicators,
+				TLSConfigIndicators: tlsConfigIndicators,
+				ServiceConfigHints:  serviceConfigHints,
+			},
+			CertIndicators: CertificateIndicators{
+				TrustStoreIndicators:      trustStoreIndicators,
+				KeyStoreIndicators:        keyStoreIndicators,
+				CertificateFileIndicators: certificateFileIndicators,
+			},
+			PackageMetadata: PackageMetadata{
+				PackageManagerType: packageManagerType,
+				CryptoPackages:     cryptoPackages,
+			},
 		},
 		Assets: buildAssets(hostname),
 	}

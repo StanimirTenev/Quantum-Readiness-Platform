@@ -17,11 +17,37 @@ type IngestResponse struct {
 	AssetIDs []string `json:"asset_ids"`
 }
 
+type ingestCryptoEvidence struct {
+	OpenSSLAvailable bool     `json:"openssl_available"`
+	OpenSSLVersion   string   `json:"openssl_version,omitempty"`
+	SSHConfigPath    string   `json:"ssh_config_path,omitempty"`
+	KnownCryptoFiles []string `json:"known_crypto_files"`
+}
+
+type ingestScanPayload struct {
+	Source         string                   `json:"source"`
+	HostInventory  collector.HostInventory  `json:"host_inventory"`
+	CryptoEvidence ingestCryptoEvidence     `json:"crypto_evidence"`
+	Assets         []collector.AssetPayload `json:"assets"`
+}
+
 func PostScan(baseURL string, payload collector.ScanOutput) (IngestResponse, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
 	endpoint := baseURL + "/scans/ingest"
 
-	body, err := json.Marshal(payload)
+	ingestPayload := ingestScanPayload{
+		Source:        payload.Source,
+		HostInventory: payload.HostInventory,
+		CryptoEvidence: ingestCryptoEvidence{
+			OpenSSLAvailable: payload.CryptoEvidence.OpenSSLAvailable,
+			OpenSSLVersion:   payload.CryptoEvidence.OpenSSLVersion,
+			SSHConfigPath:    payload.CryptoEvidence.SSHConfigPath,
+			KnownCryptoFiles: payload.CryptoEvidence.KnownCryptoFiles,
+		},
+		Assets: payload.Assets,
+	}
+
+	body, err := json.Marshal(ingestPayload)
 	if err != nil {
 		return IngestResponse{}, fmt.Errorf("marshal payload: %w", err)
 	}

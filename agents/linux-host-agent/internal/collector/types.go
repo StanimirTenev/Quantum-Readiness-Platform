@@ -9,19 +9,13 @@ type HostInventory struct {
 }
 
 type CryptoEvidence struct {
-	OpenSSLAvailable     bool                `json:"openssl_available"`
-	OpenSSLVersion       string              `json:"openssl_version,omitempty"`
-	SSHConfigPath        string              `json:"ssh_config_path,omitempty"`
-	SSHConfigIndicators  []PathIndicator     `json:"ssh_config_indicators"`
-	TLSConfigIndicators  []PathIndicator     `json:"tls_config_indicators"`
-	ServiceConfigHints   []ServiceConfigHint `json:"service_config_hints"`
-	TrustStoreIndicators []PathIndicator     `json:"truststore_indicators"`
-	KeyStoreIndicators   []PathIndicator     `json:"keystore_indicators"`
-	KnownCryptoFiles     []string            `json:"known_crypto_files"`
-	FileIndicators       []string            `json:"file_indicators"`
-	ParsedCryptoDetail   ParsedCryptoDetail  `json:"parsed_crypto_detail"`
-	PackageManagerType   string              `json:"package_manager_type"`
-	CryptoPackages       []CryptoPackage     `json:"crypto_packages"`
+	OpenSSLAvailable bool                  `json:"openssl_available"`
+	OpenSSLVersion   string                `json:"openssl_version,omitempty"`
+	SSHConfigPath    string                `json:"ssh_config_path,omitempty"` // backwards compatible with Stage 1 parser
+	KnownCryptoFiles []string              `json:"known_crypto_files"`        // backwards compatible with Stage 1 parser
+	ConfigIndicators ConfigIndicators      `json:"config_indicators"`
+	CertIndicators   CertificateIndicators `json:"cert_indicators"`
+	PackageMetadata  PackageMetadata       `json:"package_metadata"`
 }
 
 type PathIndicator struct {
@@ -34,10 +28,19 @@ type ServiceConfigHint struct {
 	ConfigPaths []string `json:"config_paths"`
 }
 
-type ParsedCryptoDetail struct {
-	OpenSSLAvailable   bool            `json:"openssl_available"`
-	OpenSSLVersion     string          `json:"openssl_version,omitempty"`
-	SSHConfigPath      string          `json:"ssh_config_path,omitempty"`
+type ConfigIndicators struct {
+	SSHConfigIndicators []PathIndicator     `json:"ssh_config_indicators"`
+	TLSConfigIndicators []PathIndicator     `json:"tls_config_indicators"`
+	ServiceConfigHints  []ServiceConfigHint `json:"service_config_hints"`
+}
+
+type CertificateIndicators struct {
+	TrustStoreIndicators      []PathIndicator `json:"trust_store_indicators"`
+	KeyStoreIndicators        []PathIndicator `json:"key_store_indicators"`
+	CertificateFileIndicators []string        `json:"certificate_file_indicators"`
+}
+
+type PackageMetadata struct {
 	PackageManagerType string          `json:"package_manager_type"`
 	CryptoPackages     []CryptoPackage `json:"crypto_packages"`
 }

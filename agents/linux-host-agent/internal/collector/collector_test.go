@@ -32,7 +32,7 @@ func TestCollect(t *testing.T) {
 		t.Fatalf("expected first asset type server, got %s", result.Assets[0].AssetType)
 	}
 
-	if result.CryptoEvidence.PackageManagerType == "" {
+	if result.CryptoEvidence.PackageMetadata.PackageManagerType == "" {
 		t.Fatal("expected package manager type to be populated")
 	}
 }

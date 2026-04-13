@@ -1,6 +1,10 @@
 package collector
 
-import "testing"
+import (
+	"os"
+	"path/filepath"
+	"testing"
+)
 
 func TestCollect(t *testing.T) {
 	result, err := Collect()
@@ -30,6 +34,10 @@ func TestCollect(t *testing.T) {
 
 	if result.CryptoEvidence.PackageManagerType == "" {
 		t.Fatal("expected package manager type to be populated")
+	}
+
+	if result.CryptoEvidence.ParsedCryptoDetail.PackageManagerType == "" {
+		t.Fatal("expected parsed crypto detail package manager type to be populated")
 	}
 }
 
@@ -87,5 +95,52 @@ func TestCollectCryptoPackagesReturnsOnlyRelevantEntries(t *testing.T) {
 
 	if filtered[1].Name != "openssh-client" {
 		t.Fatalf("expected second package openssh-client, got %s", filtered[1].Name)
+	}
+}
+
+func TestDiscoverCertificateFileIndicatorsInPathsReturnsOnlyCertificateAndKeyLikeFiles(t *testing.T) {
+	tempDir := t.TempDir()
+	certFile := filepath.Join(tempDir, "service.crt")
+	keyFile := filepath.Join(tempDir, "service.key")
+	otherFile := filepath.Join(tempDir, "notes.txt")
+
+	if err := os.WriteFile(certFile, []byte("cert"), 0o600); err != nil {
+		t.Fatalf("failed to create cert file: %v", err)
+	}
+	if err := os.WriteFile(keyFile, []byte("key"), 0o600); err != nil {
+		t.Fatalf("failed to create key file: %v", err)
+	}
+	if err := os.WriteFile(otherFile, []byte("notes"), 0o600); err != nil {
+		t.Fatalf("failed to create non-indicator file: %v", err)
+	}
+
+	indicators := discoverCertificateFileIndicatorsInPaths([]string{tempDir}, 20)
+	if len(indicators) != 2 {
+		t.Fatalf("expected 2 file indicators, got %d: %v", len(indicators), indicators)
+	}
+
+	if indicators[0] != certFile {
+		t.Fatalf("expected first indicator %s, got %s", certFile, indicators[0])
+	}
+	if indicators[1] != keyFile {
+		t.Fatalf("expected second indicator %s, got %s", keyFile, indicators[1])
+	}
+}
+
+func TestDiscoverCertificateFileIndicatorsInPathsDoesNotTraverseNestedDirectories(t *testing.T) {
+	tempDir := t.TempDir()
+	nestedDir := filepath.Join(tempDir, "nested")
+	if err := os.Mkdir(nestedDir, 0o755); err != nil {
+		t.Fatalf("failed to create nested dir: %v", err)
+	}
+
+	nestedCert := filepath.Join(nestedDir, "deep.crt")
+	if err := os.WriteFile(nestedCert, []byte("cert"), 0o600); err != nil {
+		t.Fatalf("failed to create nested cert file: %v", err)
+	}
+
+	indicators := discoverCertificateFileIndicatorsInPaths([]string{tempDir}, 20)
+	if len(indicators) != 0 {
+		t.Fatalf("expected no indicators from nested files, got %v", indicators)
 	}
 }

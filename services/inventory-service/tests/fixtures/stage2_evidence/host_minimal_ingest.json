@@ -1,0 +1,19 @@
+{
+  "source": "host",
+  "assets": [
+    {
+      "asset_type": "server",
+      "name": "edge-node-01",
+      "criticality": 3,
+      "environment": "production",
+      "lifecycle_years": 4
+    }
+  ],
+  "host_inventory": {
+    "hostname": "edge-node-01",
+    "ips": [
+      "10.40.12.11"
+    ],
+    "os": "Ubuntu 22.04"
+  }
+}

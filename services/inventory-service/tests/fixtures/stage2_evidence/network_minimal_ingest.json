@@ -1,0 +1,29 @@
+{
+  "source": "network",
+  "assets": [
+    {
+      "asset_type": "endpoint",
+      "name": "api.partner.example:443",
+      "criticality": 2,
+      "environment": "unknown",
+      "lifecycle_years": 2
+    }
+  ],
+  "tls_evidence": {
+    "target": "api.partner.example:443",
+    "tls_version": "TLS1.2",
+    "cipher_suite": "ECDHE-RSA-AES128-GCM-SHA256",
+    "server_name": "api.partner.example",
+    "certificate": {
+      "subject": "CN=api.partner.example",
+      "issuer": "CN=Example Public CA",
+      "not_before": "2026-02-01T00:00:00Z",
+      "not_after": "2026-08-01T00:00:00Z",
+      "signature_algorithm": "RSA-SHA256",
+      "public_key_algorithm": "RSA",
+      "dns_names": [
+        "api.partner.example"
+      ]
+    }
+  }
+}

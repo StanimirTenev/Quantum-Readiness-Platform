@@ -38,9 +38,10 @@ def _confidentiality_lifetime(payload: ScanIngestRequest) -> float:
 
 
 def _quantum_exposure(payload: ScanIngestRequest) -> float:
-    if payload.tls_evidence:
+    if payload.tls_evidence and payload.tls_evidence.certificate:
         cert = payload.tls_evidence.certificate
-        if cert.public_key_algorithm.upper() in {"RSA", "ECDSA", "ECDH", "EC"}:
+        public_key_algorithm = (cert.public_key_algorithm or "").upper()
+        if public_key_algorithm in {"RSA", "ECDSA", "ECDH", "EC"}:
             return 5.0
         return 3.0
     if payload.crypto_evidence and payload.crypto_evidence.openssl_available:

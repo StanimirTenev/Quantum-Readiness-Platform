@@ -101,9 +101,23 @@ class WorkflowRepository:
             row = connection.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
         return Task(**dict(row)) if row else None
 
+    def _is_valid_status_transition(self, from_status: str, to_status: str) -> bool:
+        allowed_transitions: dict[str, set[str]] = {
+            "draft": {"pending_approval"},
+            "pending_approval": {"approved", "rejected"},
+            "approved": {"in_progress"},
+            "rejected": {"draft"},
+            "in_progress": {"completed"},
+            "completed": set(),
+        }
+        return to_status in allowed_transitions.get(from_status, set())
+
     def update_task_status(self, task_id: str, status: str) -> Task | None:
-        if self.get_task(task_id) is None:
+        task = self.get_task(task_id)
+        if task is None:
             return None
+        if not self._is_valid_status_transition(task.status, status):
+            raise ValueError(f"Invalid task status transition: {task.status} -> {status}")
         with self._connect() as connection:
             connection.execute(
                 "UPDATE tasks SET status = ? WHERE id = ?",
@@ -116,6 +130,8 @@ class WorkflowRepository:
         task = self.get_task(task_id)
         if task is None:
             return None
+        if task.status != "pending_approval":
+            raise ValueError("Task must be in pending_approval status before an approval decision")
 
         approval_id = str(uuid.uuid4())
         with self._connect() as connection:

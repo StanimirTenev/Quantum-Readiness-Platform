@@ -34,26 +34,35 @@ def get_task(task_id: str) -> Task:
 
 @app.post("/tasks/{task_id}/submit", response_model=Task)
 def submit_task(task_id: str) -> Task:
-    task = repository.update_task_status(task_id, "pending_approval")
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return task
+    try:
+        task = repository.update_task_status(task_id, "pending_approval")
+        if task is None:
+            raise HTTPException(status_code=404, detail="Task not found")
+        return task
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @app.post("/tasks/{task_id}/status", response_model=Task)
 def update_status(task_id: str, payload: TaskStatusUpdate) -> Task:
-    task = repository.update_task_status(task_id, payload.status)
-    if task is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return task
+    try:
+        task = repository.update_task_status(task_id, payload.status)
+        if task is None:
+            raise HTTPException(status_code=404, detail="Task not found")
+        return task
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @app.post("/tasks/{task_id}/approve", response_model=ApprovalRecord)
 def approve_task(task_id: str, payload: ApprovalDecision) -> ApprovalRecord:
-    approval = repository.create_approval(task_id, payload.approver, payload.decision, payload.note)
-    if approval is None:
-        raise HTTPException(status_code=404, detail="Task not found")
-    return approval
+    try:
+        approval = repository.create_approval(task_id, payload.approver, payload.decision, payload.note)
+        if approval is None:
+            raise HTTPException(status_code=404, detail="Task not found")
+        return approval
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @app.get("/approvals", response_model=list[ApprovalRecord])

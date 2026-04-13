@@ -19,6 +19,33 @@ var standardCertificateLocations = []string{
 	"/etc/pki/ca-trust/source/anchors",
 }
 
+var standardSSHConfigLocations = []string{
+	"/etc/ssh/ssh_config",
+	"/etc/ssh/sshd_config",
+	"/root/.ssh/config",
+}
+
+var standardTLSConfigLocations = []string{
+	"/etc/ssl/openssl.cnf",
+	"/etc/gnutls/config",
+	"/etc/pki/tls/openssl.cnf",
+	"/etc/ca-certificates.conf",
+}
+
+var standardTrustStoreLocations = []string{
+	"/etc/ssl/certs",
+	"/etc/pki/ca-trust/extracted",
+	"/etc/pki/ca-trust/source/anchors",
+	"/usr/local/share/ca-certificates",
+}
+
+var standardKeyStoreLocations = []string{
+	"/etc/ssl/private",
+	"/etc/pki/tls/private",
+	"/etc/keystores",
+	"/etc/security",
+}
+
 const maxCertificateIndicators = 250
 
 func Collect() (ScanOutput, error) {
@@ -37,6 +64,11 @@ func Collect() (ScanOutput, error) {
 	if fileExists("/etc/ssh/ssh_config") {
 		sshConfigPath = "/etc/ssh/ssh_config"
 	}
+	sshConfigIndicators := buildPathIndicators(standardSSHConfigLocations)
+	tlsConfigIndicators := buildPathIndicators(standardTLSConfigLocations)
+	serviceConfigHints := collectServiceConfigHints()
+	trustStoreIndicators := buildPathIndicators(standardTrustStoreLocations)
+	keyStoreIndicators := buildPathIndicators(standardKeyStoreLocations)
 
 	knownFiles := collectKnownCryptoFiles()
 	fileIndicators := discoverCertificateFileIndicators()
@@ -60,14 +92,19 @@ func Collect() (ScanOutput, error) {
 			IPs:          ips,
 		},
 		CryptoEvidence: CryptoEvidence{
-			OpenSSLAvailable:   opensslAvailable,
-			OpenSSLVersion:     opensslVersion,
-			SSHConfigPath:      sshConfigPath,
-			KnownCryptoFiles:   knownFiles,
-			FileIndicators:     fileIndicators,
-			ParsedCryptoDetail: parsedCryptoDetail,
-			PackageManagerType: packageManagerType,
-			CryptoPackages:     cryptoPackages,
+			OpenSSLAvailable:     opensslAvailable,
+			OpenSSLVersion:       opensslVersion,
+			SSHConfigPath:        sshConfigPath,
+			SSHConfigIndicators:  sshConfigIndicators,
+			TLSConfigIndicators:  tlsConfigIndicators,
+			ServiceConfigHints:   serviceConfigHints,
+			TrustStoreIndicators: trustStoreIndicators,
+			KeyStoreIndicators:   keyStoreIndicators,
+			KnownCryptoFiles:     knownFiles,
+			FileIndicators:       fileIndicators,
+			ParsedCryptoDetail:   parsedCryptoDetail,
+			PackageManagerType:   packageManagerType,
+			CryptoPackages:       cryptoPackages,
 		},
 		Assets: buildAssets(hostname),
 	}
@@ -181,6 +218,56 @@ func discoverCertificateFileIndicatorsInPaths(paths []string, maxIndicators int)
 
 	sort.Strings(indicators)
 	return indicators
+}
+
+func buildPathIndicators(paths []string) []PathIndicator {
+	indicators := make([]PathIndicator, 0, len(paths))
+	for _, path := range paths {
+		indicators = append(indicators, PathIndicator{
+			Path:    filepath.Clean(path),
+			Present: fileExists(path),
+		})
+	}
+	return indicators
+}
+
+func collectServiceConfigHints() []ServiceConfigHint {
+	return collectServiceConfigHintsWithProbe(commandExists, fileExists)
+}
+
+func collectServiceConfigHintsWithProbe(commandProbe func(string) bool, fileProbe func(string) bool) []ServiceConfigHint {
+	hints := make([]ServiceConfigHint, 0)
+
+	addHint := func(service string, paths []string) {
+		hints = append(hints, ServiceConfigHint{
+			Service:     service,
+			ConfigPaths: paths,
+		})
+	}
+
+	if commandProbe("sshd") || fileProbe("/etc/ssh/sshd_config") {
+		addHint("sshd", []string{"/etc/ssh/sshd_config"})
+	}
+	if commandProbe("nginx") || fileProbe("/etc/nginx/nginx.conf") {
+		addHint("nginx", []string{"/etc/nginx/nginx.conf", "/etc/nginx/conf.d"})
+	}
+	if commandProbe("apache2") || commandProbe("httpd") || fileProbe("/etc/apache2/apache2.conf") || fileProbe("/etc/httpd/conf/httpd.conf") {
+		addHint("apache", []string{"/etc/apache2/apache2.conf", "/etc/httpd/conf/httpd.conf"})
+	}
+	if commandProbe("haproxy") || fileProbe("/etc/haproxy/haproxy.cfg") {
+		addHint("haproxy", []string{"/etc/haproxy/haproxy.cfg"})
+	}
+	if commandProbe("stunnel") || fileProbe("/etc/stunnel/stunnel.conf") {
+		addHint("stunnel", []string{"/etc/stunnel/stunnel.conf"})
+	}
+	if commandProbe("java") {
+		addHint("java", []string{
+			"/etc/ssl/certs/java/cacerts",
+			"/usr/lib/jvm/default-java/lib/security/cacerts",
+		})
+	}
+
+	return hints
 }
 
 func looksLikeCertificateOrKeyFile(fileName string) bool {

@@ -140,3 +140,47 @@ func TestDiscoverCertificateFileIndicatorsInPathsDoesNotTraverseNestedDirectorie
 		t.Fatalf("expected no indicators from nested files, got %v", indicators)
 	}
 }
+
+func TestBuildPathIndicatorsMarksPresenceByPath(t *testing.T) {
+	tempDir := t.TempDir()
+	existingPath := filepath.Join(tempDir, "openssl.cnf")
+	if err := os.WriteFile(existingPath, []byte("test"), 0o600); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+	missingPath := filepath.Join(tempDir, "missing.cnf")
+
+	indicators := buildPathIndicators([]string{existingPath, missingPath})
+	if len(indicators) != 2 {
+		t.Fatalf("expected 2 indicators, got %d", len(indicators))
+	}
+	if indicators[0].Path != existingPath || !indicators[0].Present {
+		t.Fatalf("expected existing path to be present, got %#v", indicators[0])
+	}
+	if indicators[1].Path != missingPath || indicators[1].Present {
+		t.Fatalf("expected missing path to be absent, got %#v", indicators[1])
+	}
+}
+
+func TestCollectServiceConfigHintsWithProbeReturnsExpectedHints(t *testing.T) {
+	commandProbe := func(name string) bool {
+		return name == "nginx" || name == "java"
+	}
+	fileProbe := func(path string) bool {
+		return path == "/etc/ssh/sshd_config"
+	}
+
+	hints := collectServiceConfigHintsWithProbe(commandProbe, fileProbe)
+	if len(hints) != 3 {
+		t.Fatalf("expected 3 hints, got %d: %#v", len(hints), hints)
+	}
+
+	if hints[0].Service != "sshd" {
+		t.Fatalf("expected first hint for sshd, got %s", hints[0].Service)
+	}
+	if hints[1].Service != "nginx" {
+		t.Fatalf("expected second hint for nginx, got %s", hints[1].Service)
+	}
+	if hints[2].Service != "java" {
+		t.Fatalf("expected third hint for java, got %s", hints[2].Service)
+	}
+}

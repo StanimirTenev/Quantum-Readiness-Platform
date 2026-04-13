@@ -7,7 +7,9 @@ SCENARIOS = {
     "early_break": 1.20,
     "hidden_capability": 1.35,
     "hndl_active_now": 1.40,
+    "partial_break": 1.10,
     "vendor_lag": 1.15,
+    "compliance_pressure": 1.18,
 }
 
 @app.get("/health")

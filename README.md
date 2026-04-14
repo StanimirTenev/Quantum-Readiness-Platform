@@ -19,6 +19,28 @@ Project skeleton for the Quantum Readiness Platform with LLM Copilot.
 - Network Scanner
 - Frontend Web UI
 
+## Service maturity overview
+
+| Service | Status | Tests |
+| --- | --- | --- |
+| linux-host-agent | ✅ Working prototype | ✅ Unit tests |
+| network-scanner | ✅ Working prototype | ✅ Unit tests |
+| inventory-service | ✅ Working prototype | ✅ Unit + smoke tests |
+| risk-engine | ✅ Working prototype | ✅ Unit tests |
+| planner-service | ✅ Working prototype | ✅ Unit + API tests |
+| workflow-service | ✅ Working prototype | ✅ Unit + API tests |
+| api-gateway | 🟨 Partially implemented | ✅ API tests |
+| copilot-service | ✅ Working prototype | ✅ Unit/API tests |
+| retrieval-service | ✅ Working prototype | ✅ Unit + API tests |
+| evidence-normalizer | 🔲 Placeholder | — |
+| crypto-fingerprint-service | 🔲 Placeholder | — |
+| policy-engine | 🔲 Placeholder | — |
+| scenario-engine | 🟨 Partially implemented | — |
+| repo-ci-scanner | 🔲 Placeholder | — |
+| integration-service | 🔲 Placeholder | — |
+| dashboard-ui | ✅ Working prototype | — |
+| web-ui | 🔲 Skeleton | — |
+
 ## First implementation targets
 1. Inventory service
 2. Risk engine

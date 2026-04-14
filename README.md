@@ -1,6 +1,6 @@
 # Quantum Readiness Platform
 
-Project skeleton for the Quantum Readiness Platform with LLM Copilot.
+Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning. Currently at TRL 5.
 
 ## Modules
 - API Gateway

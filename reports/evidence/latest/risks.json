@@ -1,0 +1,98 @@
+[
+  {
+    "id": "2d80d69e-d97c-4698-8e55-04d75bbf3e47",
+    "scan_id": "cca59157-652f-4547-aa12-e468a730729a",
+    "contract_version": "stage1-v1",
+    "asset_name": "payments.example.com:443",
+    "scenario": "public_timeline",
+    "scenario_multiplier": 1.0,
+    "base_score": 3.7,
+    "final_score": 3.7,
+    "normalized_score_100": 74.0,
+    "rating": "high",
+    "dependency_count": 3,
+    "vendor_blocked": true,
+    "rationale": {
+      "criticality": 4.0,
+      "confidentiality_lifetime": 3.0,
+      "quantum_exposure": 5.0,
+      "blast_radius": 4.0,
+      "vendor_lock_in": 3.0,
+      "migration_difficulty": 2.0,
+      "dependency_count": 3,
+      "vendor_blocked": true
+    }
+  },
+  {
+    "id": "eb1f7bc3-30d2-4870-a718-05734828e9fa",
+    "scan_id": "b1a231d1-b192-4b56-8edf-b9217074a76d",
+    "contract_version": "stage1-v1",
+    "asset_name": "crypto-host-01",
+    "scenario": "public_timeline",
+    "scenario_multiplier": 1.0,
+    "base_score": 4.1,
+    "final_score": 4.1,
+    "normalized_score_100": 82.0,
+    "rating": "critical",
+    "dependency_count": 2,
+    "vendor_blocked": true,
+    "rationale": {
+      "criticality": 5.0,
+      "confidentiality_lifetime": 4.0,
+      "quantum_exposure": 5.0,
+      "blast_radius": 3.0,
+      "vendor_lock_in": 3.0,
+      "migration_difficulty": 3.0,
+      "dependency_count": 2,
+      "vendor_blocked": true
+    }
+  },
+  {
+    "id": "faee3bb4-a3e0-4dbf-987a-c6e24a5eb66e",
+    "scan_id": "13ec5005-45ca-4697-bb41-6e1e11f2ba43",
+    "contract_version": "stage1-v1",
+    "asset_name": "payments.example.com:443",
+    "scenario": "public_timeline",
+    "scenario_multiplier": 1.0,
+    "base_score": 3.7,
+    "final_score": 3.7,
+    "normalized_score_100": 74.0,
+    "rating": "high",
+    "dependency_count": 3,
+    "vendor_blocked": true,
+    "rationale": {
+      "criticality": 4.0,
+      "confidentiality_lifetime": 3.0,
+      "quantum_exposure": 5.0,
+      "blast_radius": 4.0,
+      "vendor_lock_in": 3.0,
+      "migration_difficulty": 2.0,
+      "dependency_count": 3,
+      "vendor_blocked": true
+    }
+  },
+  {
+    "id": "ec7cf9b6-f2e5-407d-be8d-cb2e81a8add2",
+    "scan_id": "9ce4023e-fd31-492a-82c9-98159b080344",
+    "contract_version": "stage1-v1",
+    "asset_name": "crypto-host-01",
+    "scenario": "public_timeline",
+    "scenario_multiplier": 1.0,
+    "base_score": 4.1,
+    "final_score": 4.1,
+    "normalized_score_100": 82.0,
+    "rating": "critical",
+    "dependency_count": 2,
+    "vendor_blocked": true,
+    "rationale": {
+      "criticality": 5.0,
+      "confidentiality_lifetime": 4.0,
+      "quantum_exposure": 5.0,
+      "blast_radius": 3.0,
+      "vendor_lock_in": 3.0,
+      "migration_difficulty": 3.0,
+      "dependency_count": 2,
+      "vendor_blocked": true
+    }
+  }
+]

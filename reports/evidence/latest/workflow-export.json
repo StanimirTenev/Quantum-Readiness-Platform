@@ -1,0 +1,28 @@
+{
+  "exported_waves": [
+    "wave_1"
+  ],
+  "created_count": 2,
+  "tasks": [
+    {
+      "title": "Review crypto-host-01",
+      "asset_name": "crypto-host-01",
+      "wave": "wave_1",
+      "priority": "critical",
+      "description": "Planned remediation for crypto-host-01 in wave_1.",
+      "recommended_action": "Vendor readiness blocker detected. Initiate vendor escalation and tracked exception path.",
+      "id": "90642d8e-820d-4d35-bba3-504151fef28b",
+      "status": "draft"
+    },
+    {
+      "title": "Review payments.example.com:443",
+      "asset_name": "payments.example.com:443",
+      "wave": "wave_1",
+      "priority": "high",
+      "description": "Planned remediation for payments.example.com:443 in wave_1.",
+      "recommended_action": "Vendor readiness blocker detected. Initiate vendor escalation and tracked exception path.",
+      "id": "e8cc118d-6a2a-4f89-ac22-2667f2d81809",
+      "status": "draft"
+    }
+  ]
+}

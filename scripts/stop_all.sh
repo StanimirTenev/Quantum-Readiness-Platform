@@ -37,13 +37,12 @@ stop_service() {
   rm -f "$pidfile"
 }
 
-stop_service "dashboard-ui"
-stop_service "retrieval-service"
+stop_service "api-gateway"
+stop_service "policy-engine"
 stop_service "workflow-service"
 stop_service "planner-service"
-stop_service "copilot-service"
 stop_service "risk-engine"
 stop_service "inventory-service"
 
 echo
-echo "All services stopped."
+echo "All required services stopped."

@@ -1,0 +1,42 @@
+{
+  "summary": {
+    "total_assets": 2,
+    "total_risks": 2,
+    "wave_1_count": 2,
+    "wave_2_count": 0,
+    "wave_3_count": 0
+  },
+  "wave_1": [
+    {
+      "contract_version": "stage1-v1",
+      "asset_name": "crypto-host-01",
+      "asset_type": "server",
+      "rating": "critical",
+      "normalized_score_100": 82.0,
+      "priority_score_100": 93.0,
+      "scenario": "public_timeline",
+      "dependency_count": 2,
+      "vendor_blocked": true,
+      "recommended_action": "Vendor readiness blocker detected. Initiate vendor escalation and tracked exception path."
+    },
+    {
+      "contract_version": "stage1-v1",
+      "asset_name": "payments.example.com:443",
+      "asset_type": "endpoint",
+      "rating": "high",
+      "normalized_score_100": 74.0,
+      "priority_score_100": 86.5,
+      "scenario": "public_timeline",
+      "dependency_count": 3,
+      "vendor_blocked": true,
+      "recommended_action": "Vendor readiness blocker detected. Initiate vendor escalation and tracked exception path."
+    }
+  ],
+  "wave_2": [],
+  "wave_3": [],
+  "execution_plan": {
+    "phase_1": "Address highest-risk externally exposed endpoints and critical host assets.",
+    "phase_2": "Validate crypto dependencies, inventory gaps, and migration blockers.",
+    "phase_3": "Prepare staged migration, retesting, and documentation updates."
+  }
+}

@@ -12,6 +12,8 @@ sanitize_json_file() {
   local output_file="$2"
 
   if command -v jq >/dev/null 2>&1; then
+    local tmp_file
+    tmp_file="$(mktemp)"
     jq '
       walk(
         if type == "object" then
@@ -29,7 +31,8 @@ sanitize_json_file() {
           .
         end
       )
-    ' "$input_file" > "$output_file"
+    ' "$input_file" > "$tmp_file"
+    mv "$tmp_file" "$output_file"
   else
     cp "$input_file" "$output_file"
   fi

@@ -1,0 +1,22 @@
+[
+  {
+    "asset_type": "server",
+    "name": "crypto-host-01",
+    "owner": null,
+    "criticality": 5,
+    "environment": "production",
+    "vendor": "linux-foundation",
+    "lifecycle_years": 8,
+    "id": "8b735ede-f2ed-4839-881b-fa7bc35c9be7"
+  },
+  {
+    "asset_type": "endpoint",
+    "name": "payments.example.com:443",
+    "owner": null,
+    "criticality": 4,
+    "environment": "production",
+    "vendor": "payments-vendor",
+    "lifecycle_years": 5,
+    "id": "df3438e6-3d88-414a-a6f0-d220eab0a51b"
+  }
+]

@@ -50,8 +50,10 @@ func TestPostScan(t *testing.T) {
 			SSHConfigPath:    "/etc/ssh/ssh_config",
 			KnownCryptoFiles: []string{"/etc/ssl/certs"},
 			PackageMetadata: collector.PackageMetadata{
-				PackageManagerType: "dpkg",
-				CryptoPackages:     []collector.CryptoPackage{{Name: "openssl", Version: "3.0.0"}},
+				PackageManager: "dpkg",
+				Collected:      true,
+				Packages:       []collector.CryptoPackage{{Name: "openssl", Version: "3.0.0", Source: "dpkg"}},
+				Errors:         []string{},
 			},
 		},
 		Assets: []collector.AssetPayload{

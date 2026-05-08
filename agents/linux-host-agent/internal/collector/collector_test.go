@@ -32,8 +32,8 @@ func TestCollect(t *testing.T) {
 		t.Fatalf("expected first asset type server, got %s", result.Assets[0].AssetType)
 	}
 
-	if result.CryptoEvidence.PackageMetadata.PackageManagerType == "" {
-		t.Fatal("expected package manager type to be populated")
+	if result.CryptoEvidence.PackageMetadata.PackageManager == "" {
+		t.Fatal("expected package manager to be populated")
 	}
 }
 
@@ -67,10 +67,10 @@ func TestParsePackageLineReturnsNameOnlyWhenVersionMissing(t *testing.T) {
 	}
 }
 
-func TestCollectCryptoPackagesReturnsOnlyRelevantEntries(t *testing.T) {
+func TestIsRelevantCryptoPackageReturnsOnlyRelevantEntries(t *testing.T) {
 	packages := []CryptoPackage{
 		{Name: "openssl", Version: "3.0.2"},
-		{Name: "curl", Version: "8.0.0"},
+		{Name: "bash", Version: "5.0.0"},
 		{Name: "openssh-client", Version: "9.6"},
 	}
 
@@ -91,6 +91,46 @@ func TestCollectCryptoPackagesReturnsOnlyRelevantEntries(t *testing.T) {
 
 	if filtered[1].Name != "openssh-client" {
 		t.Fatalf("expected second package openssh-client, got %s", filtered[1].Name)
+	}
+}
+
+func TestCollectPackageMetadataReturnsUnknownWhenPackageManagerMissing(t *testing.T) {
+	metadata := collectPackageMetadataWithFunctions(
+		func() string { return "unknown" },
+		func(string) ([]CryptoPackage, error) { return []CryptoPackage{}, nil },
+	)
+
+	if metadata.PackageManager != "unknown" {
+		t.Fatalf("expected package manager unknown, got %s", metadata.PackageManager)
+	}
+	if !metadata.Collected {
+		t.Fatal("expected metadata to be marked as collected when manager is unknown")
+	}
+	if len(metadata.Packages) != 0 {
+		t.Fatalf("expected empty packages for unknown manager, got %d", len(metadata.Packages))
+	}
+	if len(metadata.Errors) != 0 {
+		t.Fatalf("expected no errors for unknown manager, got %v", metadata.Errors)
+	}
+}
+
+func TestCollectPackageMetadataReturnsErrorWhenListingFails(t *testing.T) {
+	metadata := collectPackageMetadataWithFunctions(
+		func() string { return "dpkg" },
+		func(string) ([]CryptoPackage, error) { return nil, os.ErrPermission },
+	)
+
+	if metadata.PackageManager != "unknown" {
+		t.Fatalf("expected package manager unknown on failure, got %s", metadata.PackageManager)
+	}
+	if metadata.Collected {
+		t.Fatal("expected collected=false when listing fails")
+	}
+	if len(metadata.Packages) != 0 {
+		t.Fatalf("expected no packages on failure, got %d", len(metadata.Packages))
+	}
+	if len(metadata.Errors) != 1 {
+		t.Fatalf("expected one error on failure, got %v", metadata.Errors)
 	}
 }
 

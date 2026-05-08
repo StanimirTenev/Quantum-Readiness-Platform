@@ -134,50 +134,88 @@ func TestCollectPackageMetadataReturnsErrorWhenListingFails(t *testing.T) {
 	}
 }
 
-func TestDiscoverCertificateFileIndicatorsInPathsReturnsOnlyCertificateAndKeyLikeFiles(t *testing.T) {
+func TestDiscoverCertificateFileIndicatorsInPathsClassifiesCertificateFiles(t *testing.T) {
 	tempDir := t.TempDir()
 	certFile := filepath.Join(tempDir, "service.crt")
-	keyFile := filepath.Join(tempDir, "service.key")
-	otherFile := filepath.Join(tempDir, "notes.txt")
+	pemFile := filepath.Join(tempDir, "service.pem")
 
 	if err := os.WriteFile(certFile, []byte("cert"), 0o600); err != nil {
 		t.Fatalf("failed to create cert file: %v", err)
 	}
-	if err := os.WriteFile(keyFile, []byte("key"), 0o600); err != nil {
-		t.Fatalf("failed to create key file: %v", err)
-	}
-	if err := os.WriteFile(otherFile, []byte("notes"), 0o600); err != nil {
-		t.Fatalf("failed to create non-indicator file: %v", err)
+	if err := os.WriteFile(pemFile, []byte("pem"), 0o600); err != nil {
+		t.Fatalf("failed to create pem file: %v", err)
 	}
 
 	indicators := discoverCertificateFileIndicatorsInPaths([]string{tempDir}, 20)
-	if len(indicators) != 2 {
-		t.Fatalf("expected 2 file indicators, got %d: %v", len(indicators), indicators)
+	if len(indicators.Files) != 2 {
+		t.Fatalf("expected 2 file indicators, got %d: %v", len(indicators.Files), indicators.Files)
 	}
-
-	if indicators[0] != certFile {
-		t.Fatalf("expected first indicator %s, got %s", certFile, indicators[0])
+	if indicators.Counts.Certificate != 2 {
+		t.Fatalf("expected 2 certificate indicators, got %#v", indicators.Counts)
 	}
-	if indicators[1] != keyFile {
-		t.Fatalf("expected second indicator %s, got %s", keyFile, indicators[1])
+	if indicators.Files[0].Path != certFile || indicators.Files[1].Path != pemFile {
+		t.Fatalf("expected certificate paths %s and %s, got %#v", certFile, pemFile, indicators.Files)
 	}
 }
 
-func TestDiscoverCertificateFileIndicatorsInPathsDoesNotTraverseNestedDirectories(t *testing.T) {
+func TestDiscoverCertificateFileIndicatorsInPathsClassifiesKeyFiles(t *testing.T) {
 	tempDir := t.TempDir()
-	nestedDir := filepath.Join(tempDir, "nested")
-	if err := os.Mkdir(nestedDir, 0o755); err != nil {
-		t.Fatalf("failed to create nested dir: %v", err)
+	keyFile := filepath.Join(tempDir, "service.key")
+	idRsa := filepath.Join(tempDir, "id_rsa")
+	if err := os.WriteFile(keyFile, []byte("k"), 0o600); err != nil {
+		t.Fatalf("failed to create key file: %v", err)
 	}
-
-	nestedCert := filepath.Join(nestedDir, "deep.crt")
-	if err := os.WriteFile(nestedCert, []byte("cert"), 0o600); err != nil {
-		t.Fatalf("failed to create nested cert file: %v", err)
+	if err := os.WriteFile(idRsa, []byte("k"), 0o600); err != nil {
+		t.Fatalf("failed to create id_rsa file: %v", err)
 	}
 
 	indicators := discoverCertificateFileIndicatorsInPaths([]string{tempDir}, 20)
-	if len(indicators) != 0 {
-		t.Fatalf("expected no indicators from nested files, got %v", indicators)
+	if indicators.Counts.Key != 2 {
+		t.Fatalf("expected 2 key indicators, got %#v", indicators.Counts)
+	}
+}
+
+func TestDiscoverCertificateFileIndicatorsInPathsClassifiesKeyStoreAndTrustStoreFiles(t *testing.T) {
+	tempDir := t.TempDir()
+	_ = os.WriteFile(filepath.Join(tempDir, "bundle.jks"), []byte("x"), 0o600)
+	_ = os.WriteFile(filepath.Join(tempDir, "bundle.p12"), []byte("x"), 0o600)
+	_ = os.WriteFile(filepath.Join(tempDir, "cacerts"), []byte("x"), 0o600)
+
+	indicators := discoverCertificateFileIndicatorsInPaths([]string{tempDir}, 20)
+	if indicators.Counts.Keystore != 2 {
+		t.Fatalf("expected 2 keystore indicators, got %#v", indicators.Counts)
+	}
+	if indicators.Counts.Truststore != 1 {
+		t.Fatalf("expected 1 truststore indicator, got %#v", indicators.Counts)
+	}
+}
+
+func TestDiscoverCertificateFileIndicatorsInPathsMissingPathsDoNotFailCollection(t *testing.T) {
+	indicators := discoverCertificateFileIndicatorsInPaths([]string{"/path/that/does/not/exist"}, 20)
+	if !indicators.Collected {
+		t.Fatal("expected collection to remain true for missing standard paths")
+	}
+	if len(indicators.Files) != 0 {
+		t.Fatalf("expected no files, got %#v", indicators.Files)
+	}
+}
+
+func TestDiscoverCertificateFileIndicatorsInPathsReturnsStableEmptyCounts(t *testing.T) {
+	indicators := discoverCertificateFileIndicatorsInPaths([]string{t.TempDir()}, 20)
+	if indicators.Counts != (CertificateIndicatorFileCounts{}) {
+		t.Fatalf("expected empty counts, got %#v", indicators.Counts)
+	}
+}
+
+func TestDiscoverCertificateFileIndicatorsInPathsRespectsMaxFileLimit(t *testing.T) {
+	tempDir := t.TempDir()
+	for i := 0; i < 10; i++ {
+		_ = os.WriteFile(filepath.Join(tempDir, "cert"+string(rune('a'+i))+".crt"), []byte("x"), 0o600)
+	}
+
+	indicators := discoverCertificateFileIndicatorsInPaths([]string{tempDir}, 3)
+	if len(indicators.Files) != 3 {
+		t.Fatalf("expected file limit 3, got %d", len(indicators.Files))
 	}
 }
 

@@ -35,9 +35,33 @@ type ConfigIndicators struct {
 }
 
 type CertificateIndicators struct {
-	TrustStoreIndicators      []PathIndicator `json:"trust_store_indicators"`
-	KeyStoreIndicators        []PathIndicator `json:"key_store_indicators"`
-	CertificateFileIndicators []string        `json:"certificate_file_indicators"`
+	TrustStoreIndicators      []PathIndicator           `json:"trust_store_indicators"`
+	KeyStoreIndicators        []PathIndicator           `json:"key_store_indicators"`
+	CertificateFileIndicators CertificateFileIndicators `json:"certificate_file_indicators"`
+}
+
+type CertificateFileIndicators struct {
+	Collected     bool                           `json:"collected"`
+	SearchedPaths []string                       `json:"searched_paths"`
+	Files         []CertificateIndicatorFile     `json:"files"`
+	Counts        CertificateIndicatorFileCounts `json:"counts"`
+	Errors        []string                       `json:"errors"`
+}
+
+type CertificateIndicatorFile struct {
+	Path      string `json:"path"`
+	Type      string `json:"type"`
+	Extension string `json:"extension"`
+	Readable  bool   `json:"readable"`
+	Source    string `json:"source"`
+}
+
+type CertificateIndicatorFileCounts struct {
+	Certificate int `json:"certificate"`
+	Key         int `json:"key"`
+	Keystore    int `json:"keystore"`
+	Truststore  int `json:"truststore"`
+	Unknown     int `json:"unknown"`
 }
 
 type PackageMetadata struct {

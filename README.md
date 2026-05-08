@@ -144,6 +144,7 @@ The TRL validation run now generates an Evidence Package v1 with sanitized input
 - Stores validation evidence for host/network inputs, inventory responses, risks, policy decision, planning outputs, and workflow export.
 - Location: `reports/evidence/latest/`
 - Regenerate: `bash scripts/run_trl_validation.sh`
+- Operator checklist: `docs/operator-validation-checklist.md`
 - Supports TRL 5 candidate status by proving a repeatable local validation run with persisted evidence artifacts.
 
 ## TRL Validation
@@ -190,7 +191,7 @@ tail -n 200 logs/api-gateway.log
 
 Known limitations:
 - Validation is local-only and does not yet run against representative production-like infrastructure.
-- Failure/retry orchestration and operator runbook checklist are still pending.
+- Failure/retry orchestration is still pending.
 - Timestamped evidence archival across multiple runs is still pending.
 
 Environment notes:
@@ -203,6 +204,6 @@ Environment notes:
 - [x] Policy evaluation flow
 - [x] TRL validation harness v1
 - [x] TRL evidence package v1
-- [ ] Operator validation checklist
+- [x] Operator validation checklist
 - [ ] Real infrastructure validation sample
 - [ ] Evidence preservation across timestamped runs

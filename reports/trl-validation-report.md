@@ -1,7 +1,7 @@
 # TRL Validation Report
 
 ## Validation Date
-2026-05-08T10:39:31.025072+00:00
+2026-05-08T15:09:34.027511+00:00
 
 ## Validation Scope
 - inventory ingest
@@ -21,12 +21,12 @@
 | api-gateway | http://127.0.0.1:8000/health | UP |
 
 ## Evidence Ingest Result
-- scan_id: b1a231d1-b192-4b56-8edf-b9217074a76d
+- scan_id: f09c3973-483c-46bd-8646-580985761e53
 - created assets: 1
-- asset_ids: 8b735ede-f2ed-4839-881b-fa7bc35c9be7
+- asset_ids: 5f321b9d-0a25-4716-a060-bab78f49f5b8
 
 ## Risk Result
-- total risk records: 4
+- total risk records: 8
 - sample asset: payments.example.com:443
 - normalized score: 74.0
 - rating: high
@@ -46,6 +46,12 @@
 ## Workflow Result
 - created task count: 2
 
+## API Gateway Policy Forwarding
+- endpoint: http://127.0.0.1:8000/api/policies/evaluate
+- decision: deny
+- rule_id: pqc-readiness-gate-v1
+- result: PASS
+
 ## Evidence Artifacts
 | Artifact | Path |
 |---|---|
@@ -55,6 +61,7 @@
 | Assets | reports/evidence/latest/assets.json |
 | Risks | reports/evidence/latest/risks.json |
 | Policy decision | reports/evidence/latest/policy-decision.json |
+| API Gateway policy decision | reports/evidence/latest/api-gateway-policy-decision.json |
 | Plan | reports/evidence/latest/plan.json |
 | Waves | reports/evidence/latest/waves.json |
 | Workflow export | reports/evidence/latest/workflow-export.json |
@@ -70,8 +77,7 @@ Remaining gaps before claiming stronger TRL 5:
 - run against real infrastructure sample
 - preserve evidence artifacts across timestamped runs
 - add failure/retry handling
-- add operator-facing validation checklist
-- document environment assumptions
+- external evaluator review
 
 ## Result
-PASS
+Result: PASS

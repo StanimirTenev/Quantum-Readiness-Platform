@@ -1,6 +1,6 @@
 # Quantum Readiness Platform
 
-Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning. Current status: TRL 5 candidate based on repeatable local validation.
+Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning. Current status: TRL 5 candidate based on repeatable local validation with preserved evidence artifacts.
 
 ## Modules
 - API Gateway
@@ -168,16 +168,18 @@ Generated output:
 - `reports/trl-validation-report.md`
 
 
-Last successful local TRL validation: 2026-05-08 10:39:04 UTC
+Last successful local TRL validation: 2026-05-08 15:09:34 UTC
 Command run: `bash scripts/run_trl_validation.sh`
 Report generation: successful (`reports/trl-validation-report.md`, `Result: PASS`)
 
 Startup fix summary (2026-05-08):
 - `scripts/start_all.sh` now starts the required TRL validation services (`inventory-service`, `risk-engine`, `planner-service`, `workflow-service`, `policy-engine`, `api-gateway`) and verifies `/health` before reporting success.
+- `scripts/start_all.sh` uses tighter curl timeouts, longer health wait retries, and restarts services when PID is live but health is failing.
 - Process detachment uses `setsid` + PID file write from child process to avoid stale PID tracking and premature STOPPED status in this environment.
 - `scripts/status_all.sh` now validates both PID liveness and `/health` endpoint responsiveness.
 - `scripts/stop_all.sh` now stops the same required TRL validation service set in reverse order.
 - Service logs are written to `logs/*.log` for direct diagnostics.
+- Local API Gateway startup now injects local upstream URLs: `INVENTORY_SERVICE_URL=http://127.0.0.1:8001`, `RISK_ENGINE_URL=http://127.0.0.1:8002`, `POLICY_ENGINE_URL=http://127.0.0.1:8007` (plus local planner/workflow/scenario/copilot defaults).
 
 How to inspect logs:
 ```bash

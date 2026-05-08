@@ -14,6 +14,7 @@
 - Input: local OS/files/package state; CLI flags (`-ingest`, `-inventory-url`).
 - Output: JSON evidence payload (stdout) or ingest response JSON.
 - Output includes `crypto_evidence.package_metadata` with best-effort crypto/security package metadata collection.
+- Output includes `crypto_evidence.cert_indicators.certificate_file_indicators` with best-effort certificate/key footprint discovery based on file names only.
 
 ## Current status
 - Working prototype service.
@@ -24,6 +25,31 @@
 ## Known limitations
 - Evidence depth depends on host permissions, installed tools, and available config paths.
 - Package metadata collection is best-effort and non-fatal. If collection fails, `package_metadata.collected` is `false`, `package_manager` becomes `unknown`, and the error is recorded in `package_metadata.errors`.
+- Certificate file discovery is limited to standard paths, max traversal depth 3, and max 200 files to avoid broad filesystem scans.
+- Certificate file discovery does not read or parse certificate/key contents; it only inspects path names and extensions.
+
+## Certificate file discovery
+- Standard paths inspected (if present):
+  - `/etc/ssl`
+  - `/etc/pki`
+  - `/etc/ca-certificates`
+  - `/usr/local/share/ca-certificates`
+  - `/etc/letsencrypt`
+  - `/etc/nginx`
+  - `/etc/apache2`
+  - `/etc/httpd`
+  - `/etc/haproxy`
+  - `/etc/openvpn`
+  - `/etc/ipsec.d`
+  - `/etc/strongswan`
+  - `/etc/ssh`
+- Matching/classification is deterministic and based on file names/extensions only:
+  - `certificate`: `.crt`, `.cer`, `.pem`, `.der`
+  - `key`: `.key`, `id_rsa`, `id_ecdsa`, `id_ed25519`
+  - `keystore`: `.jks`, `.p12`, `.pfx`, `keystore`
+  - `truststore`: `cacerts`, `truststore`
+  - `unknown`: crypto-looking names that do not map to a stronger class
+- Best-effort and non-fatal: inaccessible directories/files are recorded in `errors`, while the agent continues collection.
 
 ## Package metadata collection
 - Supported package managers: `dpkg`/`apt` (via `dpkg-query`), `rpm`, `apk`, and `pacman`.
@@ -37,16 +63,29 @@
 ### Sample JSON block
 ```json
 {
-  "package_metadata": {
-    "package_manager": "dpkg",
+  "certificate_file_indicators": {
     "collected": true,
-    "packages": [
+    "searched_paths": [
+      "/etc/ssl",
+      "/etc/pki",
+      "/usr/local/share/ca-certificates"
+    ],
+    "files": [
       {
-        "name": "openssl",
-        "version": "3.0.2-0ubuntu1",
-        "source": "dpkg"
+        "path": "/etc/ssl/certs/ca-certificates.crt",
+        "type": "certificate",
+        "extension": ".crt",
+        "readable": true,
+        "source": "standard_path"
       }
     ],
+    "counts": {
+      "certificate": 1,
+      "key": 0,
+      "keystore": 0,
+      "truststore": 0,
+      "unknown": 0
+    },
     "errors": []
   }
 }

@@ -1,14 +1,16 @@
 package scanner
 
 import (
-	"crypto/ecdsa"
+		"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/json"
+	"encoding/hex"
 	"strings"
 	"testing"
 )
@@ -24,8 +26,14 @@ func TestIsTLSTarget(t *testing.T) {
 }
 
 func TestTLSVersionString(t *testing.T) {
-	if tlsVersionString(0x0304) != "TLS1.3" {
-		t.Fatal("expected TLS1.3")
+	if tlsVersionString(0x0304) != "TLS 1.3" {
+		t.Fatal("expected TLS 1.3")
+	}
+}
+
+func TestCipherSuiteMappingReturnsReadableName(t *testing.T) {
+	if got := tls.CipherSuiteName(tls.TLS_AES_256_GCM_SHA384); got != "TLS_AES_256_GCM_SHA384" {
+		t.Fatalf("expected readable cipher suite name, got %q", got)
 	}
 }
 
@@ -107,6 +115,51 @@ func TestNameFingerprintReturnsSHA256Value(t *testing.T) {
 func TestNameFingerprintReturnsEmptyForMissingData(t *testing.T) {
 	if got := nameFingerprint(nil); got != "" {
 		t.Fatalf("expected empty fingerprint for nil input, got %q", got)
+	}
+}
+
+func TestCertificateSHA256FingerprintUsesLowercaseHex(t *testing.T) {
+	raw := []byte("certificate-bytes")
+	sum := sha256.Sum256(raw)
+	expected := hex.EncodeToString(sum[:])
+	if got := certificateSHA256Fingerprint(raw); got != expected {
+		t.Fatalf("expected %q, got %q", expected, got)
+	}
+}
+
+func TestCertificateSHA256FingerprintEmptyForMissingData(t *testing.T) {
+	if got := certificateSHA256Fingerprint(nil); got != "" {
+		t.Fatalf("expected empty fingerprint, got %q", got)
+	}
+}
+
+func TestFailureResultContainsStableTLSMetadataFields(t *testing.T) {
+	out, err := ScanTLS("127.0.0.1:1", false, 1)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+	if out.TLSMetadata.Collected {
+		t.Fatal("expected collected=false")
+	}
+	if out.TLSMetadata.ProtocolVersion != "" || out.TLSMetadata.CipherSuite != "" {
+		t.Fatal("expected empty protocol and cipher suite")
+	}
+	if out.TLSMetadata.Certificate != nil {
+		t.Fatal("expected nil certificate on failure")
+	}
+	if len(out.TLSMetadata.Errors) == 0 {
+		t.Fatal("expected at least one error")
+	}
+}
+
+func TestScanOutputJSONContainsTLSMetadata(t *testing.T) {
+	out := ScanOutput{Source: "network", TLSMetadata: TLSMetadata{Collected: false, Target: "example.com", Port: 443, ServerName: "example.com", Errors: []string{}}}
+	payload, err := json.Marshal(out)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	if !strings.Contains(string(payload), `"tls_metadata"`) {
+		t.Fatalf("expected tls_metadata field in JSON: %s", string(payload))
 	}
 }
 

@@ -53,6 +53,28 @@ type TLSEvidence struct {
 	CertificateChainInfo CertificateChainDetails `json:"certificate_chain"`
 }
 
+type TLSMetadata struct {
+	Collected       bool                 `json:"collected"`
+	Target          string               `json:"target"`
+	Port            int                  `json:"port"`
+	ServerName      string               `json:"server_name"`
+	ProtocolVersion string               `json:"protocol_version"`
+	CipherSuite     string               `json:"cipher_suite"`
+	Certificate     *TLSCertificateBrief `json:"certificate"`
+	Errors          []string             `json:"errors"`
+}
+
+type TLSCertificateBrief struct {
+	Subject            string `json:"subject"`
+	Issuer             string `json:"issuer"`
+	NotBefore          string `json:"not_before"`
+	NotAfter           string `json:"not_after"`
+	SignatureAlgorithm string `json:"signature_algorithm"`
+	PublicKeyAlgorithm string `json:"public_key_algorithm"`
+	PublicKeySize      int    `json:"public_key_size"`
+	FingerprintSHA256  string `json:"fingerprint_sha256"`
+}
+
 type AssetPayload struct {
 	AssetType      string  `json:"asset_type"`
 	Name           string  `json:"name"`
@@ -66,5 +88,6 @@ type AssetPayload struct {
 type ScanOutput struct {
 	Source      string         `json:"source"`
 	TLSEvidence *TLSEvidence   `json:"tls_evidence,omitempty"`
+	TLSMetadata TLSMetadata    `json:"tls_metadata"`
 	Assets      []AssetPayload `json:"assets"`
 }

@@ -32,9 +32,25 @@
   - `public_key_algorithm`
   - `public_key_size`
   - `fingerprint_sha256`
+- `certificate_chain`
+  - `available`
+  - `length`
+  - `certificates`
+    - `position`
+    - `subject`
+    - `issuer`
+    - `not_before`
+    - `not_after`
+    - `signature_algorithm`
+    - `public_key_algorithm`
+    - `public_key_size`
+    - `fingerprint_sha256`
+  - `errors`
 - `errors`
 
 Collection is best-effort and non-fatal per target: if TLS collection fails, scanning returns stable JSON with `collected=false`, empty protocol/cipher strings, `certificate=null`, and an `errors` list.
+
+`certificate_chain` is a summary of certificates presented by the peer TLS connection state only. It is not a full trust validation result, does not fetch missing intermediates, and does not perform OCSP/AIA lookups.
 
 ## Timeout and scanning behavior
 - The scanner remains non-aggressive and uses a single TLS dial attempt with configurable timeout (`-timeout`, default `5s`).
@@ -60,6 +76,24 @@ Collection is best-effort and non-fatal per target: if TLS collection fails, sca
       "public_key_algorithm": "RSA",
       "public_key_size": 2048,
       "fingerprint_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+    },
+    "certificate_chain": {
+      "available": true,
+      "length": 2,
+      "certificates": [
+        {
+          "position": 0,
+          "subject": "CN=*.example.com,O=Example Corp",
+          "issuer": "CN=Example Issuing CA",
+          "not_before": "2026-01-01T00:00:00Z",
+          "not_after": "2027-01-01T23:59:59Z",
+          "signature_algorithm": "SHA256-RSA",
+          "public_key_algorithm": "RSA",
+          "public_key_size": 2048,
+          "fingerprint_sha256": "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789"
+        }
+      ],
+      "errors": []
     },
     "errors": []
   },

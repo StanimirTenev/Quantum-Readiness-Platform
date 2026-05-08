@@ -1,7 +1,7 @@
 package scanner
 
 import (
-		"crypto/ecdsa"
+	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -9,10 +9,13 @@ import (
 	"crypto/tls"
 	"crypto/rsa"
 	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/hex"
+	"math/big"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestIsTLSTarget(t *testing.T) {
@@ -147,6 +150,15 @@ func TestFailureResultContainsStableTLSMetadataFields(t *testing.T) {
 	if out.TLSMetadata.Certificate != nil {
 		t.Fatal("expected nil certificate on failure")
 	}
+	if out.TLSMetadata.CertificateChain.Available {
+		t.Fatal("expected certificate chain to be unavailable")
+	}
+	if out.TLSMetadata.CertificateChain.Length != 0 || len(out.TLSMetadata.CertificateChain.Certificates) != 0 {
+		t.Fatal("expected empty unavailable certificate chain")
+	}
+	if len(out.TLSMetadata.CertificateChain.Errors) == 0 {
+		t.Fatal("expected non-empty certificate chain errors")
+	}
 	if len(out.TLSMetadata.Errors) == 0 {
 		t.Fatal("expected at least one error")
 	}
@@ -161,6 +173,75 @@ func TestScanOutputJSONContainsTLSMetadata(t *testing.T) {
 	if !strings.Contains(string(payload), `"tls_metadata"`) {
 		t.Fatalf("expected tls_metadata field in JSON: %s", string(payload))
 	}
+	if !strings.Contains(string(payload), `"certificate_chain"`) {
+		t.Fatalf("expected certificate_chain field in JSON: %s", string(payload))
+	}
+}
+
+func TestCertificateChainSummaryAvailableWithPeerCertificates(t *testing.T) {
+	leaf := mustCreateCertificate(t, "leaf.example", nil)
+	intermediate := mustCreateCertificate(t, "intermediate.example", nil)
+
+	summary := certificateChainSummary([]*x509.Certificate{leaf, intermediate})
+	if !summary.Available {
+		t.Fatal("expected available=true")
+	}
+	if summary.Length != 2 {
+		t.Fatalf("expected length=2, got %d", summary.Length)
+	}
+	if len(summary.Certificates) != 2 {
+		t.Fatalf("expected 2 certificates, got %d", len(summary.Certificates))
+	}
+	if summary.Certificates[0].FingerprintSHA256 != certificateSHA256Fingerprint(leaf.Raw) {
+		t.Fatal("expected first chain certificate fingerprint to match leaf")
+	}
+}
+
+func TestCertificateChainSummaryUnavailableStableShape(t *testing.T) {
+	summary := certificateChainSummary(nil)
+	if summary.Available {
+		t.Fatal("expected available=false")
+	}
+	if summary.Length != 0 {
+		t.Fatalf("expected length=0, got %d", summary.Length)
+	}
+	if len(summary.Certificates) != 0 {
+		t.Fatalf("expected empty certificates, got %d", len(summary.Certificates))
+	}
+	if len(summary.Errors) == 0 {
+		t.Fatal("expected non-empty errors")
+	}
+}
+
+func mustCreateCertificate(t *testing.T, commonName string, parent *x509.Certificate) *x509.Certificate {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatalf("rsa key generation failed: %v", err)
+	}
+
+	tpl := &x509.Certificate{
+		SerialNumber: big.NewInt(time.Now().UnixNano()),
+		Subject:      pkix.Name{CommonName: commonName},
+		NotBefore:    time.Now().Add(-time.Hour),
+		NotAfter:     time.Now().Add(24 * time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+	if parent == nil {
+		parent = tpl
+	}
+
+	der, err := x509.CreateCertificate(rand.Reader, tpl, parent, &key.PublicKey, key)
+	if err != nil {
+		t.Fatalf("certificate creation failed: %v", err)
+	}
+
+	cert, err := x509.ParseCertificate(der)
+	if err != nil {
+		t.Fatalf("parse certificate failed: %v", err)
+	}
+
+	return cert
 }
 
 func TestCertificateChainDetailsReturnsUnavailableWhenInsecure(t *testing.T) {

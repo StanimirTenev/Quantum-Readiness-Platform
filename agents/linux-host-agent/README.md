@@ -15,6 +15,7 @@
 - Output: JSON evidence payload (stdout) or ingest response JSON.
 - Output includes `crypto_evidence.package_metadata` with best-effort crypto/security package metadata collection.
 - Output includes `crypto_evidence.cert_indicators.certificate_file_indicators` with best-effort certificate/key footprint discovery based on file names only.
+- Output includes `crypto_evidence.cert_indicators.config_file_indicators` with best-effort SSH/TLS/VPN/keystore configuration footprint discovery based on file names/paths only.
 
 ## Current status
 - Working prototype service.
@@ -27,6 +28,8 @@
 - Package metadata collection is best-effort and non-fatal. If collection fails, `package_metadata.collected` is `false`, `package_manager` becomes `unknown`, and the error is recorded in `package_metadata.errors`.
 - Certificate file discovery is limited to standard paths, max traversal depth 3, and max 200 files to avoid broad filesystem scans.
 - Certificate file discovery does not read or parse certificate/key contents; it only inspects path names and extensions.
+- SSH/TLS/VPN/keystore config discovery does not read or parse config contents; it only inspects file paths and names in standard locations.
+- SSH/TLS/VPN/keystore config discovery is limited to standard paths, max traversal depth 3, and max 200 files.
 
 ## Certificate file discovery
 - Standard paths inspected (if present):
@@ -60,6 +63,35 @@
   - `errors: []`
 - The agent only keeps crypto/security-relevant package names (for example: OpenSSL/libssl, SSH, certificates, TLS/network security tooling, Java/OpenJDK/keytool, and common TLS termination services).
 
+## SSH/TLS/VPN config indicators
+- Standard paths inspected (if present):
+  - `/etc/ssh/sshd_config`
+  - `/etc/ssh/ssh_config`
+  - `/etc/ssh/sshd_config.d`
+  - `/etc/ssh/ssh_config.d`
+  - `/etc/nginx`
+  - `/etc/apache2`
+  - `/etc/httpd`
+  - `/etc/haproxy`
+  - `/etc/stunnel`
+  - `/etc/letsencrypt`
+  - `/etc/openvpn`
+  - `/etc/ipsec.conf`
+  - `/etc/ipsec.d`
+  - `/etc/strongswan`
+  - `/etc/wireguard`
+  - `/etc/java`
+  - `/etc/default`
+  - `/etc/sysconfig`
+- Classification is deterministic and path/name-based only:
+  - `sshd_config`/`sshd_config.d` => `ssh_server_config`
+  - `ssh_config`/`ssh_config.d` => `ssh_client_config`
+  - `nginx.conf`, `apache2.conf`, `httpd.conf`, `haproxy.cfg`, `stunnel.conf`, `sites-enabled`, `conf.d`, `vhosts.d`, and `letsencrypt/renewal` => `tls_server_config`
+  - OpenVPN/IPSec/WireGuard patterns (for example: `*.conf` under `/etc/openvpn`, `ipsec.conf`, `strongswan.conf`, `swanctl.conf`, `wg*.conf`) => `vpn_config`
+  - `keystore`, `truststore`, `cacerts`, `java.security` => `keystore_config`
+  - Other config-like files in the searched locations => `unknown`
+- Best-effort and non-fatal: inaccessible directories/files are recorded in `errors`, and collection continues.
+
 ### Sample JSON block
 ```json
 {
@@ -84,6 +116,37 @@
       "key": 0,
       "keystore": 0,
       "truststore": 0,
+      "unknown": 0
+    },
+    "errors": []
+  }
+}
+```
+
+### Sample config indicators JSON block
+```json
+{
+  "config_file_indicators": {
+    "collected": true,
+    "searched_paths": [
+      "/etc/ssh/sshd_config",
+      "/etc/nginx",
+      "/etc/wireguard"
+    ],
+    "files": [
+      {
+        "path": "/etc/ssh/sshd_config",
+        "type": "ssh_server_config",
+        "readable": true,
+        "source": "standard_path"
+      }
+    ],
+    "counts": {
+      "ssh_server_config": 1,
+      "ssh_client_config": 0,
+      "tls_server_config": 0,
+      "vpn_config": 0,
+      "keystore_config": 0,
       "unknown": 0
     },
     "errors": []

@@ -38,6 +38,7 @@ type CertificateIndicators struct {
 	TrustStoreIndicators      []PathIndicator           `json:"trust_store_indicators"`
 	KeyStoreIndicators        []PathIndicator           `json:"key_store_indicators"`
 	CertificateFileIndicators CertificateFileIndicators `json:"certificate_file_indicators"`
+	ConfigFileIndicators      ConfigFileIndicators      `json:"config_file_indicators"`
 }
 
 type CertificateFileIndicators struct {
@@ -62,6 +63,30 @@ type CertificateIndicatorFileCounts struct {
 	Keystore    int `json:"keystore"`
 	Truststore  int `json:"truststore"`
 	Unknown     int `json:"unknown"`
+}
+
+type ConfigFileIndicators struct {
+	Collected     bool                       `json:"collected"`
+	SearchedPaths []string                   `json:"searched_paths"`
+	Files         []ConfigIndicatorFile      `json:"files"`
+	Counts        ConfigIndicatorFileCounts  `json:"counts"`
+	Errors        []string                   `json:"errors"`
+}
+
+type ConfigIndicatorFile struct {
+	Path     string `json:"path"`
+	Type     string `json:"type"`
+	Readable bool   `json:"readable"`
+	Source   string `json:"source"`
+}
+
+type ConfigIndicatorFileCounts struct {
+	SSHServerConfig int `json:"ssh_server_config"`
+	SSHClientConfig int `json:"ssh_client_config"`
+	TLSServerConfig int `json:"tls_server_config"`
+	VPNConfig       int `json:"vpn_config"`
+	KeystoreConfig  int `json:"keystore_config"`
+	Unknown         int `json:"unknown"`
 }
 
 type PackageMetadata struct {

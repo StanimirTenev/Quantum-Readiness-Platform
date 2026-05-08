@@ -37,6 +37,7 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 			ProtocolVersion: "",
 			CipherSuite:     "",
 			Certificate:     nil,
+			CertificateChain: unavailableCertificateChainSummary("chain details unavailable"),
 			Errors:          []string{},
 		},
 		Assets: buildAssets(target),
@@ -60,7 +61,9 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 	defer conn.Close()
 
 	state := conn.ConnectionState()
+	chainSummary := certificateChainSummary(state.PeerCertificates)
 	if len(state.PeerCertificates) == 0 {
+		baseOutput.TLSMetadata.CertificateChain = chainSummary
 		baseOutput.TLSMetadata.Errors = []string{"no peer certificates returned"}
 		return baseOutput, nil
 	}
@@ -124,10 +127,49 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 			PublicKeySize:      keySizeOrZero(keySizeBits),
 			FingerprintSHA256:  certificateSHA256Fingerprint(cert.Raw),
 		},
+		CertificateChain: chainSummary,
 		Errors: []string{},
 	}
 
 	return baseOutput, nil
+}
+
+func certificateChainSummary(peerCertificates []*x509.Certificate) TLSCertificateChainSummary {
+	if len(peerCertificates) == 0 {
+		return unavailableCertificateChainSummary("chain details unavailable")
+	}
+
+	certificates := make([]TLSCertificateBriefItem, 0, len(peerCertificates))
+	for i, cert := range peerCertificates {
+		_, keySizeBits := certificateKeyMetadata(cert)
+		certificates = append(certificates, TLSCertificateBriefItem{
+			Position:           i,
+			Subject:            cert.Subject.String(),
+			Issuer:             cert.Issuer.String(),
+			NotBefore:          cert.NotBefore.Format(time.RFC3339),
+			NotAfter:           cert.NotAfter.Format(time.RFC3339),
+			SignatureAlgorithm: cert.SignatureAlgorithm.String(),
+			PublicKeyAlgorithm: cert.PublicKeyAlgorithm.String(),
+			PublicKeySize:      keySizeOrZero(keySizeBits),
+			FingerprintSHA256:  certificateSHA256Fingerprint(cert.Raw),
+		})
+	}
+
+	return TLSCertificateChainSummary{
+		Available:    true,
+		Length:       len(certificates),
+		Certificates: certificates,
+		Errors:       []string{},
+	}
+}
+
+func unavailableCertificateChainSummary(reason string) TLSCertificateChainSummary {
+	return TLSCertificateChainSummary{
+		Available:    false,
+		Length:       0,
+		Certificates: []TLSCertificateBriefItem{},
+		Errors:       []string{reason},
+	}
 }
 
 func buildAssets(target string) []AssetPayload {

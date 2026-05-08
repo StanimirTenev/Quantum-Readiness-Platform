@@ -61,7 +61,27 @@ type TLSMetadata struct {
 	ProtocolVersion string               `json:"protocol_version"`
 	CipherSuite     string               `json:"cipher_suite"`
 	Certificate     *TLSCertificateBrief `json:"certificate"`
+	CertificateChain TLSCertificateChainSummary `json:"certificate_chain"`
 	Errors          []string             `json:"errors"`
+}
+
+type TLSCertificateChainSummary struct {
+	Available    bool                      `json:"available"`
+	Length       int                       `json:"length"`
+	Certificates []TLSCertificateBriefItem `json:"certificates"`
+	Errors       []string                  `json:"errors"`
+}
+
+type TLSCertificateBriefItem struct {
+	Position           int    `json:"position"`
+	Subject            string `json:"subject"`
+	Issuer             string `json:"issuer"`
+	NotBefore          string `json:"not_before"`
+	NotAfter           string `json:"not_after"`
+	SignatureAlgorithm string `json:"signature_algorithm"`
+	PublicKeyAlgorithm string `json:"public_key_algorithm"`
+	PublicKeySize      int    `json:"public_key_size"`
+	FingerprintSHA256  string `json:"fingerprint_sha256"`
 }
 
 type TLSCertificateBrief struct {

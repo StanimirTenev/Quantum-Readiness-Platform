@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -54,10 +55,11 @@ func Collect() (ScanOutput, error) {
 		return ScanOutput{}, err
 	}
 
-	kernel := runCommand("uname", "-r")
+	kernel, _ := runCommand("uname", "-r")
 	ips := detectIPs()
 
-	opensslVersion := strings.TrimSpace(runCommand("openssl", "version"))
+	opensslVersion, _ := runCommand("openssl", "version")
+	opensslVersion = strings.TrimSpace(opensslVersion)
 	opensslAvailable := opensslVersion != ""
 
 	sshConfigPath := ""
@@ -72,8 +74,7 @@ func Collect() (ScanOutput, error) {
 
 	knownFiles := collectKnownCryptoFiles()
 	certificateFileIndicators := discoverCertificateFileIndicators()
-	packageManagerType := detectPackageManagerType()
-	cryptoPackages := collectCryptoPackages(packageManagerType)
+	packageMetadata := collectPackageMetadata()
 
 	output := ScanOutput{
 		Source: "host",
@@ -99,10 +100,7 @@ func Collect() (ScanOutput, error) {
 				KeyStoreIndicators:        keyStoreIndicators,
 				CertificateFileIndicators: certificateFileIndicators,
 			},
-			PackageMetadata: PackageMetadata{
-				PackageManagerType: packageManagerType,
-				CryptoPackages:     cryptoPackages,
-			},
+			PackageMetadata: packageMetadata,
 		},
 		Assets: buildAssets(hostname),
 	}
@@ -127,7 +125,8 @@ func buildAssets(hostname string) []AssetPayload {
 }
 
 func detectIPs() []string {
-	output := strings.TrimSpace(runCommand("hostname", "-I"))
+	output, _ := runCommand("hostname", "-I")
+	output = strings.TrimSpace(output)
 	if output == "" {
 		return []string{}
 	}
@@ -320,15 +319,38 @@ func detectPackageManagerType() string {
 	}
 }
 
-func collectCryptoPackages(packageManagerType string) []CryptoPackage {
-	raw := listInstalledPackages(packageManagerType)
-	if len(raw) == 0 {
-		return []CryptoPackage{}
+func collectPackageMetadata() PackageMetadata {
+	return collectPackageMetadataWithFunctions(detectPackageManagerType, listInstalledPackages)
+}
+
+func collectPackageMetadataWithFunctions(
+	detectManager func() string,
+	listPackages func(string) ([]CryptoPackage, error),
+) PackageMetadata {
+	packageManager := detectManager()
+	if packageManager == "unknown" {
+		return PackageMetadata{
+			PackageManager: packageManager,
+			Collected:      true,
+			Packages:       []CryptoPackage{},
+			Errors:         []string{},
+		}
+	}
+
+	raw, err := listPackages(packageManager)
+	if err != nil {
+		return PackageMetadata{
+			PackageManager: "unknown",
+			Collected:      false,
+			Packages:       []CryptoPackage{},
+			Errors:         []string{err.Error()},
+		}
 	}
 
 	relevant := make([]CryptoPackage, 0)
 	for _, pkg := range raw {
 		if isRelevantCryptoPackage(pkg.Name) {
+			pkg.Source = packageManager
 			relevant = append(relevant, pkg)
 		}
 	}
@@ -337,27 +359,36 @@ func collectCryptoPackages(packageManagerType string) []CryptoPackage {
 		return relevant[i].Name < relevant[j].Name
 	})
 
-	return relevant
+	return PackageMetadata{
+		PackageManager: packageManager,
+		Collected:      true,
+		Packages:       relevant,
+		Errors:         []string{},
+	}
 }
 
-func listInstalledPackages(packageManagerType string) []CryptoPackage {
+func listInstalledPackages(packageManagerType string) ([]CryptoPackage, error) {
 	var output string
+	var err error
 
 	switch packageManagerType {
 	case "dpkg":
-		output = runCommand("dpkg-query", "-W", "-f=${Package}\t${Version}\n")
+		output, err = runCommand("dpkg-query", "-W", "-f=${Package}\t${Version}\n")
 	case "rpm":
-		output = runCommand("rpm", "-qa", "--qf", "%{NAME}\t%{VERSION}-%{RELEASE}\n")
+		output, err = runCommand("rpm", "-qa", "--qf", "%{NAME}\t%{VERSION}-%{RELEASE}\n")
 	case "pacman":
-		output = runCommand("pacman", "-Q")
+		output, err = runCommand("pacman", "-Q")
 	case "apk":
-		output = runCommand("apk", "info", "-v")
+		output, err = runCommand("apk", "info", "-v")
 	default:
-		return []CryptoPackage{}
+		return []CryptoPackage{}, nil
 	}
 
+	if err != nil {
+		return nil, fmt.Errorf("package collection failed: %s", packageManagerType)
+	}
 	if output == "" {
-		return []CryptoPackage{}
+		return []CryptoPackage{}, nil
 	}
 
 	lines := strings.Split(output, "\n")
@@ -369,7 +400,7 @@ func listInstalledPackages(packageManagerType string) []CryptoPackage {
 		}
 	}
 
-	return packages
+	return packages, nil
 }
 
 func parsePackageLine(line string) (CryptoPackage, bool) {
@@ -399,22 +430,34 @@ func isRelevantCryptoPackage(packageName string) bool {
 	packageName = strings.ToLower(packageName)
 	return strings.Contains(packageName, "openssl") ||
 		strings.Contains(packageName, "libssl") ||
-		strings.Contains(packageName, "openssh") ||
 		strings.Contains(packageName, "gnutls") ||
+		strings.Contains(packageName, "nss") ||
 		strings.Contains(packageName, "libgcrypt") ||
-		strings.Contains(packageName, "libnss") ||
-		strings.HasPrefix(packageName, "nss") ||
-		strings.Contains(packageName, "mbedtls") ||
-		strings.Contains(packageName, "wolfssl") ||
-		strings.Contains(packageName, "liboqs") ||
-		strings.Contains(packageName, "boringssl")
+		strings.Contains(packageName, "cryptography") ||
+		strings.Contains(packageName, "crypto") ||
+		strings.Contains(packageName, "openssh") ||
+		strings.Contains(packageName, "ssh") ||
+		strings.Contains(packageName, "ca-certificates") ||
+		strings.Contains(packageName, "curl") ||
+		strings.Contains(packageName, "wget") ||
+		strings.Contains(packageName, "java") ||
+		strings.Contains(packageName, "openjdk") ||
+		strings.Contains(packageName, "keytool") ||
+		strings.Contains(packageName, "nginx") ||
+		strings.Contains(packageName, "apache") ||
+		strings.Contains(packageName, "httpd") ||
+		strings.Contains(packageName, "haproxy") ||
+		strings.Contains(packageName, "stunnel") ||
+		strings.Contains(packageName, "strongswan") ||
+		strings.Contains(packageName, "openvpn") ||
+		strings.Contains(packageName, "wireguard")
 }
 
-func runCommand(name string, args ...string) string {
+func runCommand(name string, args ...string) (string, error) {
 	cmd := exec.Command(name, args...)
 	output, err := cmd.Output()
 	if err != nil {
-		return ""
+		return "", err
 	}
-	return strings.TrimSpace(string(output))
+	return strings.TrimSpace(string(output)), nil
 }

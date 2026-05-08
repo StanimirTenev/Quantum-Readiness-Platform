@@ -41,13 +41,16 @@ type CertificateIndicators struct {
 }
 
 type PackageMetadata struct {
-	PackageManagerType string          `json:"package_manager_type"`
-	CryptoPackages     []CryptoPackage `json:"crypto_packages"`
+	PackageManager string          `json:"package_manager"`
+	Collected      bool            `json:"collected"`
+	Packages       []CryptoPackage `json:"packages"`
+	Errors         []string        `json:"errors"`
 }
 
 type CryptoPackage struct {
 	Name    string `json:"name"`
 	Version string `json:"version,omitempty"`
+	Source  string `json:"source,omitempty"`
 }
 
 type AssetPayload struct {

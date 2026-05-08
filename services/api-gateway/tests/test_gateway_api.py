@@ -67,3 +67,51 @@ def test_get_api_assets_asset_id_risk_builds_payload_and_returns_wrapped_respons
     assert calls[1][0] == "POST"
     assert calls[1][2]["scenario"] == "early_break"
     assert calls[1][2]["criticality"] == 5.0
+
+
+def test_post_api_policies_evaluate_forwards_payload_and_returns_upstream(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["payload"] = payload
+        return {
+            "asset_name": "payments-api",
+            "decision": "review",
+            "score": 65,
+            "reasons": ["high_risk_production_asset"],
+            "rule_id": "pqc-readiness-gate-v1",
+            "rule_version": "1.0.0",
+        }
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    payload = {
+        "asset_id": "asset-1",
+        "asset_name": "payments-api",
+        "asset_type": "service",
+        "environment": "production",
+        "criticality": 5,
+        "normalized_score_100": 65,
+        "rating": "high",
+        "vendor_blocked": False,
+        "dependency_count": 3,
+        "scenario": "public_timeline",
+    }
+
+    response = client.post("/api/policies/evaluate", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["decision"] == "review"
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/evaluate")
+    assert captured["payload"] == payload
+    assert response.json() == {
+        "asset_name": "payments-api",
+        "decision": "review",
+        "score": 65,
+        "reasons": ["high_risk_production_asset"],
+        "rule_id": "pqc-readiness-gate-v1",
+        "rule_version": "1.0.0",
+    }

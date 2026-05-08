@@ -1,0 +1,1327 @@
+{
+  "source": "host",
+  "host_inventory": {
+    "hostname": "6a967b8ebb48",
+    "os": "linux",
+    "kernel": "6.12.47",
+    "architecture": "amd64",
+    "ips": [
+      "172.30.3.146"
+    ]
+  },
+  "crypto_evidence": {
+    "openssl_available": true,
+    "openssl_version": "OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)",
+    "ssh_config_path": "/etc/ssh/ssh_config",
+    "known_crypto_files": [
+      "/etc/ssl/openssl.cnf",
+      "/etc/ssh/ssh_config",
+      "/etc/ssl/certs"
+    ],
+    "config_indicators": {
+      "ssh_config_indicators": [
+        {
+          "path": "/etc/ssh/ssh_config",
+          "present": true
+        },
+        {
+          "path": "/etc/ssh/sshd_config",
+          "present": false
+        },
+        {
+          "path": "/root/.ssh/config",
+          "present": false
+        }
+      ],
+      "tls_config_indicators": [
+        {
+          "path": "/etc/ssl/openssl.cnf",
+          "present": true
+        },
+        {
+          "path": "/etc/gnutls/config",
+          "present": true
+        },
+        {
+          "path": "/etc/pki/tls/openssl.cnf",
+          "present": false
+        },
+        {
+          "path": "/etc/ca-certificates.conf",
+          "present": true
+        }
+      ],
+      "service_config_hints": [
+        {
+          "service": "java",
+          "config_paths": [
+            "/etc/ssl/certs/java/cacerts",
+            "/usr/lib/jvm/default-java/lib/security/cacerts"
+          ]
+        }
+      ]
+    },
+    "cert_indicators": {
+      "trust_store_indicators": [
+        {
+          "path": "/etc/ssl/certs",
+          "present": true
+        },
+        {
+          "path": "/etc/pki/ca-trust/extracted",
+          "present": false
+        },
+        {
+          "path": "/etc/pki/ca-trust/source/anchors",
+          "present": false
+        },
+        {
+          "path": "/usr/local/share/ca-certificates",
+          "present": true
+        }
+      ],
+      "key_store_indicators": [
+        {
+          "path": "/etc/ssl/private",
+          "present": true
+        },
+        {
+          "path": "/etc/pki/tls/private",
+          "present": false
+        },
+        {
+          "path": "/etc/keystores",
+          "present": false
+        },
+        {
+          "path": "/etc/security",
+          "present": true
+        }
+      ],
+      "certificate_file_indicators": {
+        "collected": true,
+        "searched_paths": [
+          "/etc/ssl",
+          "/etc/pki",
+          "/etc/ca-certificates",
+          "/usr/local/share/ca-certificates",
+          "/etc/letsencrypt",
+          "/etc/nginx",
+          "/etc/apache2",
+          "/etc/httpd",
+          "/etc/haproxy",
+          "/etc/openvpn",
+          "/etc/ipsec.d",
+          "/etc/strongswan",
+          "/etc/ssh"
+        ],
+        "files": [
+          {
+            "path": "/etc/ssl/certs/ACCVRAIZ1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/AC_RAIZ_FNMT-RCM.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/AC_RAIZ_FNMT-RCM_SERVIDORES_SEGUROS.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/ANF_Secure_Server_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Actalis_Authentication_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/AffirmTrust_Commercial.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/AffirmTrust_Networking.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/AffirmTrust_Premium.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/AffirmTrust_Premium_ECC.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Amazon_Root_CA_1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Amazon_Root_CA_2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Amazon_Root_CA_3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Amazon_Root_CA_4.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Atos_TrustedRoot_2011.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Atos_TrustedRoot_Root_CA_ECC_TLS_2021.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Atos_TrustedRoot_Root_CA_RSA_TLS_2021.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Autoridad_de_Certificacion_Firmaprofesional_CIF_A62634068.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/BJCA_Global_Root_CA1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/BJCA_Global_Root_CA2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Baltimore_CyberTrust_Root.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Buypass_Class_2_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Buypass_Class_3_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/CA_Disig_Root_R2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/CFCA_EV_ROOT.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/COMODO_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/COMODO_ECC_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/COMODO_RSA_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Certainly_Root_E1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Certainly_Root_R1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Certigna.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Certigna_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Certum_EC-384_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Certum_Trusted_Network_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Certum_Trusted_Network_CA_2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Certum_Trusted_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/CommScope_Public_Trust_ECC_Root-01.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/CommScope_Public_Trust_ECC_Root-02.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/CommScope_Public_Trust_RSA_Root-01.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/CommScope_Public_Trust_RSA_Root-02.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Comodo_AAA_Services_root.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/D-TRUST_BR_Root_CA_1_2020.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/D-TRUST_EV_Root_CA_1_2020.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/D-TRUST_Root_Class_3_CA_2_2009.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/D-TRUST_Root_Class_3_CA_2_EV_2009.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/DigiCert_Assured_ID_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/DigiCert_Assured_ID_Root_G2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/DigiCert_Assured_ID_Root_G3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/DigiCert_Global_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/DigiCert_Global_Root_G2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/DigiCert_Global_Root_G3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/DigiCert_High_Assurance_EV_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/DigiCert_TLS_ECC_P384_Root_G5.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/DigiCert_TLS_RSA4096_Root_G5.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/DigiCert_Trusted_Root_G4.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Entrust.net_Premium_2048_Secure_Server_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Entrust_Root_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Entrust_Root_Certification_Authority_-_EC1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Entrust_Root_Certification_Authority_-_G2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Entrust_Root_Certification_Authority_-_G4.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GDCA_TrustAUTH_R5_ROOT.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GLOBALTRUST_2020.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GTS_Root_R1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GTS_Root_R2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GTS_Root_R3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GTS_Root_R4.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GlobalSign_ECC_Root_CA_-_R4.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GlobalSign_ECC_Root_CA_-_R5.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GlobalSign_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GlobalSign_Root_CA_-_R3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GlobalSign_Root_CA_-_R6.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GlobalSign_Root_E46.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/GlobalSign_Root_R46.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Go_Daddy_Class_2_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Go_Daddy_Root_Certificate_Authority_-_G2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/HARICA_TLS_ECC_Root_CA_2021.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/HARICA_TLS_RSA_Root_CA_2021.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Hellenic_Academic_and_Research_Institutions_ECC_RootCA_2015.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Hellenic_Academic_and_Research_Institutions_RootCA_2015.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/HiPKI_Root_CA_-_G1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Hongkong_Post_Root_CA_3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/ISRG_Root_X1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/ISRG_Root_X2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/IdenTrust_Commercial_Root_CA_1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/IdenTrust_Public_Sector_Root_CA_1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Izenpe.com.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Microsec_e-Szigno_Root_CA_2009.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Microsoft_ECC_Root_Certificate_Authority_2017.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Microsoft_RSA_Root_Certificate_Authority_2017.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/NAVER_Global_Root_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/NetLock_Arany_=Class_Gold=_Főtanúsítvány.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/OISTE_WISeKey_Global_Root_GB_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/OISTE_WISeKey_Global_Root_GC_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/QuoVadis_Root_CA_1_G3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/QuoVadis_Root_CA_2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/QuoVadis_Root_CA_2_G3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/QuoVadis_Root_CA_3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/QuoVadis_Root_CA_3_G3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SSL.com_EV_Root_Certification_Authority_ECC.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SSL.com_EV_Root_Certification_Authority_RSA_R2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SSL.com_Root_Certification_Authority_ECC.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SSL.com_Root_Certification_Authority_RSA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SSL.com_TLS_ECC_Root_CA_2022.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SSL.com_TLS_RSA_Root_CA_2022.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SZAFIR_ROOT_CA2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Sectigo_Public_Server_Authentication_Root_E46.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Sectigo_Public_Server_Authentication_Root_R46.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SecureSign_RootCA11.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SecureTrust_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Secure_Global_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Security_Communication_ECC_RootCA1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Security_Communication_RootCA2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Security_Communication_RootCA3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Security_Communication_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Starfield_Class_2_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Starfield_Root_Certificate_Authority_-_G2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Starfield_Services_Root_Certificate_Authority_-_G2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SwissSign_Gold_CA_-_G2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/SwissSign_Silver_CA_-_G2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/T-TeleSec_GlobalRoot_Class_2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/T-TeleSec_GlobalRoot_Class_3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/TUBITAK_Kamu_SM_SSL_Kok_Sertifikasi_-_Surum_1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/TWCA_Global_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/TWCA_Root_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/TeliaSonera_Root_CA_v1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Telia_Root_CA_v2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/TrustAsia_Global_Root_CA_G3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/TrustAsia_Global_Root_CA_G4.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Trustwave_Global_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Trustwave_Global_ECC_P256_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/Trustwave_Global_ECC_P384_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/TunTrust_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/UCA_Extended_Validation_Root.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/UCA_Global_G2_Root.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/USERTrust_ECC_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/USERTrust_RSA_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/XRamp_Global_CA_Root.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/ca-certificates.crt",
+            "type": "certificate",
+            "extension": ".crt",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/certSIGN_ROOT_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/certSIGN_Root_CA_G2.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/e-Szigno_Root_CA_2017.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/ePKI_Root_Certification_Authority.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/emSign_ECC_Root_CA_-_C3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/emSign_ECC_Root_CA_-_G3.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/emSign_Root_CA_-_C1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/emSign_Root_CA_-_G1.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/envoy-mitmproxy-ca-cert.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/java/cacerts",
+            "type": "truststore",
+            "extension": "",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/vTrus_ECC_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/etc/ssl/certs/vTrus_Root_CA.pem",
+            "type": "certificate",
+            "extension": ".pem",
+            "readable": true,
+            "source": "standard_path"
+          },
+          {
+            "path": "/usr/local/share/ca-certificates/envoy-mitmproxy-ca-cert.crt",
+            "type": "certificate",
+            "extension": ".crt",
+            "readable": true,
+            "source": "standard_path"
+          }
+        ],
+        "counts": {
+          "certificate": 149,
+          "key": 0,
+          "keystore": 0,
+          "truststore": 1,
+          "unknown": 0
+        },
+        "errors": []
+      },
+      "config_file_indicators": {
+        "collected": true,
+        "searched_paths": [
+          "/etc/ssh/sshd_config",
+          "/etc/ssh/ssh_config",
+          "/etc/ssh/sshd_config.d",
+          "/etc/ssh/ssh_config.d",
+          "/etc/nginx",
+          "/etc/apache2",
+          "/etc/httpd",
+          "/etc/haproxy",
+          "/etc/stunnel",
+          "/etc/letsencrypt",
+          "/etc/openvpn",
+          "/etc/ipsec.conf",
+          "/etc/ipsec.d",
+          "/etc/strongswan",
+          "/etc/wireguard",
+          "/etc/java",
+          "/etc/default",
+          "/etc/sysconfig"
+        ],
+        "files": [
+          {
+            "path": "/etc/ssh/ssh_config",
+            "type": "ssh_client_config",
+            "readable": true,
+            "source": "standard_path"
+          }
+        ],
+        "counts": {
+          "ssh_server_config": 0,
+          "ssh_client_config": 1,
+          "tls_server_config": 0,
+          "vpn_config": 0,
+          "keystore_config": 0,
+          "unknown": 0
+        },
+        "errors": []
+      }
+    },
+    "package_metadata": {
+      "package_manager": "dpkg",
+      "collected": true,
+      "packages": [
+        {
+          "name": "ca-certificates",
+          "version": "20240203",
+          "source": "dpkg"
+        },
+        {
+          "name": "curl",
+          "version": "8.5.0-2ubuntu10.8",
+          "source": "dpkg"
+        },
+        {
+          "name": "libcurl3t64-gnutls",
+          "version": "8.5.0-2ubuntu10.8",
+          "source": "dpkg"
+        },
+        {
+          "name": "libcurl4-openssl-dev",
+          "version": "8.5.0-2ubuntu10.8",
+          "source": "dpkg"
+        },
+        {
+          "name": "libcurl4t64",
+          "version": "8.5.0-2ubuntu10.8",
+          "source": "dpkg"
+        },
+        {
+          "name": "libgcrypt20",
+          "version": "1.10.3-2build1",
+          "source": "dpkg"
+        },
+        {
+          "name": "libgnutls30t64",
+          "version": "3.8.3-1.1ubuntu3.5",
+          "source": "dpkg"
+        },
+        {
+          "name": "libjansson4",
+          "version": "2.14-2build2",
+          "source": "dpkg"
+        },
+        {
+          "name": "libk5crypto3",
+          "version": "1.20.1-6ubuntu2.6",
+          "source": "dpkg"
+        },
+        {
+          "name": "libnss3",
+          "version": "2:3.98-1ubuntu0.1",
+          "source": "dpkg"
+        },
+        {
+          "name": "libnss3-dev",
+          "version": "2:3.98-1ubuntu0.1",
+          "source": "dpkg"
+        },
+        {
+          "name": "libssh-4",
+          "version": "0.10.6-2ubuntu0.4",
+          "source": "dpkg"
+        },
+        {
+          "name": "libssl-dev",
+          "version": "3.0.13-0ubuntu3.9",
+          "source": "dpkg"
+        },
+        {
+          "name": "libssl3t64",
+          "version": "3.0.13-0ubuntu3.9",
+          "source": "dpkg"
+        },
+        {
+          "name": "openssh-client",
+          "version": "1:9.6p1-3ubuntu13.16",
+          "source": "dpkg"
+        },
+        {
+          "name": "openssl",
+          "version": "3.0.13-0ubuntu3.9",
+          "source": "dpkg"
+        },
+        {
+          "name": "python3-cryptography",
+          "version": "41.0.7-4ubuntu0.4",
+          "source": "dpkg"
+        },
+        {
+          "name": "wget",
+          "version": "1.21.4-1ubuntu4.1",
+          "source": "dpkg"
+        }
+      ],
+      "errors": []
+    }
+  },
+  "assets": [
+    {
+      "asset_type": "server",
+      "name": "6a967b8ebb48",
+      "criticality": 3,
+      "environment": "unknown",
+      "lifecycle_years": 5
+    }
+  ]
+}

@@ -4,6 +4,36 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 REPORT_DIR="$ROOT_DIR/reports"
 REPORT_FILE="$REPORT_DIR/trl-validation-report.md"
+EVIDENCE_DIR="$REPORT_DIR/evidence"
+LATEST_EVIDENCE_DIR="$EVIDENCE_DIR/latest"
+
+sanitize_json_file() {
+  local input_file="$1"
+  local output_file="$2"
+
+  if command -v jq >/dev/null 2>&1; then
+    jq '
+      walk(
+        if type == "object" then
+          del(
+            .password,
+            .token,
+            .api_key,
+            .secret,
+            .authorization,
+            .Authorization,
+            .access_token,
+            .refresh_token
+          )
+        else
+          .
+        end
+      )
+    ' "$input_file" > "$output_file"
+  else
+    cp "$input_file" "$output_file"
+  fi
+}
 
 INVENTORY_URL="${INVENTORY_URL:-http://127.0.0.1:8001}"
 RISK_URL="${RISK_URL:-http://127.0.0.1:8002}"
@@ -12,7 +42,7 @@ WORKFLOW_URL="${WORKFLOW_URL:-http://127.0.0.1:8005}"
 POLICY_URL="${POLICY_URL:-http://127.0.0.1:8007}"
 API_GATEWAY_URL="${API_GATEWAY_URL:-http://127.0.0.1:8000}"
 
-mkdir -p "$REPORT_DIR"
+mkdir -p "$REPORT_DIR" "$LATEST_EVIDENCE_DIR"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -64,6 +94,19 @@ NETWORK_FIXTURE="$ROOT_DIR/services/inventory-service/tests/fixtures/stage2_evid
 [[ -f "$HOST_FIXTURE" ]] || { echo "Missing required fixture: $HOST_FIXTURE" >&2; exit 1; }
 [[ -f "$NETWORK_FIXTURE" ]] || { echo "Missing required fixture: $NETWORK_FIXTURE" >&2; exit 1; }
 
+HOST_EVIDENCE_ARTIFACT="$LATEST_EVIDENCE_DIR/host-evidence.json"
+NETWORK_EVIDENCE_ARTIFACT="$LATEST_EVIDENCE_DIR/network-evidence.json"
+INVENTORY_INGEST_ARTIFACT="$LATEST_EVIDENCE_DIR/inventory-ingest-response.json"
+ASSETS_ARTIFACT="$LATEST_EVIDENCE_DIR/assets.json"
+RISKS_ARTIFACT="$LATEST_EVIDENCE_DIR/risks.json"
+POLICY_ARTIFACT="$LATEST_EVIDENCE_DIR/policy-decision.json"
+PLAN_ARTIFACT="$LATEST_EVIDENCE_DIR/plan.json"
+WAVES_ARTIFACT="$LATEST_EVIDENCE_DIR/waves.json"
+WORKFLOW_ARTIFACT="$LATEST_EVIDENCE_DIR/workflow-export.json"
+
+sanitize_json_file "$HOST_FIXTURE" "$HOST_EVIDENCE_ARTIFACT"
+sanitize_json_file "$NETWORK_FIXTURE" "$NETWORK_EVIDENCE_ARTIFACT"
+
 INGEST_HOST="$TMP_DIR/ingest_host.json"
 INGEST_NETWORK="$TMP_DIR/ingest_network.json"
 
@@ -74,6 +117,19 @@ curl -fsS -X POST "$INVENTORY_URL/scans/ingest?auto_score=true&scenario=public_t
 curl -fsS -X POST "$INVENTORY_URL/scans/ingest?auto_score=true&scenario=public_timeline" \
   -H 'Content-Type: application/json' \
   --data-binary "@$NETWORK_FIXTURE" > "$INGEST_NETWORK"
+
+python3 - "$INGEST_HOST" "$INGEST_NETWORK" "$INVENTORY_INGEST_ARTIFACT" <<'PY'
+import json,sys
+host_path, network_path, out_path = sys.argv[1:4]
+json.dump(
+    {
+        "host_ingest": json.load(open(host_path, encoding="utf-8")),
+        "network_ingest": json.load(open(network_path, encoding="utf-8")),
+    },
+    open(out_path, "w", encoding="utf-8"),
+)
+PY
+sanitize_json_file "$INVENTORY_INGEST_ARTIFACT" "$INVENTORY_INGEST_ARTIFACT"
 
 python3 - "$INGEST_HOST" "$INGEST_NETWORK" <<'PY'
 import json,sys
@@ -96,6 +152,8 @@ WORKFLOW_EXPORT_JSON="$TMP_DIR/workflow_export.json"
 
 curl -fsS "$INVENTORY_URL/assets" > "$ASSETS_JSON"
 curl -fsS "$INVENTORY_URL/risks" > "$RISKS_JSON"
+sanitize_json_file "$ASSETS_JSON" "$ASSETS_ARTIFACT"
+sanitize_json_file "$RISKS_JSON" "$RISKS_ARTIFACT"
 
 python3 - "$RISKS_JSON" "$POLICY_JSON" "$POLICY_URL" <<'PY'
 import json,sys,urllib.request
@@ -128,13 +186,17 @@ for field in ("decision","reasons","rule_id","rule_version"):
         raise SystemExit(f"Missing {field} in policy response")
 json.dump({"request":payload,"response":result}, open(out_path,'w',encoding='utf-8'))
 PY
+sanitize_json_file "$POLICY_JSON" "$POLICY_ARTIFACT"
 
 curl -fsS "$PLANNER_URL/plan" > "$PLAN_JSON"
 curl -fsS "$PLANNER_URL/waves" > "$WAVES_JSON"
+sanitize_json_file "$PLAN_JSON" "$PLAN_ARTIFACT"
+sanitize_json_file "$WAVES_JSON" "$WAVES_ARTIFACT"
 
 curl -fsS -X POST "$PLANNER_URL/export-tasks" \
   -H 'Content-Type: application/json' \
   --data '{"waves":["wave_1"],"auto_submit":false}' > "$WORKFLOW_EXPORT_JSON"
+sanitize_json_file "$WORKFLOW_EXPORT_JSON" "$WORKFLOW_ARTIFACT"
 
 python3 - "$HEALTH_JSON" "$INGEST_HOST" "$RISKS_JSON" "$POLICY_JSON" "$WAVES_JSON" "$WORKFLOW_EXPORT_JSON" "$REPORT_FILE" <<'PY'
 import json,sys
@@ -198,6 +260,19 @@ f"- wave_3 count: {len(waves.get('wave_3', []))}",
 "## Workflow Result",
 f"- created task count: {export.get('created_count', 0)}",
 "",
+"## Evidence Artifacts",
+"| Artifact | Path |",
+"|---|---|",
+"| Host evidence | reports/evidence/latest/host-evidence.json |",
+"| Network evidence | reports/evidence/latest/network-evidence.json |",
+"| Inventory ingest response | reports/evidence/latest/inventory-ingest-response.json |",
+"| Assets | reports/evidence/latest/assets.json |",
+"| Risks | reports/evidence/latest/risks.json |",
+"| Policy decision | reports/evidence/latest/policy-decision.json |",
+"| Plan | reports/evidence/latest/plan.json |",
+"| Waves | reports/evidence/latest/waves.json |",
+"| Workflow export | reports/evidence/latest/workflow-export.json |",
+"",
 "## TRL Assessment",
 "Current technical maturity:",
 "TRL 4 -> TRL 5 candidate",
@@ -207,7 +282,7 @@ f"- created task count: {export.get('created_count', 0)}",
 "",
 "Remaining gaps before claiming stronger TRL 5:",
 "- run against real infrastructure sample",
-"- preserve evidence artifacts",
+"- preserve evidence artifacts across timestamped runs",
 "- add failure/retry handling",
 "- add operator-facing validation checklist",
 "- document environment assumptions",

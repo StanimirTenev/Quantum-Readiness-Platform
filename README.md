@@ -137,6 +137,15 @@ It runs:
 - Inventory keeps evidence JSON blobs as-is after model normalization; no deep semantic enrichment beyond current validators.
 - Stage 2 smoke is a short-path validation, not a full multi-service deployment conformance suite.
 
+## TRL Evidence Package
+
+The TRL validation run now generates an Evidence Package v1 with sanitized input and output artifacts for auditability and repeatability.
+
+- Stores validation evidence for host/network inputs, inventory responses, risks, policy decision, planning outputs, and workflow export.
+- Location: `reports/evidence/latest/`
+- Regenerate: `bash scripts/run_trl_validation.sh`
+- Supports TRL 5 candidate status by proving a repeatable local validation run with persisted evidence artifacts.
+
 ## TRL Validation
 
 Run the repeatable TRL validation harness:
@@ -163,10 +172,19 @@ Command run: `bash scripts/run_trl_validation.sh`
 Report generation: successful (`reports/trl-validation-report.md`, `Result: PASS`)
 Known limitations:
 - Validation is local-only and does not yet run against representative production-like infrastructure.
-- Evidence artifacts are not yet archived automatically for audit trails.
 - Failure/retry orchestration and operator runbook checklist are still pending.
+- Timestamped evidence archival across multiple runs is still pending.
 
 Environment notes:
 - Default local endpoints: inventory `:8001`, risk `:8002`, planner `:8004`, workflow `:8005`, policy `:8007`, api-gateway `:8000`.
 - Override endpoints with `INVENTORY_URL`, `RISK_URL`, `PLANNER_URL`, `WORKFLOW_URL`, `POLICY_URL`, `API_GATEWAY_URL`.
 - Script is fail-fast (`set -euo pipefail`) and exits immediately if required services or required response fields are missing.
+
+## Project Progress
+
+- [x] Policy evaluation flow
+- [x] TRL validation harness v1
+- [x] TRL evidence package v1
+- [ ] Operator validation checklist
+- [ ] Real infrastructure validation sample
+- [ ] Evidence preservation across timestamped runs

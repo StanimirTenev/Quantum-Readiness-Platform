@@ -178,6 +178,102 @@ func TestScanOutputJSONContainsTLSMetadata(t *testing.T) {
 	}
 }
 
+
+func TestFailureJSONContractIncludesTLSMetadataCertificateAndChain(t *testing.T) {
+	out, err := ScanTLS("127.0.0.1:1", false, 1)
+	if err != nil {
+		t.Fatalf("expected nil error, got %v", err)
+	}
+
+	payload, err := json.Marshal(out)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+
+	var decoded map[string]any
+	if err := json.Unmarshal(payload, &decoded); err != nil {
+		t.Fatalf("unmarshal failed: %v", err)
+	}
+
+	tlsMetadata, ok := decoded["tls_metadata"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected tls_metadata object, got %T", decoded["tls_metadata"])
+	}
+
+	if _, ok := tlsMetadata["certificate"]; !ok {
+		t.Fatal("expected tls_metadata.certificate field")
+	}
+	if tlsMetadata["certificate"] != nil {
+		t.Fatal("expected tls_metadata.certificate to be null on failure")
+	}
+
+	chain, ok := tlsMetadata["certificate_chain"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected tls_metadata.certificate_chain object, got %T", tlsMetadata["certificate_chain"])
+	}
+	if _, ok := chain["certificates"]; !ok {
+		t.Fatal("expected tls_metadata.certificate_chain.certificates field")
+	}
+	certificates, ok := chain["certificates"].([]any)
+	if !ok {
+		t.Fatalf("expected certificates array, got %T", chain["certificates"])
+	}
+	if len(certificates) != 0 {
+		t.Fatalf("expected empty certificates array, got %d", len(certificates))
+	}
+
+	errorsField, ok := tlsMetadata["errors"]
+	if !ok {
+		t.Fatal("expected tls_metadata.errors field")
+	}
+	errors, ok := errorsField.([]any)
+	if !ok {
+		t.Fatalf("expected tls_metadata.errors array, got %T", errorsField)
+	}
+	if len(errors) == 0 {
+		t.Fatal("expected non-empty tls_metadata.errors on failure")
+	}
+}
+
+func TestTLSMetadataJSONContainsCertificateChainCertificatesErrors(t *testing.T) {
+	out := ScanOutput{
+		Source: "network",
+		TLSMetadata: TLSMetadata{
+			Collected:       false,
+			Target:          "example.com",
+			Port:            443,
+			ServerName:      "example.com",
+			ProtocolVersion: "",
+			CipherSuite:     "",
+			Certificate:     nil,
+			CertificateChain: TLSCertificateChainSummary{
+				Available:    false,
+				Length:       0,
+				Certificates: []TLSCertificateBriefItem{},
+				Errors:       []string{"chain details unavailable"},
+			},
+			Errors: []string{"short error message"},
+		},
+	}
+	payload, err := json.Marshal(out)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+
+	jsonOutput := string(payload)
+	for _, field := range []string{
+		`"tls_metadata"`,
+		`"certificate":null`,
+		`"certificate_chain"`,
+		`"certificates":[]`,
+		`"errors":["short error message"]`,
+	} {
+		if !strings.Contains(jsonOutput, field) {
+			t.Fatalf("expected JSON to contain %q, got %s", field, jsonOutput)
+		}
+	}
+}
+
 func TestCertificateChainSummaryAvailableWithPeerCertificates(t *testing.T) {
 	leaf := mustCreateCertificate(t, "leaf.example", nil)
 	intermediate := mustCreateCertificate(t, "intermediate.example", nil)

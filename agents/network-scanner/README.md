@@ -15,28 +15,18 @@
 - Input: CLI flags (`-target`, `-insecure`, `-timeout`, optional `-ingest`).
 - Output: JSON TLS evidence (stdout) or ingest response JSON.
 
-### TLS metadata fields
-`tls_metadata` is always present in output JSON and includes:
-- `collected`
-- `target`
-- `port`
-- `server_name`
-- `protocol_version`
-- `cipher_suite`
-- `certificate` (or `null` on failure)
-  - `subject`
-  - `issuer`
-  - `not_before`
-  - `not_after`
-  - `signature_algorithm`
-  - `public_key_algorithm`
-  - `public_key_size`
-  - `fingerprint_sha256`
-- `certificate_chain`
-  - `available`
-  - `length`
-  - `certificates`
-    - `position`
+## TLS Evidence Output Contract
+`tls_metadata` is always present in output JSON.
+
+Canonical shape:
+- `tls_metadata`
+  - `collected`
+  - `target`
+  - `port`
+  - `server_name`
+  - `protocol_version`
+  - `cipher_suite`
+  - `certificate` (object on success, `null` when unavailable)
     - `subject`
     - `issuer`
     - `not_before`
@@ -45,10 +35,23 @@
     - `public_key_algorithm`
     - `public_key_size`
     - `fingerprint_sha256`
-  - `errors`
-- `errors`
+  - `certificate_chain` (always present)
+    - `available`
+    - `length`
+    - `certificates` (always present array; empty when unavailable)
+      - `position`
+      - `subject`
+      - `issuer`
+      - `not_before`
+      - `not_after`
+      - `signature_algorithm`
+      - `public_key_algorithm`
+      - `public_key_size`
+      - `fingerprint_sha256`
+    - `errors` (`[]` when available, non-empty when unavailable)
+  - `errors` (`[]` when no errors)
 
-Collection is best-effort and non-fatal per target: if TLS collection fails, scanning returns stable JSON with `collected=false`, empty protocol/cipher strings, `certificate=null`, and an `errors` list.
+Fields are best-effort. When TLS collection fails, output remains stable with `collected=false`, empty `protocol_version`/`cipher_suite`, `certificate=null`, always-present `certificate_chain`, and populated `errors` values.
 
 `certificate_chain` is a summary of certificates presented by the peer TLS connection state only. It is not a full trust validation result, does not fetch missing intermediates, and does not perform OCSP/AIA lookups.
 

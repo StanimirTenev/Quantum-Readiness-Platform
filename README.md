@@ -136,3 +136,28 @@ It runs:
 - `linux-host-agent` evidence depth is environment-dependent (OS/files/packages/permissions).
 - Inventory keeps evidence JSON blobs as-is after model normalization; no deep semantic enrichment beyond current validators.
 - Stage 2 smoke is a short-path validation, not a full multi-service deployment conformance suite.
+
+## TRL Validation
+
+Run the repeatable TRL validation harness:
+
+```bash
+./scripts/run_trl_validation.sh
+```
+
+The script validates the end-to-end flow:
+- service health checks (`inventory-service`, `risk-engine`, `planner-service`, `workflow-service`, `policy-engine`, optional `api-gateway`)
+- evidence ingest (host + network fixtures)
+- inventory output integrity (`scan_id`, `created`, `asset_ids`)
+- risk retrieval
+- policy evaluation (`POST /evaluate`)
+- planning endpoints (`GET /plan`, `GET /waves`)
+- workflow export (`POST /export-tasks`)
+
+Generated output:
+- `reports/trl-validation-report.md`
+
+Environment notes:
+- Default local endpoints: inventory `:8001`, risk `:8002`, planner `:8004`, workflow `:8005`, policy `:8007`, api-gateway `:8000`.
+- Override endpoints with `INVENTORY_URL`, `RISK_URL`, `PLANNER_URL`, `WORKFLOW_URL`, `POLICY_URL`, `API_GATEWAY_URL`.
+- Script is fail-fast (`set -euo pipefail`) and exits immediately if required services or required response fields are missing.

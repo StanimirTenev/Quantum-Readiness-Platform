@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,6 +35,67 @@ func TestCollect(t *testing.T) {
 
 	if result.CryptoEvidence.PackageMetadata.PackageManager == "" {
 		t.Fatal("expected package manager to be populated")
+	}
+
+	if result.CryptoEvidence.CertIndicators.CertificateFileIndicators.SearchedPaths == nil {
+		t.Fatal("expected certificate_file_indicators.searched_paths to be present")
+	}
+	if result.CryptoEvidence.CertIndicators.CertificateFileIndicators.Files == nil {
+		t.Fatal("expected certificate_file_indicators.files to be present")
+	}
+	if result.CryptoEvidence.CertIndicators.CertificateFileIndicators.Errors == nil {
+		t.Fatal("expected certificate_file_indicators.errors to be present")
+	}
+	if result.CryptoEvidence.CertIndicators.ConfigFileIndicators.SearchedPaths == nil {
+		t.Fatal("expected config_file_indicators.searched_paths to be present")
+	}
+	if result.CryptoEvidence.CertIndicators.ConfigFileIndicators.Files == nil {
+		t.Fatal("expected config_file_indicators.files to be present")
+	}
+	if result.CryptoEvidence.CertIndicators.ConfigFileIndicators.Errors == nil {
+		t.Fatal("expected config_file_indicators.errors to be present")
+	}
+	if result.CryptoEvidence.PackageMetadata.Packages == nil {
+		t.Fatal("expected package_metadata.packages to be present")
+	}
+	if result.CryptoEvidence.PackageMetadata.Errors == nil {
+		t.Fatal("expected package_metadata.errors to be present")
+	}
+}
+
+func TestScanOutputJSONContainsStage2EvidenceBlocks(t *testing.T) {
+	result, err := Collect()
+	if err != nil {
+		t.Fatalf("Collect returned error: %v", err)
+	}
+
+	payload, err := json.Marshal(result)
+	if err != nil {
+		t.Fatalf("json marshal failed: %v", err)
+	}
+
+	var decoded map[string]any
+	if err := json.Unmarshal(payload, &decoded); err != nil {
+		t.Fatalf("json unmarshal failed: %v", err)
+	}
+
+	cryptoEvidence, ok := decoded["crypto_evidence"].(map[string]any)
+	if !ok {
+		t.Fatal("expected crypto_evidence object")
+	}
+	if _, ok := cryptoEvidence["package_metadata"]; !ok {
+		t.Fatal("expected crypto_evidence.package_metadata")
+	}
+
+	certIndicators, ok := cryptoEvidence["cert_indicators"].(map[string]any)
+	if !ok {
+		t.Fatal("expected crypto_evidence.cert_indicators object")
+	}
+	if _, ok := certIndicators["certificate_file_indicators"]; !ok {
+		t.Fatal("expected crypto_evidence.cert_indicators.certificate_file_indicators")
+	}
+	if _, ok := certIndicators["config_file_indicators"]; !ok {
+		t.Fatal("expected crypto_evidence.cert_indicators.config_file_indicators")
 	}
 }
 

@@ -17,6 +17,13 @@
 - Output includes `crypto_evidence.cert_indicators.certificate_file_indicators` with best-effort certificate/key footprint discovery based on file names only.
 - Output includes `crypto_evidence.cert_indicators.config_file_indicators` with best-effort SSH/TLS/VPN/keystore configuration footprint discovery based on file names/paths only.
 
+## Evidence Output Contract
+- Canonical evidence blocks are always present in the JSON payload:
+  - `crypto_evidence.package_metadata`
+  - `crypto_evidence.cert_indicators.certificate_file_indicators`
+  - `crypto_evidence.cert_indicators.config_file_indicators`
+- These blocks are best-effort and non-fatal. Collection failures are represented in-block via `collected: false` and populated `errors`, while successful collection with no matches uses `collected: true`, empty arrays, and zero counts.
+
 ## Current status
 - Working prototype service.
 

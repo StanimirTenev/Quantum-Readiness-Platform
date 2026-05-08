@@ -1,0 +1,22 @@
+{
+  "request": {
+    "asset_name": "payments.example.com:443",
+    "environment": "production",
+    "criticality": 4,
+    "normalized_score_100": 74.0,
+    "rating": "high",
+    "vendor_blocked": true,
+    "dependency_count": 3,
+    "scenario": "public_timeline"
+  },
+  "response": {
+    "asset_name": "payments.example.com:443",
+    "decision": "deny",
+    "score": 74.0,
+    "reasons": [
+      "vendor_blocked"
+    ],
+    "rule_id": "pqc-readiness-gate-v1",
+    "rule_version": "1.0.0"
+  }
+}

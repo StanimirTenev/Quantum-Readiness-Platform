@@ -167,9 +167,27 @@ Generated output:
 - `reports/trl-validation-report.md`
 
 
-Last successful local TRL validation: 2026-05-08 10:06:39 UTC
+Last successful local TRL validation: 2026-05-08 10:39:04 UTC
 Command run: `bash scripts/run_trl_validation.sh`
 Report generation: successful (`reports/trl-validation-report.md`, `Result: PASS`)
+
+Startup fix summary (2026-05-08):
+- `scripts/start_all.sh` now starts the required TRL validation services (`inventory-service`, `risk-engine`, `planner-service`, `workflow-service`, `policy-engine`, `api-gateway`) and verifies `/health` before reporting success.
+- Process detachment uses `setsid` + PID file write from child process to avoid stale PID tracking and premature STOPPED status in this environment.
+- `scripts/status_all.sh` now validates both PID liveness and `/health` endpoint responsiveness.
+- `scripts/stop_all.sh` now stops the same required TRL validation service set in reverse order.
+- Service logs are written to `logs/*.log` for direct diagnostics.
+
+How to inspect logs:
+```bash
+tail -n 200 logs/inventory-service.log
+tail -n 200 logs/risk-engine.log
+tail -n 200 logs/planner-service.log
+tail -n 200 logs/workflow-service.log
+tail -n 200 logs/policy-engine.log
+tail -n 200 logs/api-gateway.log
+```
+
 Known limitations:
 - Validation is local-only and does not yet run against representative production-like infrastructure.
 - Failure/retry orchestration and operator runbook checklist are still pending.

@@ -262,3 +262,88 @@ func TestCollectServiceConfigHintsWithProbeReturnsExpectedHints(t *testing.T) {
 		t.Fatalf("expected third hint for java, got %s", hints[2].Service)
 	}
 }
+
+func TestDiscoverConfigFileIndicatorsClassifiesSSHServerConfig(t *testing.T) {
+	root := t.TempDir()
+	sshd := filepath.Join(root, "etc", "ssh", "sshd_config")
+	_ = os.MkdirAll(filepath.Dir(sshd), 0o755)
+	_ = os.WriteFile(sshd, []byte("x"), 0o600)
+	indicators := discoverConfigFileIndicatorsInPaths([]string{sshd}, 20)
+	if indicators.Counts.SSHServerConfig != 1 {
+		t.Fatalf("expected 1 ssh_server_config, got %#v", indicators.Counts)
+	}
+}
+
+func TestDiscoverConfigFileIndicatorsClassifiesSSHClientConfig(t *testing.T) {
+	root := t.TempDir()
+	ssh := filepath.Join(root, "etc", "ssh", "ssh_config")
+	_ = os.MkdirAll(filepath.Dir(ssh), 0o755)
+	_ = os.WriteFile(ssh, []byte("x"), 0o600)
+	indicators := discoverConfigFileIndicatorsInPaths([]string{ssh}, 20)
+	if indicators.Counts.SSHClientConfig != 1 {
+		t.Fatalf("expected 1 ssh_client_config, got %#v", indicators.Counts)
+	}
+}
+
+func TestDiscoverConfigFileIndicatorsClassifiesTLSServerConfig(t *testing.T) {
+	root := t.TempDir()
+	haproxy := filepath.Join(root, "etc", "haproxy", "haproxy.cfg")
+	_ = os.MkdirAll(filepath.Dir(haproxy), 0o755)
+	_ = os.WriteFile(haproxy, []byte("x"), 0o600)
+	indicators := discoverConfigFileIndicatorsInPaths([]string{filepath.Join(root, "etc", "haproxy")}, 20)
+	if indicators.Counts.TLSServerConfig != 1 {
+		t.Fatalf("expected 1 tls_server_config, got %#v", indicators.Counts)
+	}
+}
+
+func TestDiscoverConfigFileIndicatorsClassifiesVPNConfig(t *testing.T) {
+	root := t.TempDir()
+	wg := filepath.Join(root, "etc", "wireguard", "wg0.conf")
+	_ = os.MkdirAll(filepath.Dir(wg), 0o755)
+	_ = os.WriteFile(wg, []byte("x"), 0o600)
+	indicators := discoverConfigFileIndicatorsInPaths([]string{filepath.Join(root, "etc", "wireguard")}, 20)
+	if indicators.Counts.VPNConfig != 1 {
+		t.Fatalf("expected 1 vpn_config, got %#v", indicators.Counts)
+	}
+}
+
+func TestDiscoverConfigFileIndicatorsClassifiesKeystoreConfig(t *testing.T) {
+	root := t.TempDir()
+	javaSecurity := filepath.Join(root, "etc", "java", "java.security")
+	_ = os.MkdirAll(filepath.Dir(javaSecurity), 0o755)
+	_ = os.WriteFile(javaSecurity, []byte("x"), 0o600)
+	indicators := discoverConfigFileIndicatorsInPaths([]string{filepath.Join(root, "etc", "java")}, 20)
+	if indicators.Counts.KeystoreConfig != 1 {
+		t.Fatalf("expected 1 keystore_config, got %#v", indicators.Counts)
+	}
+}
+
+func TestDiscoverConfigFileIndicatorsMissingPathsDoNotFailCollection(t *testing.T) {
+	indicators := discoverConfigFileIndicatorsInPaths([]string{"/path/that/does/not/exist"}, 20)
+	if !indicators.Collected {
+		t.Fatal("expected collected=true with missing paths")
+	}
+	if len(indicators.Files) != 0 {
+		t.Fatalf("expected no files, got %#v", indicators.Files)
+	}
+}
+
+func TestDiscoverConfigFileIndicatorsEmptyResultHasZeroCounts(t *testing.T) {
+	indicators := discoverConfigFileIndicatorsInPaths([]string{t.TempDir()}, 20)
+	if indicators.Counts != (ConfigIndicatorFileCounts{}) {
+		t.Fatalf("expected zero counts, got %#v", indicators.Counts)
+	}
+}
+
+func TestDiscoverConfigFileIndicatorsRespectsMaxFileLimit(t *testing.T) {
+	root := t.TempDir()
+	confDir := filepath.Join(root, "etc", "openvpn")
+	_ = os.MkdirAll(confDir, 0o755)
+	for i := 0; i < 10; i++ {
+		_ = os.WriteFile(filepath.Join(confDir, "site"+string(rune('a'+i))+".conf"), []byte("x"), 0o600)
+	}
+	indicators := discoverConfigFileIndicatorsInPaths([]string{confDir}, 3)
+	if len(indicators.Files) != 3 {
+		t.Fatalf("expected 3 files due to limit, got %d", len(indicators.Files))
+	}
+}

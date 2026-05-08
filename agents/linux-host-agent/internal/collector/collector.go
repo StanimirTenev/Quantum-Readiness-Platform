@@ -25,6 +25,26 @@ var standardCertificateLocations = []string{
 	"/etc/strongswan",
 	"/etc/ssh",
 }
+var standardConfigIndicatorLocations = []string{
+	"/etc/ssh/sshd_config",
+	"/etc/ssh/ssh_config",
+	"/etc/ssh/sshd_config.d",
+	"/etc/ssh/ssh_config.d",
+	"/etc/nginx",
+	"/etc/apache2",
+	"/etc/httpd",
+	"/etc/haproxy",
+	"/etc/stunnel",
+	"/etc/letsencrypt",
+	"/etc/openvpn",
+	"/etc/ipsec.conf",
+	"/etc/ipsec.d",
+	"/etc/strongswan",
+	"/etc/wireguard",
+	"/etc/java",
+	"/etc/default",
+	"/etc/sysconfig",
+}
 
 var standardSSHConfigLocations = []string{
 	"/etc/ssh/ssh_config",
@@ -55,6 +75,8 @@ var standardKeyStoreLocations = []string{
 
 const maxCertificateIndicators = 200
 const maxCertificateSearchDepth = 3
+const maxConfigIndicators = 200
+const maxConfigSearchDepth = 3
 
 func Collect() (ScanOutput, error) {
 	hostname, err := os.Hostname()
@@ -81,6 +103,7 @@ func Collect() (ScanOutput, error) {
 
 	knownFiles := collectKnownCryptoFiles()
 	certificateFileIndicators := discoverCertificateFileIndicators()
+	configFileIndicators := discoverConfigFileIndicators()
 	packageMetadata := collectPackageMetadata()
 
 	output := ScanOutput{
@@ -106,6 +129,7 @@ func Collect() (ScanOutput, error) {
 				TrustStoreIndicators:      trustStoreIndicators,
 				KeyStoreIndicators:        keyStoreIndicators,
 				CertificateFileIndicators: certificateFileIndicators,
+				ConfigFileIndicators:      configFileIndicators,
 			},
 			PackageMetadata: packageMetadata,
 		},
@@ -288,6 +312,155 @@ func incrementCertificateTypeCount(counts *CertificateIndicatorFileCounts, indic
 		counts.Keystore++
 	case "truststore":
 		counts.Truststore++
+	default:
+		counts.Unknown++
+	}
+}
+
+func discoverConfigFileIndicators() ConfigFileIndicators {
+	return discoverConfigFileIndicatorsInPaths(standardConfigIndicatorLocations, maxConfigIndicators)
+}
+
+func discoverConfigFileIndicatorsInPaths(paths []string, maxIndicators int) ConfigFileIndicators {
+	result := emptyConfigFileIndicators()
+	if maxIndicators <= 0 {
+		return result
+	}
+	result.Collected = true
+	seen := make(map[string]struct{})
+	result.Files = make([]ConfigIndicatorFile, 0, maxIndicators)
+
+	addFile := func(path string) {
+		indicatorType, ok := classifyConfigFileIndicator(path)
+		if !ok {
+			return
+		}
+		cleaned := filepath.Clean(path)
+		if _, exists := seen[cleaned]; exists {
+			return
+		}
+		seen[cleaned] = struct{}{}
+		result.Files = append(result.Files, ConfigIndicatorFile{
+			Path:     cleaned,
+			Type:     indicatorType,
+			Readable: fileIsReadable(cleaned),
+			Source:   "standard_path",
+		})
+		incrementConfigTypeCount(&result.Counts, indicatorType)
+	}
+
+	for _, location := range paths {
+		if len(result.Files) >= maxIndicators {
+			break
+		}
+		result.SearchedPaths = append(result.SearchedPaths, filepath.Clean(location))
+		info, err := os.Stat(location)
+		if err != nil {
+			if !os.IsNotExist(err) {
+				result.Errors = append(result.Errors, shortDiscoveryError(location, err))
+			}
+			continue
+		}
+		if !info.IsDir() {
+			addFile(location)
+			continue
+		}
+		walkErr := filepath.WalkDir(location, func(path string, d os.DirEntry, walkErr error) error {
+			if walkErr != nil {
+				result.Errors = append(result.Errors, shortDiscoveryError(path, walkErr))
+				if d != nil && d.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			relPath, relErr := filepath.Rel(location, path)
+			if relErr == nil && relPath != "." {
+				depth := strings.Count(relPath, string(filepath.Separator)) + 1
+				if depth > maxConfigSearchDepth {
+					if d.IsDir() {
+						return filepath.SkipDir
+					}
+					return nil
+				}
+			}
+			if d.IsDir() {
+				return nil
+			}
+			if len(result.Files) >= maxIndicators {
+				return fmt.Errorf("indicator_limit_reached")
+			}
+			addFile(path)
+			return nil
+		})
+		if walkErr != nil && walkErr.Error() != "indicator_limit_reached" {
+			result.Errors = append(result.Errors, shortDiscoveryError(location, walkErr))
+		}
+	}
+	sort.Slice(result.Files, func(i, j int) bool {
+		return result.Files[i].Path < result.Files[j].Path
+	})
+	return result
+}
+
+func emptyConfigFileIndicators() ConfigFileIndicators {
+	return ConfigFileIndicators{
+		Collected:     false,
+		SearchedPaths: []string{},
+		Files:         []ConfigIndicatorFile{},
+		Counts:        ConfigIndicatorFileCounts{},
+		Errors:        []string{},
+	}
+}
+
+func classifyConfigFileIndicator(path string) (string, bool) {
+	cleaned := filepath.Clean(path)
+	base := strings.ToLower(filepath.Base(cleaned))
+	parent := strings.ToLower(filepath.Base(filepath.Dir(cleaned)))
+	full := strings.ToLower(cleaned)
+
+	if strings.HasSuffix(full, "/sshd_config") || strings.Contains(full, "/sshd_config.d/") {
+		return "ssh_server_config", true
+	}
+	if strings.HasSuffix(full, "/ssh_config") || strings.Contains(full, "/ssh_config.d/") {
+		return "ssh_client_config", true
+	}
+	if base == "nginx.conf" || base == "apache2.conf" || base == "httpd.conf" || base == "haproxy.cfg" || base == "stunnel.conf" {
+		return "tls_server_config", true
+	}
+	if parent == "sites-enabled" || parent == "conf.d" || parent == "vhosts.d" || strings.Contains(full, "/letsencrypt/renewal/") {
+		return "tls_server_config", true
+	}
+	if base == "ipsec.conf" || base == "strongswan.conf" || base == "swanctl.conf" || (strings.HasPrefix(base, "wg") && strings.HasSuffix(base, ".conf")) || strings.HasSuffix(base, ".ovpn") || strings.HasSuffix(base, ".conf") && strings.Contains(full, "/openvpn/") {
+		return "vpn_config", true
+	}
+	if base == "keystore" || base == "truststore" || base == "cacerts" || base == "java.security" {
+		return "keystore_config", true
+	}
+	if strings.Contains(base, "keystore") || strings.Contains(base, "truststore") {
+		return "keystore_config", true
+	}
+	if looksLikeConfigFile(base) {
+		return "unknown", true
+	}
+	return "", false
+}
+
+func looksLikeConfigFile(base string) bool {
+	return strings.HasSuffix(base, ".conf") || strings.HasSuffix(base, ".cfg") || strings.HasSuffix(base, ".cnf")
+}
+
+func incrementConfigTypeCount(counts *ConfigIndicatorFileCounts, indicatorType string) {
+	switch indicatorType {
+	case "ssh_server_config":
+		counts.SSHServerConfig++
+	case "ssh_client_config":
+		counts.SSHClientConfig++
+	case "tls_server_config":
+		counts.TLSServerConfig++
+	case "vpn_config":
+		counts.VPNConfig++
+	case "keystore_config":
+		counts.KeystoreConfig++
 	default:
 		counts.Unknown++
 	}

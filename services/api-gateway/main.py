@@ -13,6 +13,7 @@ INVENTORY_BASE_URL = os.getenv("INVENTORY_SERVICE_URL", "http://inventory-servic
 RISK_BASE_URL = os.getenv("RISK_ENGINE_URL", "http://risk-engine:8000")
 COPILOT_BASE_URL = os.getenv("COPILOT_SERVICE_URL", "http://copilot-service:8000")
 SCENARIO_ENGINE_BASE_URL = os.getenv("SCENARIO_ENGINE_URL", "http://scenario-engine:8000")
+POLICY_ENGINE_BASE_URL = os.getenv("POLICY_ENGINE_URL", "http://policy-engine:8000")
 
 
 @app.get("/health")
@@ -57,6 +58,12 @@ def get_asset_risk(asset_id: str, scenario: str = Query(default="public_timeline
 def run_scenario(payload: dict[str, Any]) -> dict[str, Any]:
     return _request_json("POST", f"{SCENARIO_ENGINE_BASE_URL}/run", payload=payload)
 
+
+
+
+@app.post("/api/policies/evaluate")
+def evaluate_policy(payload: dict[str, Any]) -> dict[str, Any]:
+    return _request_json("POST", f"{POLICY_ENGINE_BASE_URL}/evaluate", payload=payload)
 
 @app.post("/api/copilot/query")
 def copilot_query(payload: dict[str, Any]) -> dict[str, Any]:

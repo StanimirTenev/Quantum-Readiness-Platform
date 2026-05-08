@@ -7,7 +7,7 @@
     "environment": "production",
     "vendor": "linux-foundation",
     "lifecycle_years": 8,
-    "id": "8b735ede-f2ed-4839-881b-fa7bc35c9be7"
+    "id": "5f321b9d-0a25-4716-a060-bab78f49f5b8"
   },
   {
     "asset_type": "endpoint",
@@ -17,6 +17,6 @@
     "environment": "production",
     "vendor": "payments-vendor",
     "lifecycle_years": 5,
-    "id": "df3438e6-3d88-414a-a6f0-d220eab0a51b"
+    "id": "e8aef8f3-4970-4623-b8dd-632ad2843c67"
   }
 ]

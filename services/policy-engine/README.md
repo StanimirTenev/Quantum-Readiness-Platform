@@ -1,20 +1,24 @@
 # Policy Engine
 
 ## What this service does
-- Defines a service boundary for policy checks and enforcement.
+- Provides deterministic policy evaluation for PQC readiness decisions.
 
-## Current role in the prototype
-- Skeleton service included to preserve target microservice architecture.
-
-## Main endpoints or functions
+## Endpoints
 - `GET /health`
+  - Returns service health status.
+- `POST /evaluate`
+  - Evaluates a policy request and returns deterministic `allow`, `deny`, or `review` decision output.
+
+## Policy rule metadata
+- `rule_id`: `pqc-readiness-gate-v1`
+- `rule_version`: `1.0.0`
+
+## Decision behavior
+- Deterministic logic is applied from the request attributes and produces:
+  - `allow` when readiness signals meet the gate.
+  - `review` when the request requires manual review.
+  - `deny` when blocking conditions are met.
 
 ## Inputs / outputs
-- Input: HTTP health check request.
-- Output: JSON status with service name.
-
-## Current status
-- Skeleton / placeholder for future phase.
-
-## Known limitations
-- No policy evaluation endpoints are implemented yet.
+- Input: JSON policy evaluation payload.
+- Output: JSON response containing `decision`, `reasons`, `rule_id`, and `rule_version`.

@@ -103,6 +103,7 @@ INVENTORY_INGEST_ARTIFACT="$LATEST_EVIDENCE_DIR/inventory-ingest-response.json"
 ASSETS_ARTIFACT="$LATEST_EVIDENCE_DIR/assets.json"
 RISKS_ARTIFACT="$LATEST_EVIDENCE_DIR/risks.json"
 POLICY_ARTIFACT="$LATEST_EVIDENCE_DIR/policy-decision.json"
+GATEWAY_POLICY_ARTIFACT="$LATEST_EVIDENCE_DIR/api-gateway-policy-decision.json"
 PLAN_ARTIFACT="$LATEST_EVIDENCE_DIR/plan.json"
 WAVES_ARTIFACT="$LATEST_EVIDENCE_DIR/waves.json"
 WORKFLOW_ARTIFACT="$LATEST_EVIDENCE_DIR/workflow-export.json"
@@ -191,6 +192,27 @@ json.dump({"request":payload,"response":result}, open(out_path,'w',encoding='utf
 PY
 sanitize_json_file "$POLICY_JSON" "$POLICY_ARTIFACT"
 
+python3 - "$POLICY_JSON" "$GATEWAY_POLICY_ARTIFACT" "$API_GATEWAY_URL" <<'PY'
+import json,sys,urllib.request
+policy_path, out_path, gateway_url = sys.argv[1:4]
+policy_data=json.load(open(policy_path,encoding='utf-8'))
+payload=policy_data["request"]
+req=urllib.request.Request(
+    f"{gateway_url}/api/policies/evaluate",
+    data=json.dumps(payload).encode(),
+    headers={"Content-Type":"application/json"},
+    method="POST",
+)
+with urllib.request.urlopen(req) as resp:
+    body=resp.read().decode()
+result=json.loads(body)
+for field in ("decision","rule_id"):
+    if field not in result:
+        raise SystemExit(f"Missing {field} in api-gateway policy response")
+json.dump({"endpoint":f"{gateway_url}/api/policies/evaluate","request":payload,"response":result}, open(out_path,'w',encoding='utf-8'))
+PY
+sanitize_json_file "$GATEWAY_POLICY_ARTIFACT" "$GATEWAY_POLICY_ARTIFACT"
+
 curl -fsS "$PLANNER_URL/plan" > "$PLAN_JSON"
 curl -fsS "$PLANNER_URL/waves" > "$WAVES_JSON"
 sanitize_json_file "$PLAN_JSON" "$PLAN_ARTIFACT"
@@ -201,19 +223,22 @@ curl -fsS -X POST "$PLANNER_URL/export-tasks" \
   --data '{"waves":["wave_1"],"auto_submit":false}' > "$WORKFLOW_EXPORT_JSON"
 sanitize_json_file "$WORKFLOW_EXPORT_JSON" "$WORKFLOW_ARTIFACT"
 
-python3 - "$HEALTH_JSON" "$INGEST_HOST" "$RISKS_JSON" "$POLICY_JSON" "$WAVES_JSON" "$WORKFLOW_EXPORT_JSON" "$REPORT_FILE" <<'PY'
+python3 - "$HEALTH_JSON" "$INGEST_HOST" "$RISKS_JSON" "$POLICY_JSON" "$GATEWAY_POLICY_ARTIFACT" "$WAVES_JSON" "$WORKFLOW_EXPORT_JSON" "$REPORT_FILE" <<'PY'
 import json,sys
 from datetime import datetime, timezone
-health_path, ingest_path, risks_path, policy_path, waves_path, export_path, report_file = sys.argv[1:8]
+health_path, ingest_path, risks_path, policy_path, gateway_policy_path, waves_path, export_path, report_file = sys.argv[1:9]
 health=json.load(open(health_path,encoding='utf-8'))
 ingest=json.load(open(ingest_path,encoding='utf-8'))
 risks=json.load(open(risks_path,encoding='utf-8'))
 policy=json.load(open(policy_path,encoding='utf-8'))
 waves=json.load(open(waves_path,encoding='utf-8'))
+gateway_policy=json.load(open(gateway_policy_path,encoding='utf-8'))
 export=json.load(open(export_path,encoding='utf-8'))
 
 sample_risk=risks[0]
 policy_resp=policy['response']
+gateway_policy_resp=gateway_policy['response']
+gateway_policy_result="PASS" if gateway_policy_resp.get("decision")==policy_resp.get("decision") and gateway_policy_resp.get("rule_id")==policy_resp.get("rule_id") else "FAIL"
 status = "PASS" if all(r['status'] in ("UP","SKIPPED") for r in health) else "FAIL"
 
 lines=[
@@ -263,6 +288,12 @@ f"- wave_3 count: {len(waves.get('wave_3', []))}",
 "## Workflow Result",
 f"- created task count: {export.get('created_count', 0)}",
 "",
+"## API Gateway Policy Forwarding",
+f"- endpoint: {gateway_policy['endpoint']}",
+f"- decision: {gateway_policy_resp.get('decision')}",
+f"- rule_id: {gateway_policy_resp.get('rule_id')}",
+f"- result: {gateway_policy_result}",
+"",
 "## Evidence Artifacts",
 "| Artifact | Path |",
 "|---|---|",
@@ -272,6 +303,7 @@ f"- created task count: {export.get('created_count', 0)}",
 "| Assets | reports/evidence/latest/assets.json |",
 "| Risks | reports/evidence/latest/risks.json |",
 "| Policy decision | reports/evidence/latest/policy-decision.json |",
+"| API Gateway policy decision | reports/evidence/latest/api-gateway-policy-decision.json |",
 "| Plan | reports/evidence/latest/plan.json |",
 "| Waves | reports/evidence/latest/waves.json |",
 "| Workflow export | reports/evidence/latest/workflow-export.json |",
@@ -287,11 +319,10 @@ f"- created task count: {export.get('created_count', 0)}",
 "- run against real infrastructure sample",
 "- preserve evidence artifacts across timestamped runs",
 "- add failure/retry handling",
-"- add operator-facing validation checklist",
-"- document environment assumptions",
+"- external evaluator review",
 "",
 "## Result",
-status,
+f"Result: {status}",
 ]
 with open(report_file,'w',encoding='utf-8') as f:
     f.write("\n".join(lines)+"\n")

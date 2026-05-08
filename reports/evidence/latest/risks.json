@@ -1,7 +1,7 @@
 [
   {
-    "id": "2d80d69e-d97c-4698-8e55-04d75bbf3e47",
-    "scan_id": "cca59157-652f-4547-aa12-e468a730729a",
+    "id": "9304568d-f2d4-43d3-b811-485387f92155",
+    "scan_id": "1828d74c-0c74-474f-9b47-5c633cee57a6",
     "contract_version": "stage1-v1",
     "asset_name": "payments.example.com:443",
     "scenario": "public_timeline",
@@ -24,8 +24,8 @@
     }
   },
   {
-    "id": "eb1f7bc3-30d2-4870-a718-05734828e9fa",
-    "scan_id": "b1a231d1-b192-4b56-8edf-b9217074a76d",
+    "id": "16c39981-71d0-4b5d-8609-1ae5544b09d4",
+    "scan_id": "f09c3973-483c-46bd-8646-580985761e53",
     "contract_version": "stage1-v1",
     "asset_name": "crypto-host-01",
     "scenario": "public_timeline",
@@ -48,8 +48,8 @@
     }
   },
   {
-    "id": "faee3bb4-a3e0-4dbf-987a-c6e24a5eb66e",
-    "scan_id": "13ec5005-45ca-4697-bb41-6e1e11f2ba43",
+    "id": "80f23f89-fb39-4694-b90e-c81a60ff15e7",
+    "scan_id": "68b41027-5ae0-41b7-9e38-771e2b47c569",
     "contract_version": "stage1-v1",
     "asset_name": "payments.example.com:443",
     "scenario": "public_timeline",
@@ -72,8 +72,104 @@
     }
   },
   {
-    "id": "ec7cf9b6-f2e5-407d-be8d-cb2e81a8add2",
-    "scan_id": "9ce4023e-fd31-492a-82c9-98159b080344",
+    "id": "546c3e4d-d688-4cb1-acd7-7938561bf8ab",
+    "scan_id": "69dc30e1-dafc-4834-8a65-13f426b84347",
+    "contract_version": "stage1-v1",
+    "asset_name": "crypto-host-01",
+    "scenario": "public_timeline",
+    "scenario_multiplier": 1.0,
+    "base_score": 4.1,
+    "final_score": 4.1,
+    "normalized_score_100": 82.0,
+    "rating": "critical",
+    "dependency_count": 2,
+    "vendor_blocked": true,
+    "rationale": {
+      "criticality": 5.0,
+      "confidentiality_lifetime": 4.0,
+      "quantum_exposure": 5.0,
+      "blast_radius": 3.0,
+      "vendor_lock_in": 3.0,
+      "migration_difficulty": 3.0,
+      "dependency_count": 2,
+      "vendor_blocked": true
+    }
+  },
+  {
+    "id": "f871fd5a-154f-4ce0-b616-b558f8e26209",
+    "scan_id": "d5681952-c745-400a-a793-b55a9e198bad",
+    "contract_version": "stage1-v1",
+    "asset_name": "payments.example.com:443",
+    "scenario": "public_timeline",
+    "scenario_multiplier": 1.0,
+    "base_score": 3.7,
+    "final_score": 3.7,
+    "normalized_score_100": 74.0,
+    "rating": "high",
+    "dependency_count": 3,
+    "vendor_blocked": true,
+    "rationale": {
+      "criticality": 4.0,
+      "confidentiality_lifetime": 3.0,
+      "quantum_exposure": 5.0,
+      "blast_radius": 4.0,
+      "vendor_lock_in": 3.0,
+      "migration_difficulty": 2.0,
+      "dependency_count": 3,
+      "vendor_blocked": true
+    }
+  },
+  {
+    "id": "c9a0fdba-aa43-4ccc-89ef-6fb27025b40d",
+    "scan_id": "4870d184-3904-4574-9ee3-90680b443856",
+    "contract_version": "stage1-v1",
+    "asset_name": "crypto-host-01",
+    "scenario": "public_timeline",
+    "scenario_multiplier": 1.0,
+    "base_score": 4.1,
+    "final_score": 4.1,
+    "normalized_score_100": 82.0,
+    "rating": "critical",
+    "dependency_count": 2,
+    "vendor_blocked": true,
+    "rationale": {
+      "criticality": 5.0,
+      "confidentiality_lifetime": 4.0,
+      "quantum_exposure": 5.0,
+      "blast_radius": 3.0,
+      "vendor_lock_in": 3.0,
+      "migration_difficulty": 3.0,
+      "dependency_count": 2,
+      "vendor_blocked": true
+    }
+  },
+  {
+    "id": "648bcf60-02d2-430f-81c4-b1395712287c",
+    "scan_id": "8566d569-e94c-45b7-9aed-05fcd312b96f",
+    "contract_version": "stage1-v1",
+    "asset_name": "payments.example.com:443",
+    "scenario": "public_timeline",
+    "scenario_multiplier": 1.0,
+    "base_score": 3.7,
+    "final_score": 3.7,
+    "normalized_score_100": 74.0,
+    "rating": "high",
+    "dependency_count": 3,
+    "vendor_blocked": true,
+    "rationale": {
+      "criticality": 4.0,
+      "confidentiality_lifetime": 3.0,
+      "quantum_exposure": 5.0,
+      "blast_radius": 4.0,
+      "vendor_lock_in": 3.0,
+      "migration_difficulty": 2.0,
+      "dependency_count": 3,
+      "vendor_blocked": true
+    }
+  },
+  {
+    "id": "cda28490-ee9c-4be6-92b8-316b6d077fc4",
+    "scan_id": "268a9e40-65f9-462b-a27a-ce8ca726a3f0",
     "contract_version": "stage1-v1",
     "asset_name": "crypto-host-01",
     "scenario": "public_timeline",

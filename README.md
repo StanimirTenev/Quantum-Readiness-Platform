@@ -1,6 +1,6 @@
 # Quantum Readiness Platform
 
-Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning. Currently at TRL 5.
+Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning. Current status: TRL 5 candidate based on repeatable local validation.
 
 ## Modules
 - API Gateway
@@ -156,6 +156,15 @@ The script validates the end-to-end flow:
 
 Generated output:
 - `reports/trl-validation-report.md`
+
+
+Last successful local TRL validation: 2026-05-08 10:06:39 UTC
+Command run: `bash scripts/run_trl_validation.sh`
+Report generation: successful (`reports/trl-validation-report.md`, `Result: PASS`)
+Known limitations:
+- Validation is local-only and does not yet run against representative production-like infrastructure.
+- Evidence artifacts are not yet archived automatically for audit trails.
+- Failure/retry orchestration and operator runbook checklist are still pending.
 
 Environment notes:
 - Default local endpoints: inventory `:8001`, risk `:8002`, planner `:8004`, workflow `:8005`, policy `:8007`, api-gateway `:8000`.

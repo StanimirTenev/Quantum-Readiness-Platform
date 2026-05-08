@@ -1,24 +1,45 @@
 package scanner
 
 import (
-	"crypto/sha256"
 	"crypto/dsa"
 	"crypto/ecdsa"
 	"crypto/ed25519"
 	"crypto/rsa"
+	"crypto/sha256"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"time"
 )
 
 func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, error) {
-	host, _, err := net.SplitHostPort(target)
+	host, rawPort, err := net.SplitHostPort(target)
 	if err != nil {
 		return ScanOutput{}, fmt.Errorf("invalid target %q: %w", target, err)
+	}
+
+	port, err := strconv.Atoi(rawPort)
+	if err != nil {
+		return ScanOutput{}, fmt.Errorf("invalid target %q: invalid port %q", target, rawPort)
+	}
+
+	baseOutput := ScanOutput{
+		Source: "network",
+		TLSMetadata: TLSMetadata{
+			Collected:       false,
+			Target:          host,
+			Port:            port,
+			ServerName:      host,
+			ProtocolVersion: "",
+			CipherSuite:     "",
+			Certificate:     nil,
+			Errors:          []string{},
+		},
+		Assets: buildAssets(target),
 	}
 
 	dialer := &net.Dialer{
@@ -33,13 +54,15 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 
 	conn, err := tls.DialWithDialer(dialer, "tcp", target, config)
 	if err != nil {
-		return ScanOutput{}, err
+		baseOutput.TLSMetadata.Errors = []string{fmt.Sprintf("tls dial failed: %v", err)}
+		return baseOutput, nil
 	}
 	defer conn.Close()
 
 	state := conn.ConnectionState()
 	if len(state.PeerCertificates) == 0 {
-		return ScanOutput{}, fmt.Errorf("no peer certificates returned")
+		baseOutput.TLSMetadata.Errors = []string{"no peer certificates returned"}
+		return baseOutput, nil
 	}
 
 	cert := state.PeerCertificates[0]
@@ -83,11 +106,28 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 		CertificateChainInfo: chainInfo,
 	}
 
-	return ScanOutput{
-		Source:      "network",
-		TLSEvidence: &evidence,
-		Assets:      buildAssets(target),
-	}, nil
+	baseOutput.TLSEvidence = &evidence
+	baseOutput.TLSMetadata = TLSMetadata{
+		Collected:       true,
+		Target:          host,
+		Port:            port,
+		ServerName:      serverName,
+		ProtocolVersion: tlsVersionString(state.Version),
+		CipherSuite:     tls.CipherSuiteName(state.CipherSuite),
+		Certificate: &TLSCertificateBrief{
+			Subject:            cert.Subject.String(),
+			Issuer:             cert.Issuer.String(),
+			NotBefore:          cert.NotBefore.Format(time.RFC3339),
+			NotAfter:           cert.NotAfter.Format(time.RFC3339),
+			SignatureAlgorithm: cert.SignatureAlgorithm.String(),
+			PublicKeyAlgorithm: cert.PublicKeyAlgorithm.String(),
+			PublicKeySize:      keySizeOrZero(keySizeBits),
+			FingerprintSHA256:  certificateSHA256Fingerprint(cert.Raw),
+		},
+		Errors: []string{},
+	}
+
+	return baseOutput, nil
 }
 
 func buildAssets(target string) []AssetPayload {
@@ -109,16 +149,31 @@ func buildAssets(target string) []AssetPayload {
 func tlsVersionString(version uint16) string {
 	switch version {
 	case tls.VersionTLS13:
-		return "TLS1.3"
+		return "TLS 1.3"
 	case tls.VersionTLS12:
-		return "TLS1.2"
+		return "TLS 1.2"
 	case tls.VersionTLS11:
-		return "TLS1.1"
+		return "TLS 1.1"
 	case tls.VersionTLS10:
-		return "TLS1.0"
+		return "TLS 1.0"
 	default:
 		return fmt.Sprintf("UNKNOWN(0x%x)", version)
 	}
+}
+
+func keySizeOrZero(sizeBits *int) int {
+	if sizeBits == nil {
+		return 0
+	}
+	return *sizeBits
+}
+
+func certificateSHA256Fingerprint(raw []byte) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:])
 }
 
 func IsTLSTarget(target string) bool {

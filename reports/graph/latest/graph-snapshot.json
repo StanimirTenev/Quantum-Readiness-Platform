@@ -1,0 +1,246 @@
+{
+  "graph_schema_version": "0.1",
+  "projection_version": "0.1.0",
+  "graph_snapshot_id": "50eb0ae424cec904",
+  "generated_at": "2026-05-09T10:03:49Z",
+  "source": "stage2_fixture_projection_smoke",
+  "inputs": {
+    "fixtures": [
+      "/workspace/Quantum-Readiness-Platform/services/inventory-service/tests/fixtures/stage2_evidence/host_enriched_ingest.json",
+      "/workspace/Quantum-Readiness-Platform/services/inventory-service/tests/fixtures/stage2_evidence/network_enriched_ingest.json"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "asset:qrp-linux-demo-01",
+      "type": "Asset",
+      "label": "qrp-linux-demo-01",
+      "source": "stage2_host_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 1.0,
+      "observed_at": null,
+      "properties": {
+        "name": "qrp-linux-demo-01",
+        "asset_type": "server",
+        "environment": "production",
+        "criticality": 4
+      }
+    },
+    {
+      "id": "package:asset:qrp-linux-demo-01:dnf:openssl",
+      "type": "Package",
+      "label": "openssl",
+      "source": "stage2_host_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 1.0,
+      "observed_at": null,
+      "properties": {
+        "name": "openssl",
+        "version": "3.0.13-1.el9",
+        "package_manager": "dnf",
+        "source": "crypto_evidence.package_metadata"
+      }
+    },
+    {
+      "id": "config:asset:qrp-linux-demo-01:1013352391037d92",
+      "type": "ConfigFile",
+      "label": "/etc/pki/tls/certs/app.example.internal.crt",
+      "source": "stage2_host_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 0.7,
+      "observed_at": null,
+      "properties": {
+        "path": "/etc/pki/tls/certs/app.example.internal.crt",
+        "config_type": "certificate_file",
+        "readable": null,
+        "source": "crypto_evidence.cert_indicators.certificate_file_indicators"
+      }
+    },
+    {
+      "id": "config:asset:qrp-linux-demo-01:c67839324d3b9001",
+      "type": "ConfigFile",
+      "label": "/etc/nginx/conf.d/app.example.internal-tls.conf",
+      "source": "stage2_host_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 0.7,
+      "observed_at": null,
+      "properties": {
+        "path": "/etc/nginx/conf.d/app.example.internal-tls.conf",
+        "config_type": "config_file",
+        "readable": null,
+        "source": "crypto_evidence.cert_indicators.config_file_indicators"
+      }
+    },
+    {
+      "id": "asset:api.example.internal:443",
+      "type": "Asset",
+      "label": "api.example.internal:443",
+      "source": "stage2_network_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 1.0,
+      "observed_at": null,
+      "properties": {
+        "name": "api.example.internal:443",
+        "asset_type": "endpoint",
+        "environment": "production",
+        "criticality": 3
+      }
+    },
+    {
+      "id": "service:asset:api.example.internal:443:tls:443:api.example.internal",
+      "type": "Service",
+      "label": "api.example.internal:443",
+      "source": "stage2_network_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 1.0,
+      "observed_at": null,
+      "properties": {
+        "target": "api.example.internal",
+        "port": 443,
+        "server_name": "api.example.internal",
+        "protocol": "tls"
+      }
+    },
+    {
+      "id": "certificate:3cfbacb92675a169c7a3645f9737496cc4c2c62d11e6d9e9e0c13a2592b35719",
+      "type": "Certificate",
+      "label": "CN=api.example.internal,O=Example Internal",
+      "source": "stage2_network_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 1.0,
+      "observed_at": null,
+      "properties": {
+        "subject": "CN=api.example.internal,O=Example Internal",
+        "issuer": "CN=Example Internal Issuing CA,O=Example PKI",
+        "not_before": "2026-01-01T00:00:00Z",
+        "not_after": "2027-01-01T00:00:00Z",
+        "signature_algorithm": "RSA-PSS-SHA256",
+        "public_key_algorithm": "RSA",
+        "public_key_size": null,
+        "fingerprint_sha256": "3cfbacb92675a169c7a3645f9737496cc4c2c62d11e6d9e9e0c13a2592b35719"
+      }
+    },
+    {
+      "id": "certificate:11aa22bb33cc44dd55ee66ff77889900aabbccddeeff00112233445566778899",
+      "type": "Certificate",
+      "label": "CN=api.example.internal,O=Example Internal",
+      "source": "stage2_network_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 1.0,
+      "observed_at": null,
+      "properties": {
+        "subject": "CN=api.example.internal,O=Example Internal",
+        "issuer": "CN=Example Internal Issuing CA,O=Example PKI",
+        "fingerprint_sha256": "11aa22bb33cc44dd55ee66ff77889900aabbccddeeff00112233445566778899"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge:asset:qrp-linux-demo-01:HAS_PACKAGE:package:asset:qrp-linux-demo-01:dnf:openssl",
+      "type": "HAS_PACKAGE",
+      "from": "asset:qrp-linux-demo-01",
+      "to": "package:asset:qrp-linux-demo-01:dnf:openssl",
+      "source": "stage2_host_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 1.0,
+      "observed_at": null,
+      "properties": {}
+    },
+    {
+      "id": "edge:asset:qrp-linux-demo-01:HAS_CONFIG:config:asset:qrp-linux-demo-01:1013352391037d92",
+      "type": "HAS_CONFIG",
+      "from": "asset:qrp-linux-demo-01",
+      "to": "config:asset:qrp-linux-demo-01:1013352391037d92",
+      "source": "stage2_host_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 0.7,
+      "observed_at": null,
+      "properties": {}
+    },
+    {
+      "id": "edge:asset:qrp-linux-demo-01:HAS_CONFIG:config:asset:qrp-linux-demo-01:c67839324d3b9001",
+      "type": "HAS_CONFIG",
+      "from": "asset:qrp-linux-demo-01",
+      "to": "config:asset:qrp-linux-demo-01:c67839324d3b9001",
+      "source": "stage2_host_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 0.7,
+      "observed_at": null,
+      "properties": {}
+    },
+    {
+      "id": "edge:service:asset:api.example.internal:443:tls:443:api.example.internal:USES_CERTIFICATE:certificate:3cfbacb92675a169c7a3645f9737496cc4c2c62d11e6d9e9e0c13a2592b35719",
+      "type": "USES_CERTIFICATE",
+      "from": "service:asset:api.example.internal:443:tls:443:api.example.internal",
+      "to": "certificate:3cfbacb92675a169c7a3645f9737496cc4c2c62d11e6d9e9e0c13a2592b35719",
+      "source": "stage2_network_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 1.0,
+      "observed_at": null,
+      "properties": {}
+    },
+    {
+      "id": "edge:certificate:3cfbacb92675a169c7a3645f9737496cc4c2c62d11e6d9e9e0c13a2592b35719:SIGNED_BY:certificate:11aa22bb33cc44dd55ee66ff77889900aabbccddeeff00112233445566778899",
+      "type": "SIGNED_BY",
+      "from": "certificate:3cfbacb92675a169c7a3645f9737496cc4c2c62d11e6d9e9e0c13a2592b35719",
+      "to": "certificate:11aa22bb33cc44dd55ee66ff77889900aabbccddeeff00112233445566778899",
+      "source": "stage2_network_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 1.0,
+      "observed_at": null,
+      "properties": {}
+    }
+  ],
+  "warnings": [
+    {
+      "code": "low_confidence_relationship",
+      "severity": "info",
+      "message": "Config relationship inferred from path-only indicator.",
+      "related_node_ids": [
+        "asset:qrp-linux-demo-01",
+        "config:asset:qrp-linux-demo-01:1013352391037d92"
+      ],
+      "related_edge_ids": [
+        "edge:asset:qrp-linux-demo-01:HAS_CONFIG:config:asset:qrp-linux-demo-01:1013352391037d92"
+      ],
+      "evidence_ref": null
+    },
+    {
+      "code": "low_confidence_relationship",
+      "severity": "info",
+      "message": "Config relationship inferred from path-only indicator.",
+      "related_node_ids": [
+        "asset:qrp-linux-demo-01",
+        "config:asset:qrp-linux-demo-01:c67839324d3b9001"
+      ],
+      "related_edge_ids": [
+        "edge:asset:qrp-linux-demo-01:HAS_CONFIG:config:asset:qrp-linux-demo-01:c67839324d3b9001"
+      ],
+      "evidence_ref": null
+    },
+    {
+      "code": "missing_certificate_fingerprint",
+      "severity": "warning",
+      "message": "Leaf certificate fingerprint missing; deterministic fallback hash used.",
+      "related_node_ids": [
+        "service:asset:api.example.internal:443:tls:443:api.example.internal"
+      ],
+      "related_edge_ids": [],
+      "evidence_ref": null
+    }
+  ]
+}

@@ -211,3 +211,4 @@ Environment notes:
 - [ ] Evidence preservation across timestamped runs
 
 - inventory-service ingest now accepts Stage 2 enriched evidence blocks
+- Official Stage 2 enriched evidence fixtures added for host and network ingest.

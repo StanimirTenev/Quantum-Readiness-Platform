@@ -38,25 +38,17 @@ def test_host_enriched_crypto_blocks_ingest_and_preserve(client: TestClient) -> 
     response = client.post("/scans/ingest", json=_load("host_enriched_ingest.json"))
     assert response.status_code == 201
     scan = client.get(f"/scans/{response.json()['scan_id']}").json()["scan"]
-    assert scan["crypto_evidence"]["package_metadata"]["packages"] == []
+    assert len(scan["crypto_evidence"]["package_metadata"]["packages"]) == 1
     assert "certificate_file_indicators" in scan["crypto_evidence"]["cert_indicators"]
 
 
 def test_network_enriched_tls_metadata_ingest_and_preserve_chain(client: TestClient) -> None:
-    payload = _load("network_enriched_ingest.json")
-    payload.pop("tls_evidence", None)
-    payload["tls_metadata"] = {
-        "collected": True, "target": "example.com", "port": 443, "server_name": "example.com",
-        "protocol_version": "TLS 1.3", "cipher_suite": "TLS_AES_128_GCM_SHA256",
-        "certificate": {"subject": {"display_dn": "CN=example.com"}},
-        "certificate_chain": {"available": True, "length": 1, "certificates": [{"subject": {"display_dn": "CN=example.com"}}]}
-    }
-    response = client.post("/scans/ingest", json=payload)
+    response = client.post("/scans/ingest", json=_load("network_enriched_ingest.json"))
     assert response.status_code == 201
     scan = client.get(f"/scans/{response.json()['scan_id']}").json()["scan"]
     chain = scan["tls_evidence"]["certificate_chain"]
     assert isinstance(chain["certificates"], list)
-    assert chain["certificates"][0]["subject"]["display_dn"] == "CN=example.com"
+    assert chain["certificates"][0]["subject"]["display_dn"] == "CN=api.example.internal,O=Example Internal"
 
 
 def test_missing_optional_stage2_blocks_does_not_fail(client: TestClient) -> None:
@@ -67,9 +59,7 @@ def test_missing_optional_stage2_blocks_does_not_fail(client: TestClient) -> Non
 
 
 def test_invalid_package_metadata_packages_type_is_rejected(client: TestClient) -> None:
-    payload = _load("host_enriched_ingest.json")
-    payload["crypto_evidence"]["package_metadata"]["packages"] = {"bad": True}
-    response = client.post("/scans/ingest", json=payload)
+    response = client.post("/scans/ingest", json=_load("invalid_package_metadata.json"))
     assert response.status_code == 422
 
 

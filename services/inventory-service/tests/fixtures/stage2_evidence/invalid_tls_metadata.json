@@ -1,8 +1,17 @@
 {
   "source": "network",
-  "assets": [{"asset_type": "endpoint", "name": "invalid.example:443"}],
+  "assets": [
+    {
+      "asset_type": "endpoint",
+      "name": "api.example.internal:443"
+    }
+  ],
   "tls_metadata": {
-    "target": "invalid.example",
-    "port": "443"
+    "target": "api.example.internal",
+    "port": "443",
+    "certificate_chain": {
+      "available": true,
+      "certificates": []
+    }
   }
 }

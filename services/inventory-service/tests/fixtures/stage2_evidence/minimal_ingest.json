@@ -1,4 +1,10 @@
 {
   "source": "network",
-  "assets": [{"asset_type": "endpoint", "name": "minimal.example:443"}]
+  "assets": [
+    {
+      "asset_type": "endpoint",
+      "name": "api.example.internal:443",
+      "environment": "production"
+    }
+  ]
 }

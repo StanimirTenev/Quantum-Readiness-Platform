@@ -2,6 +2,20 @@ from __future__ import annotations
 
 from typing import Any
 
+HIGH_PRIORITY_STAGE2_SIGNALS = {
+    "private_key_files_detected": "stage2_private_key_files",
+    "weak_public_key_detected": "stage2_weak_public_key",
+    "expiring_certificate_detected": "stage2_expiring_certificate",
+}
+
+MEDIUM_PRIORITY_STAGE2_SIGNALS = {
+    "certificate_files_detected": "stage2_certificate_files",
+    "tls_config_detected": "stage2_tls_config",
+    "ssh_config_detected": "stage2_ssh_config",
+    "tls_detected": "stage2_tls_detected",
+    "crypto_packages_detected": "stage2_crypto_packages",
+}
+
 
 def build_plan(assets: list[dict[str, Any]], risks: list[dict[str, Any]]) -> dict[str, Any]:
     asset_map = {asset["name"]: asset for asset in assets}
@@ -41,6 +55,7 @@ def build_plan(assets: list[dict[str, Any]], risks: list[dict[str, Any]]) -> dic
             "dependency_count": _dependency_count(asset, risk),
             "vendor_blocked": _vendor_blocked(asset, risk),
             "recommended_action": recommend_action(asset, risk),
+            "planning_reasons": _planning_reasons(risk),
         }
 
         score = item["priority_score_100"]
@@ -50,6 +65,8 @@ def build_plan(assets: list[dict[str, Any]], risks: list[dict[str, Any]]) -> dic
             wave_2.append(item)
         else:
             wave_3.append(item)
+
+    _enforce_stage2_wave_caps(wave_1, wave_2, wave_3)
 
     return {
         "summary": {
@@ -96,7 +113,8 @@ def _priority_score(asset: dict[str, Any], risk: dict[str, Any]) -> float:
     base_score = float(risk.get("normalized_score_100", 0))
     dependency_boost = min(_dependency_count(asset, risk), 10) * 1.5
     vendor_boost = 8.0 if _vendor_blocked(asset, risk) else 0.0
-    return min(base_score + dependency_boost + vendor_boost, 100.0)
+    stage2_boost = _stage2_priority_boost(risk)
+    return min(base_score + dependency_boost + vendor_boost + stage2_boost, 100.0)
 
 
 def _ordering_tuple(asset: dict[str, Any], risk: dict[str, Any]) -> tuple[float, int, int]:
@@ -117,3 +135,55 @@ def _dependency_count(asset: dict[str, Any], risk: dict[str, Any]) -> int:
 
 def _vendor_blocked(asset: dict[str, Any], risk: dict[str, Any]) -> bool:
     return bool(asset.get("vendor_blocked", risk.get("vendor_blocked", False)))
+
+
+def _evidence_signals(risk: dict[str, Any]) -> dict[str, Any]:
+    stage2_signals = risk.get("stage2_signals", {})
+    if not isinstance(stage2_signals, dict):
+        return {}
+    evidence_signals = stage2_signals.get("evidence_signals", {})
+    if not isinstance(evidence_signals, dict):
+        return {}
+    return evidence_signals
+
+
+def _stage2_priority_boost(risk: dict[str, Any]) -> float:
+    evidence_signals = _evidence_signals(risk)
+    if not evidence_signals:
+        return 0.0
+
+    boost = 0.0
+    if any(bool(evidence_signals.get(signal)) for signal in HIGH_PRIORITY_STAGE2_SIGNALS):
+        boost += 15.0
+    if any(bool(evidence_signals.get(signal)) for signal in MEDIUM_PRIORITY_STAGE2_SIGNALS):
+        boost += 5.0
+    return boost
+
+
+def _planning_reasons(risk: dict[str, Any]) -> list[str]:
+    evidence_signals = _evidence_signals(risk)
+    reasons: list[str] = []
+
+    for signal, reason in HIGH_PRIORITY_STAGE2_SIGNALS.items():
+        if bool(evidence_signals.get(signal)):
+            reasons.append(reason)
+
+    for signal, reason in MEDIUM_PRIORITY_STAGE2_SIGNALS.items():
+        if bool(evidence_signals.get(signal)):
+            reasons.append(reason)
+
+    return reasons
+
+
+def _enforce_stage2_wave_caps(
+    wave_1: list[dict[str, Any]], wave_2: list[dict[str, Any]], wave_3: list[dict[str, Any]]
+) -> None:
+    remaining_wave_3: list[dict[str, Any]] = []
+    for item in wave_3:
+        reasons = set(item.get("planning_reasons", []))
+        if "stage2_private_key_files" in reasons or "stage2_weak_public_key" in reasons:
+            wave_2.append(item)
+        else:
+            remaining_wave_3.append(item)
+
+    wave_3[:] = remaining_wave_3

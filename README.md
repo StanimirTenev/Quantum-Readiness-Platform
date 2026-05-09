@@ -209,3 +209,5 @@ Environment notes:
 - [x] Operator validation checklist
 - [ ] Real infrastructure validation sample
 - [ ] Evidence preservation across timestamped runs
+
+- inventory-service ingest now accepts Stage 2 enriched evidence blocks

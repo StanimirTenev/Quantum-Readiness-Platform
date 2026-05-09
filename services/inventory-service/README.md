@@ -3,8 +3,35 @@
 ## What this service does
 - Stores assets, ingested scan events, and related risk records.
 
-## Current role in the prototype
-- Working prototype data backbone for inventory and scan ingestion.
+## Stage 2 enriched evidence ingest
+- `POST /scans/ingest` now accepts optional Stage 2 enriched evidence blocks while remaining backward compatible with existing Stage 1 payloads.
+- Optional blocks accepted:
+  - `crypto_evidence.package_metadata`
+  - `crypto_evidence.cert_indicators.certificate_file_indicators`
+  - `crypto_evidence.cert_indicators.config_file_indicators`
+  - `tls_metadata` (accepted as alias of `tls_evidence`)
+  - `tls_metadata.certificate_chain`
+- Minimal validation behavior:
+  - missing optional Stage 2 blocks do not fail ingest
+  - obvious invalid shapes are rejected (for example non-numeric `tls_metadata.port`, non-array `package_metadata.packages`, non-array `certificate_chain.certificates`)
+  - safe defaults are applied when practical (`packages/files/errors/searched_paths/certificates -> []`)
+
+### Sample ingest payload snippet
+```json
+{
+  "source": "network",
+  "assets": [{"asset_type": "endpoint", "name": "example.com:443"}],
+  "tls_metadata": {
+    "target": "example.com",
+    "port": 443,
+    "protocol_version": "TLS 1.3",
+    "certificate_chain": {
+      "available": true,
+      "certificates": []
+    }
+  }
+}
+```
 
 ## Main endpoints or functions
 - `GET /health`
@@ -12,15 +39,5 @@
 - `POST /scans/ingest`, `GET /scans`, `GET /scans/{scan_id}`
 - `GET /risks`, `POST /admin/cleanup-assets`
 
-## Inputs / outputs
-- Input: structured asset and scan-ingest JSON payloads.
-- Output: JSON records for assets, scans, and calculated risk snapshots.
-
-## Current status
-- Working prototype service.
-
 ## How to run tests
 - `pytest services/inventory-service/tests`
-
-## Known limitations
-- Risk scoring is currently triggered through fixed mapping logic and configured upstream client calls.

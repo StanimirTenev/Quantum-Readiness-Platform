@@ -121,6 +121,33 @@ class HostInventory(BaseModel):
         return data
 
 
+
+
+class Stage2PackageMetadata(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    package_manager: Optional[str] = None
+    collected: Optional[bool] = None
+    packages: list[dict[str, Any]] = Field(default_factory=list)
+    errors: list[Any] = Field(default_factory=list)
+
+
+class Stage2IndicatorBlock(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    collected: Optional[bool] = None
+    searched_paths: list[str] = Field(default_factory=list)
+    files: list[dict[str, Any]] = Field(default_factory=list)
+    counts: dict[str, Any] = Field(default_factory=dict)
+    errors: list[Any] = Field(default_factory=list)
+
+
+class Stage2CertIndicators(BaseModel):
+    model_config = ConfigDict(extra="allow")
+
+    certificate_file_indicators: Optional[Stage2IndicatorBlock] = None
+    config_file_indicators: Optional[Stage2IndicatorBlock] = None
+
 class CryptoEvidence(BaseModel):
     model_config = ConfigDict(extra="allow")
 
@@ -129,8 +156,8 @@ class CryptoEvidence(BaseModel):
     ssh_config_path: Optional[str] = None
     known_crypto_files: list[str] = Field(default_factory=list)
     config_indicators: Optional[dict[str, Any]] = None
-    cert_indicators: Optional[dict[str, Any]] = None
-    package_metadata: Optional[dict[str, Any]] = None
+    cert_indicators: Optional[Stage2CertIndicators | dict[str, Any]] = None
+    package_metadata: Optional[Stage2PackageMetadata | dict[str, Any]] = None
     normalization_warnings: list[str] = Field(default_factory=list, validation_alias=AliasChoices("_normalization_warnings", "normalization_warnings"), serialization_alias="_normalization_warnings")
 
     @model_validator(mode="before")
@@ -160,6 +187,21 @@ class CryptoEvidence(BaseModel):
             if block is not None and not isinstance(block, dict):
                 warnings.append(f"crypto_evidence.{field_name}: expected object, dropped invalid value")
                 data[field_name] = None
+
+        package_metadata = data.get("package_metadata")
+        if isinstance(package_metadata, dict):
+            if "packages" in package_metadata and not isinstance(package_metadata.get("packages"), list):
+                raise ValueError("crypto_evidence.package_metadata.packages must be an array when provided")
+            if "packages" not in package_metadata:
+                package_metadata["packages"] = []
+        cert_indicators = data.get("cert_indicators")
+        if isinstance(cert_indicators, dict):
+            for field_name in ("certificate_file_indicators", "config_file_indicators"):
+                block = cert_indicators.get(field_name)
+                if isinstance(block, dict):
+                    block.setdefault("searched_paths", [])
+                    block.setdefault("files", [])
+                    block.setdefault("errors", [])
 
         data["_normalization_warnings"] = warnings
         return data
@@ -237,9 +279,11 @@ class TLSEvidence(BaseModel):
     model_config = ConfigDict(extra="allow")
 
     target: Optional[str] = None
-    tls_version: Optional[str] = None
+    tls_version: Optional[str] = Field(default=None, validation_alias=AliasChoices("tls_version", "protocol_version"))
     cipher_suite: Optional[str] = None
     server_name: Optional[str] = None
+    port: Optional[int] = None
+    collected: Optional[bool] = None
     certificate: Optional[TLSEvidenceCertificate] = None
     certificate_chain: Optional[dict[str, Any]] = None
     normalization_warnings: list[str] = Field(default_factory=list, validation_alias=AliasChoices("_normalization_warnings", "normalization_warnings"), serialization_alias="_normalization_warnings")
@@ -253,6 +297,8 @@ class TLSEvidence(BaseModel):
         data = dict(data)
         warnings: list[str] = list(data.get("_normalization_warnings") or [])
         data["target"] = _clean_optional_string(data.get("target"))
+        if "tls_version" not in data and "protocol_version" in data:
+            data["tls_version"] = data.get("protocol_version")
         data["tls_version"] = _clean_optional_string(data.get("tls_version"))
         data["cipher_suite"] = _clean_optional_string(data.get("cipher_suite"))
         data["server_name"] = _clean_optional_string(data.get("server_name"))
@@ -261,6 +307,13 @@ class TLSEvidence(BaseModel):
         if cert_chain_value is not None and not isinstance(cert_chain_value, dict):
             warnings.append("tls_evidence.certificate_chain: expected object, dropped invalid value")
             data["certificate_chain"] = None
+        elif isinstance(cert_chain_value, dict):
+            certificates_value = cert_chain_value.get("certificates")
+            if certificates_value is not None and not isinstance(certificates_value, list):
+                raise ValueError("tls_evidence.certificate_chain.certificates must be an array when provided")
+            if "certificates" not in cert_chain_value:
+                cert_chain_value["certificates"] = []
+            cert_chain_value.setdefault("errors", [])
 
         if data.get("certificate") is None:
             warnings.append("tls_evidence.certificate: missing certificate block")
@@ -269,12 +322,22 @@ class TLSEvidence(BaseModel):
         return data
 
 
+
+    @field_validator("port", mode="before")
+    @classmethod
+    def validate_port_type(cls, value: Any) -> Any:
+        if value is None:
+            return value
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError("tls_evidence.port must be a number")
+        return value
+
 class ScanIngestRequest(BaseModel):
     source: Literal["host", "network", "repo", "manual"]
     assets: list[AssetCreate]
     host_inventory: Optional[HostInventory] = None
     crypto_evidence: Optional[CryptoEvidence] = None
-    tls_evidence: Optional[TLSEvidence] = None
+    tls_evidence: Optional[TLSEvidence] = Field(default=None, validation_alias=AliasChoices("tls_evidence", "tls_metadata"), serialization_alias="tls_evidence")
 
 
 class ScanIngestResponse(BaseModel):

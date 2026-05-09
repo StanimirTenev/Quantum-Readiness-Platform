@@ -1,0 +1,8 @@
+{
+  "source": "network",
+  "assets": [{"asset_type": "endpoint", "name": "invalid.example:443"}],
+  "tls_metadata": {
+    "target": "invalid.example",
+    "port": "443"
+  }
+}

@@ -10,70 +10,7 @@
       "vendor": "linux-foundation"
     }
   ],
-  "host_inventory": {
-    "hostname": "crypto-host-01",
-    "ips": [
-      "10.40.1.15",
-      "172.20.5.14"
-    ],
-    "os": "RHEL 9.4"
-  },
-  "crypto_evidence": {
-    "openssl_available": true,
-    "openssl_version": "OpenSSL 3.0.12",
-    "known_crypto_files": [
-      "/etc/ssl/openssl.cnf",
-      "/etc/ssh/sshd_config"
-    ],
-    "config_indicators": {
-      "ssh_config_indicators": [
-        "PubkeyAcceptedAlgorithms includes rsa-sha2-512"
-      ]
-    },
-    "cert_indicators": {
-      "trust_store_indicators": [
-        "system trust store present"
-      ]
-    },
-    "package_metadata": {
-      "package_manager_type": "dnf",
-      "crypto_packages": [
-        "openssl-3.0.12-1.el9",
-        "nss-3.90.0-2.el9"
-      ]
-    }
-  },
-  "tls_evidence": {
-    "target": "crypto-host-01:443",
-    "tls_version": "TLS1.3",
-    "cipher_suite": "TLS_AES_256_GCM_SHA384",
-    "server_name": "crypto-host-01.internal",
-    "certificate": {
-      "subject": {
-        "display_dn": "CN=crypto-host-01.internal,O=Quantum Readiness Platform"
-      },
-      "issuer": {
-        "display_dn": "CN=QRP-Internal-CA,O=Quantum Readiness Platform"
-      },
-      "validity": {
-        "not_before": "2026-01-01T00:00:00Z",
-        "not_after": "2027-01-01T00:00:00Z"
-      },
-      "algorithms": {
-        "signature": "ECDSA-SHA384",
-        "public_key": "ECDSA"
-      },
-      "san": {
-        "dns_names": [
-          "crypto-host-01.internal",
-          "crypto-host-01"
-        ]
-      }
-    },
-    "certificate_chain": {
-      "available": true,
-      "presented_chain_length": 2,
-      "summary": "leaf + issuing CA"
-    }
-  }
+  "host_inventory": {"hostname": "crypto-host-01", "ips": ["10.40.1.15", "172.20.5.14"], "os": "RHEL 9.4"},
+  "crypto_evidence": {"openssl_available": true, "openssl_version": "OpenSSL 3.0.12", "known_crypto_files": ["/etc/ssl/openssl.cnf", "/etc/ssh/sshd_config"], "config_indicators": {"ssh_config_indicators": ["PubkeyAcceptedAlgorithms includes rsa-sha2-512"]}, "cert_indicators": {"trust_store_indicators": ["system trust store present"]}, "package_metadata": {"package_manager_type": "dnf", "crypto_packages": ["openssl-3.0.12-1.el9", "nss-3.90.0-2.el9"]}},
+  "tls_evidence": {"target": "crypto-host-01:443", "tls_version": "TLS1.3", "cipher_suite": "TLS_AES_256_GCM_SHA384", "server_name": "crypto-host-01.internal", "certificate": {"subject": {"display_dn": "CN=crypto-host-01.internal,O=Quantum Readiness Platform"}, "issuer": {"display_dn": "CN=QRP-Internal-CA,O=Quantum Readiness Platform"}, "validity": {"not_before": "2026-01-01T00:00:00Z", "not_after": "2027-01-01T00:00:00Z"}, "algorithms": {"signature": "ECDSA-SHA384", "public_key": "ECDSA"}, "san": {"dns_names": ["crypto-host-01.internal", "crypto-host-01"]}}, "certificate_chain": {"available": true, "presented_chain_length": 2, "summary": "leaf + issuing CA"}}
 }

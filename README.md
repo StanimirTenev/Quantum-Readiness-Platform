@@ -214,3 +214,4 @@ Environment notes:
 
 - inventory-service ingest now accepts Stage 2 enriched evidence blocks
 - Official Stage 2 enriched evidence fixtures added for host and network ingest.
+- risk-engine now derives conservative scoring signals from Stage 2 enriched evidence.

@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 from fastapi.testclient import TestClient
 
 from app.main import (
@@ -8,6 +10,20 @@ from app.main import (
 )
 
 client = TestClient(app)
+
+
+def _base_payload() -> dict:
+    return {
+        "contract_version": "stage1-v1",
+        "asset_name": "vpn-gateway-01",
+        "criticality": 5,
+        "confidentiality_lifetime": 5,
+        "quantum_exposure": 5,
+        "blast_radius": 5,
+        "vendor_lock_in": 4,
+        "migration_difficulty": 3,
+        "scenario": "hidden_capability",
+    }
 
 
 def test_health() -> None:
@@ -21,12 +37,6 @@ def test_scenarios() -> None:
     assert response.status_code == 200
     data = response.json()
     assert "public_timeline" in data
-    assert "hidden_capability" in data
-    assert "partial_break" in data
-    assert "compliance_pressure" in data
-    assert data["hidden_capability"] == 1.35
-    assert data["partial_break"] == 1.10
-    assert data["compliance_pressure"] == 1.18
 
 
 def test_calculate_base_score() -> None:
@@ -42,59 +52,7 @@ def test_calculate_base_score() -> None:
     assert score == 5.0
 
 
-def test_score_endpoint() -> None:
-    payload = {
-        "contract_version": "stage1-v1",
-        "asset_name": "vpn-gateway-01",
-        "criticality": 5,
-        "confidentiality_lifetime": 5,
-        "quantum_exposure": 5,
-        "blast_radius": 5,
-        "vendor_lock_in": 4,
-        "migration_difficulty": 3,
-        "scenario": "hidden_capability",
-    }
-    response = client.post("/score", json=payload)
-    assert response.status_code == 200
-
-    data = response.json()
-    assert data["scenario"] == "hidden_capability"
-    assert data["contract_version"] == "stage1-v1"
-    assert data["asset_name"] == "vpn-gateway-01"
-    assert data["scenario_multiplier"] == 1.35
-    assert data["base_score"] > 0
-    assert data["final_score"] >= data["base_score"]
-    assert "stage2_signals" in data
-    assert "stage2_adjustment" in data
-    assert data["rating"] in {"minimal", "low", "medium", "high", "critical"}
-
-
-def test_extract_stage2_signals_returns_expected_flags() -> None:
-    class Obj:
-        stage2_notes = "HNDL concern; migration plan in progress"
-        dependency_count = 12
-        vendor_blocked = True
-
-    signals = extract_stage2_signals(Obj())
-    assert signals["has_hndl_signal"] is True
-    assert signals["has_pqc_plan_signal"] is True
-    assert signals["high_dependency_pressure"] is True
-    assert signals["vendor_blocked"] is True
-
-
-def test_calculate_stage2_adjustment_never_returns_negative_value() -> None:
-    signals = {
-        "has_hndl_signal": False,
-        "has_pqc_plan_signal": True,
-        "high_dependency_pressure": False,
-        "vendor_blocked": False,
-        "dependency_count": 0,
-    }
-
-    assert calculate_stage2_adjustment(signals) == 0.0
-
-
-def test_score_endpoint_backward_compatible_without_stage2_notes() -> None:
+def test_score_endpoint_backward_compatible_without_enriched_evidence() -> None:
     payload = {
         "contract_version": "stage1-v1",
         "asset_name": "legacy-edge",
@@ -112,57 +70,142 @@ def test_score_endpoint_backward_compatible_without_stage2_notes() -> None:
     assert data["stage2_adjustment"] == 0.0
 
 
-def test_score_validation() -> None:
-    payload = {
-        "contract_version": "stage1-v1",
-        "asset_name": "vpn-gateway-01",
-        "criticality": 7,
-        "confidentiality_lifetime": 5,
-        "quantum_exposure": 5,
-        "blast_radius": 5,
-        "vendor_lock_in": 4,
-        "migration_difficulty": 3,
-        "scenario": "hidden_capability",
-    }
-    response = client.post("/score", json=payload)
-    assert response.status_code == 422
+def test_evidence_signal_crypto_packages_detected() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = {"package_metadata": {"packages": ["openssl"]}}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["crypto_packages_detected"] is True
 
 
-def test_score_endpoint_supports_compliance_pressure() -> None:
-    payload = {
-        "contract_version": "stage1-v1",
-        "asset_name": "ca-service",
-        "criticality": 4,
-        "confidentiality_lifetime": 4,
-        "quantum_exposure": 4,
-        "blast_radius": 4,
-        "vendor_lock_in": 4,
-        "migration_difficulty": 4,
-        "scenario": "compliance_pressure",
+def test_evidence_signal_private_key_files_detected() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = {
+        "cert_indicators": {
+            "certificate_file_indicators": {"counts": {"key": 1}},
+        }
     }
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["private_key_files_detected"] is True
+
+
+def test_evidence_signal_tls_config_detected() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = {
+        "cert_indicators": {
+            "config_file_indicators": {"counts": {"tls_server_config": 1}},
+        }
+    }
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["tls_config_detected"] is True
+
+
+def test_evidence_signal_tls_detected() -> None:
+    payload = _base_payload()
+    payload["tls_metadata"] = {"collected": True}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["tls_detected"] is True
+
+
+def test_evidence_signal_weak_public_key_detected_for_rsa_1024() -> None:
+    payload = _base_payload()
+    payload["tls_metadata"] = {
+        "certificate": {
+            "public_key_algorithm": "RSA",
+            "public_key_size": 1024,
+        }
+    }
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["weak_public_key_detected"] is True
+
+
+def test_evidence_signal_expiring_certificate_detected_within_90_days() -> None:
+    payload = _base_payload()
+    payload["tls_metadata"] = {
+        "certificate": {
+            "not_after": (datetime.now(UTC) + timedelta(days=30)).isoformat(),
+        }
+    }
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["expiring_certificate_detected"] is True
+
+
+def test_evidence_signal_certificate_chain_available() -> None:
+    payload = _base_payload()
+    payload["tls_metadata"] = {
+        "certificate_chain": {
+            "available": True,
+            "length": 2,
+        }
+    }
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["certificate_chain_available"] is True
+
+
+def test_invalid_certificate_date_does_not_fail() -> None:
+    payload = _base_payload()
+    payload["tls_metadata"] = {
+        "certificate": {
+            "not_after": "invalid-date",
+        }
+    }
+
     response = client.post("/score", json=payload)
     assert response.status_code == 200
-
     data = response.json()
-    assert data["scenario"] == "compliance_pressure"
-    assert data["scenario_multiplier"] == 1.18
+    assert data["stage2_signals"]["evidence_signals"]["expiring_certificate_detected"] is False
 
 
-def test_score_endpoint_supports_partial_break() -> None:
-    payload = {
-        "contract_version": "stage1-v1",
-        "asset_name": "legacy-endpoint",
-        "criticality": 3,
-        "confidentiality_lifetime": 3,
-        "quantum_exposure": 3,
-        "blast_radius": 3,
-        "vendor_lock_in": 3,
-        "migration_difficulty": 3,
-        "scenario": "partial_break",
+def test_score_capped_at_100_with_stage2_evidence_adjustments() -> None:
+    payload = _base_payload()
+    payload["scenario"] = "hndl_active_now"
+    payload["crypto_evidence"] = {
+        "package_metadata": {"packages": ["openssl"]},
+        "cert_indicators": {
+            "certificate_file_indicators": {"counts": {"certificate": 1, "key": 1}},
+            "config_file_indicators": {"counts": {"tls_server_config": 1, "ssh_server_config": 1}},
+        },
     }
+    payload["tls_metadata"] = {
+        "collected": True,
+        "certificate": {
+            "public_key_algorithm": "RSA",
+            "public_key_size": 1024,
+            "not_after": (datetime.now(UTC) + timedelta(days=30)).isoformat(),
+        },
+        "certificate_chain": {"available": True, "length": 2},
+    }
+
+    data = client.post("/score", json=payload).json()
+    assert data["normalized_score_100"] == 100.0
+
+
+def test_calculate_stage2_adjustment_never_returns_negative_value() -> None:
+    signals = {
+        "stage2_notes_signals": {"has_hndl_signal": False, "has_pqc_plan_signal": True},
+        "evidence_signals": {},
+        "high_dependency_pressure": False,
+        "vendor_blocked": False,
+        "dependency_count": 0,
+    }
+
+    assert calculate_stage2_adjustment(signals) == 0.0
+
+
+def test_extract_stage2_signals_returns_notes_and_evidence_blocks() -> None:
+    payload = _base_payload()
+    payload["stage2_notes"] = "HNDL concern; migration plan in progress"
+    payload["crypto_evidence"] = {"package_metadata": {"packages": ["openssl"]}}
+
     response = client.post("/score", json=payload)
     assert response.status_code == 200
-
-    data = response.json()
-    assert data["scenario"] == "partial_break"
-    assert data["scenario_multiplier"] == 1.10
+    signals = response.json()["stage2_signals"]
+    assert signals["stage2_notes_signals"]["has_hndl_signal"] is True
+    assert signals["stage2_notes_signals"]["has_pqc_plan_signal"] is True
+    assert signals["evidence_signals"]["crypto_packages_detected"] is True

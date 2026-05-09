@@ -1,12 +1,13 @@
 # Graph Projection Smoke Report
 
 ## Validation Date
-2026-05-09T15:12:50Z
+2026-05-09T15:30:13Z
 
 ## Scope
-- Stage 2 host enriched fixture projection
-- Stage 2 network enriched fixture projection
-- JSON graph snapshot validation
+- JSON snapshot projection
+- Stage 2 fixture-based
+- no graph DB
+- no graph API
 
 ## Inputs
 
@@ -19,6 +20,8 @@
 
 - graph_snapshot_id: 50eb0ae424cec904
 - graph_schema_version: 0.1
+- projection_version: 0.1.0
+- source: stage2_fixture_projection_smoke
 - node count: 8
 - edge count: 5
 - warning count: 3
@@ -42,10 +45,49 @@
 | SIGNED_BY | 1 |
 | USES_CERTIFICATE | 1 |
 
-## Warnings
+## Warning Summary
 
-- low_confidence_relationship: 2
-- missing_certificate_fingerprint: 1
+| Code | Severity | Count |
+|---|---:|---:|
+| low_confidence_relationship | info | 2 |
+| missing_certificate_fingerprint | warning | 1 |
+
+## Evidence Coverage
+
+| Evidence Area | Expected Graph Object | Status |
+|---|---|---|
+| Host asset | Asset | PASS |
+| Host packages | Package + HAS_PACKAGE | PASS |
+| Host config indicators | ConfigFile + HAS_CONFIG | PASS |
+| Network TLS service | Service | PASS |
+| TLS certificate | Certificate + USES_CERTIFICATE | PASS |
+| Certificate chain | Certificate + SIGNED_BY | PASS |
+
+## Validation Checks
+
+| Check | Result |
+|---|---|
+| graph_schema_version exists | PASS |
+| graph_snapshot_id exists | PASS |
+| nodes array exists | PASS |
+| edges array exists | PASS |
+| warnings array exists | PASS |
+| node IDs unique | PASS |
+| edge IDs unique | PASS |
+| edge references valid | PASS |
+| confidence values within 0.0–1.0 | PASS |
+
+## Privacy Boundary
+
+Graph snapshots may contain sensitive infrastructure intelligence. They remain local by default and must not be sent to external LLM providers unless explicitly configured by the operator.
+
+## Non-Goals
+
+- no graph database
+- no graph API
+- no graph UI
+- no Neo4j
+- no Copilot/RAG graph reasoning
 
 ## Result
 

@@ -237,7 +237,47 @@ def main():
 
     ntypes = Counter(n["type"] for n in snapshot["nodes"])
     etypes = Counter(e["type"] for e in snapshot["edges"])
-    wtypes = Counter(w["code"] for w in snapshot["warnings"])
+    wsummary = Counter((w["code"], w["severity"]) for w in snapshot["warnings"])
+
+    node_ids = [n["id"] for n in snapshot["nodes"]]
+    edge_ids = [e["id"] for e in snapshot["edges"]]
+    node_id_set = set(node_ids)
+    validation_checks = [
+        ("graph_schema_version exists", bool(snapshot.get("graph_schema_version"))),
+        ("graph_snapshot_id exists", bool(snapshot.get("graph_snapshot_id"))),
+        ("nodes array exists", isinstance(snapshot.get("nodes"), list)),
+        ("edges array exists", isinstance(snapshot.get("edges"), list)),
+        ("warnings array exists", isinstance(snapshot.get("warnings"), list)),
+        ("node IDs unique", len(node_ids) == len(node_id_set)),
+        ("edge IDs unique", len(edge_ids) == len(set(edge_ids))),
+        ("edge references valid", all(e["from"] in node_id_set and e["to"] in node_id_set for e in snapshot["edges"])),
+        ("confidence values within 0.0–1.0", all(0.0 <= float(item.get("confidence", -1)) <= 1.0 for item in snapshot["nodes"] + snapshot["edges"])),
+    ]
+
+    coverage_checks = [
+        ("Host asset", "Asset", any(n["type"] == "Asset" and n["source"] == "stage2_host_fixture" for n in snapshot["nodes"])),
+        (
+            "Host packages",
+            "Package + HAS_PACKAGE",
+            any(n["type"] == "Package" for n in snapshot["nodes"]) and any(e["type"] == "HAS_PACKAGE" for e in snapshot["edges"]),
+        ),
+        (
+            "Host config indicators",
+            "ConfigFile + HAS_CONFIG",
+            any(n["type"] == "ConfigFile" for n in snapshot["nodes"]) and any(e["type"] == "HAS_CONFIG" for e in snapshot["edges"]),
+        ),
+        ("Network TLS service", "Service", any(n["type"] == "Service" for n in snapshot["nodes"])),
+        (
+            "TLS certificate",
+            "Certificate + USES_CERTIFICATE",
+            any(n["type"] == "Certificate" for n in snapshot["nodes"]) and any(e["type"] == "USES_CERTIFICATE" for e in snapshot["edges"]),
+        ),
+        (
+            "Certificate chain",
+            "Certificate + SIGNED_BY",
+            any(n["type"] == "Certificate" for n in snapshot["nodes"]) and any(e["type"] == "SIGNED_BY" for e in snapshot["edges"]),
+        ),
+    ]
 
     lines = [
         "# Graph Projection Smoke Report",
@@ -246,9 +286,10 @@ def main():
         snapshot["generated_at"],
         "",
         "## Scope",
-        "- Stage 2 host enriched fixture projection",
-        "- Stage 2 network enriched fixture projection",
-        "- JSON graph snapshot validation",
+        "- JSON snapshot projection",
+        "- Stage 2 fixture-based",
+        "- no graph DB",
+        "- no graph API",
         "",
         "## Inputs",
         "",
@@ -263,6 +304,8 @@ def main():
         "",
         f"- graph_snapshot_id: {snapshot['graph_snapshot_id']}",
         f"- graph_schema_version: {snapshot['graph_schema_version']}",
+        f"- projection_version: {snapshot['projection_version']}",
+        f"- source: {snapshot['source']}",
         f"- node count: {len(snapshot['nodes'])}",
         f"- edge count: {len(snapshot['edges'])}",
         f"- warning count: {len(snapshot['warnings'])}",
@@ -277,12 +320,32 @@ def main():
     lines += ["", "## Edge Types", "", "| Type | Count |", "|---|---|"]
     for t, c in sorted(etypes.items()):
         lines.append(f"| {t} | {c} |")
-    lines += ["", "## Warnings", ""]
-    if wtypes:
-        for t, c in sorted(wtypes.items()):
-            lines.append(f"- {t}: {c}")
+    lines += ["", "## Warning Summary", "", "| Code | Severity | Count |", "|---|---:|---:|"]
+    if wsummary:
+        for (code, severity), count in sorted(wsummary.items()):
+            lines.append(f"| {code} | {severity} | {count} |")
     else:
-        lines.append("- none")
+        lines.append("No warnings emitted.")
+    lines += ["", "## Evidence Coverage", "", "| Evidence Area | Expected Graph Object | Status |", "|---|---|---|"]
+    for area, expected, ok in coverage_checks:
+        lines.append(f"| {area} | {expected} | {'PASS' if ok else 'FAIL'} |")
+    lines += ["", "## Validation Checks", "", "| Check | Result |", "|---|---|"]
+    for check, ok in validation_checks:
+        lines.append(f"| {check} | {'PASS' if ok else 'FAIL'} |")
+    lines += [
+        "",
+        "## Privacy Boundary",
+        "",
+        "Graph snapshots may contain sensitive infrastructure intelligence. They remain local by default and must not be sent to external LLM providers unless explicitly configured by the operator.",
+        "",
+        "## Non-Goals",
+        "",
+        "- no graph database",
+        "- no graph API",
+        "- no graph UI",
+        "- no Neo4j",
+        "- no Copilot/RAG graph reasoning",
+    ]
     lines += ["", "## Result", "", "PASS"]
     Path(args.report_out).write_text("\n".join(lines) + "\n")
 

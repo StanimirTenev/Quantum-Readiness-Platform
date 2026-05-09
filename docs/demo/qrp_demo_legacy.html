@@ -1267,24 +1267,11 @@ async function callCopilot(userMsg) {
   chatHistory.push({ role: 'user', content: userMsg });
   const typingId = addTyping();
 
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        system: SYSTEM_PROMPT,
-        messages: chatHistory
-      })
-    });
-    const data = await res.json();
-    const reply = data.content?.[0]?.text || 'Unable to process response.';
-    chatHistory.push({ role: 'assistant', content: reply });
-    addAIMsg(reply, typingId);
-  } catch(e) {
-    addAIMsg('⚠ Connection error. The copilot API is unavailable. Please check your network.', typingId);
-  }
+  // External LLM calls are disabled in this legacy demo.
+  // Production Copilot must use an explicit provider boundary and must not send evidence externally by default.
+  const reply = 'Local demo response: Copilot provider is disabled by default. Configure a local provider explicitly for real analysis.';
+  chatHistory.push({ role: 'assistant', content: reply });
+  addAIMsg(reply, typingId);
 
   sendBtn.disabled = false; input.disabled = false;
   input.focus();

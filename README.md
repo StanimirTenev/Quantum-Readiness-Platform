@@ -56,6 +56,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Core architecture: `docs/architecture.md`
 - TRL5 execution roadmap: `docs/trl5-working-navigator.md`
 - Stage 1 core stabilization execution: `docs/stage1-core-stabilization.md`
+- Stage 2 freeze/status document added: `docs/stage2-freeze-status.md`
 
 ## Stage 2 smoke validation (short path)
 Run:

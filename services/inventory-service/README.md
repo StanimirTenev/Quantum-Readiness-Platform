@@ -41,3 +41,11 @@
 
 ## How to run tests
 - `pytest services/inventory-service/tests`
+
+
+## Stage 2 Evidence Fixtures
+- `minimal_ingest.json`: smallest Stage 1-compatible ingest payload used as the baseline success case.
+- `host_enriched_ingest.json`: host ingest payload with Stage 2 `crypto_evidence.package_metadata` plus certificate/config file indicator blocks.
+- `network_enriched_ingest.json`: network ingest payload with Stage 2 `tls_metadata`, including `certificate` and `certificate_chain.certificates`.
+- `invalid_tls_metadata.json`: negative-test fixture with intentionally invalid `tls_metadata.port` shape.
+- `invalid_package_metadata.json`: negative-test fixture with intentionally invalid `crypto_evidence.package_metadata.packages` shape.

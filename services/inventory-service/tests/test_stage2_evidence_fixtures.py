@@ -41,13 +41,12 @@ def _fake_score(self, payload):
 @pytest.mark.parametrize(
     "fixture_name,expected_source",
     [
-        ("host_minimal_ingest.json", "host"),
+        ("minimal_ingest.json", "network"),
         ("host_enriched_ingest.json", "host"),
-        ("network_minimal_ingest.json", "network"),
         ("network_enriched_ingest.json", "network"),
     ],
 )
-def test_stage2_evidence_fixtures_ingest_success(
+def test_official_stage2_fixtures_ingest_success(
     client: TestClient,
     monkeypatch,
     fixture_name: str,
@@ -65,33 +64,16 @@ def test_stage2_evidence_fixtures_ingest_success(
     assert scan["source"] == expected_source
 
 
-@pytest.mark.parametrize(
-    "fixture_name,expected_subject",
-    [
-        (
-            "host_enriched_ingest.json",
-            "CN=crypto-host-01.internal,O=Quantum Readiness Platform",
-        ),
-        (
-            "network_enriched_ingest.json",
-            "CN=payments.example.com,O=Payments Vendor Inc",
-        ),
-    ],
-)
-def test_stage2_enriched_fixtures_are_normalized(
+def test_network_fixture_preserves_certificate_chain(
     client: TestClient,
     monkeypatch,
-    fixture_name: str,
-    expected_subject: str,
 ) -> None:
     monkeypatch.setattr("app.clients.risk_engine.RiskEngineClient.score", _fake_score)
 
-    payload = _load_fixture(fixture_name)
-    response = client.post("/scans/ingest", json=payload)
-
+    response = client.post("/scans/ingest", json=_load_fixture("network_enriched_ingest.json"))
     assert response.status_code == 201
-    scan_id = response.json()["scan_id"]
 
-    scan = client.get(f"/scans/{scan_id}").json()["scan"]
-    assert scan["tls_evidence"]["certificate"]["subject"] == expected_subject
-    assert scan["tls_evidence"]["certificate_chain"]["available"] is True
+    scan = client.get(f"/scans/{response.json()['scan_id']}").json()["scan"]
+    chain = scan["tls_evidence"]["certificate_chain"]
+    assert isinstance(chain["certificates"], list)
+    assert chain["certificates"][0]["sha256_fingerprint"] == "11aa22bb33cc44dd55ee66ff77889900aabbccddeeff00112233445566778899"

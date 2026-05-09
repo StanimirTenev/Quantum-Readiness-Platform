@@ -1,0 +1,20 @@
+{
+  "source": "host",
+  "assets": [
+    {
+      "asset_type": "server",
+      "name": "qrp-linux-demo-01"
+    }
+  ],
+  "crypto_evidence": {
+    "openssl_available": true,
+    "package_metadata": {
+      "collected": true,
+      "package_manager": "dnf",
+      "packages": {
+        "name": "openssl",
+        "version": "3.0.13-1.el9"
+      }
+    }
+  }
+}

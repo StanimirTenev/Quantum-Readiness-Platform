@@ -3,14 +3,55 @@
   "assets": [
     {
       "asset_type": "server",
-      "name": "crypto-host-01",
-      "criticality": 5,
+      "name": "qrp-linux-demo-01",
       "environment": "production",
-      "lifecycle_years": 8,
-      "vendor": "linux-foundation"
+      "criticality": 4,
+      "vendor": "example-linux-vendor"
     }
   ],
-  "host_inventory": {"hostname": "crypto-host-01", "ips": ["10.40.1.15", "172.20.5.14"], "os": "RHEL 9.4"},
-  "crypto_evidence": {"openssl_available": true, "openssl_version": "OpenSSL 3.0.12", "known_crypto_files": ["/etc/ssl/openssl.cnf", "/etc/ssh/sshd_config"], "config_indicators": {"ssh_config_indicators": ["PubkeyAcceptedAlgorithms includes rsa-sha2-512"]}, "cert_indicators": {"trust_store_indicators": ["system trust store present"]}, "package_metadata": {"package_manager_type": "dnf", "crypto_packages": ["openssl-3.0.12-1.el9", "nss-3.90.0-2.el9"]}},
-  "tls_evidence": {"target": "crypto-host-01:443", "tls_version": "TLS1.3", "cipher_suite": "TLS_AES_256_GCM_SHA384", "server_name": "crypto-host-01.internal", "certificate": {"subject": {"display_dn": "CN=crypto-host-01.internal,O=Quantum Readiness Platform"}, "issuer": {"display_dn": "CN=QRP-Internal-CA,O=Quantum Readiness Platform"}, "validity": {"not_before": "2026-01-01T00:00:00Z", "not_after": "2027-01-01T00:00:00Z"}, "algorithms": {"signature": "ECDSA-SHA384", "public_key": "ECDSA"}, "san": {"dns_names": ["crypto-host-01.internal", "crypto-host-01"]}}, "certificate_chain": {"available": true, "presented_chain_length": 2, "summary": "leaf + issuing CA"}}
+  "host_inventory": {
+    "hostname": "qrp-linux-demo-01",
+    "os": "Example Linux 9.2",
+    "ips": ["10.20.30.40"]
+  },
+  "crypto_evidence": {
+    "openssl_available": true,
+    "openssl_version": "OpenSSL 3.0.13",
+    "package_metadata": {
+      "collected": true,
+      "package_manager": "dnf",
+      "packages": [
+        {
+          "name": "openssl",
+          "version": "3.0.13-1.el9",
+          "arch": "x86_64"
+        }
+      ],
+      "errors": []
+    },
+    "cert_indicators": {
+      "certificate_file_indicators": {
+        "collected": true,
+        "searched_paths": ["/etc/pki/tls/certs", "/opt/qrp/certs"],
+        "files": [
+          {
+            "path": "/etc/pki/tls/certs/app.example.internal.crt",
+            "sha256": "a3f4c1b2945e6f708192aabbccddeeff00112233445566778899aabbccddeeff"
+          }
+        ],
+        "errors": []
+      },
+      "config_file_indicators": {
+        "collected": true,
+        "searched_paths": ["/etc/nginx/conf.d", "/etc/httpd/conf.d"],
+        "files": [
+          {
+            "path": "/etc/nginx/conf.d/app.example.internal-tls.conf",
+            "sha256": "bb11cc22dd33ee44ff55006677889900aabbccddeeff00112233445566778899"
+          }
+        ],
+        "errors": []
+      }
+    }
+  }
 }

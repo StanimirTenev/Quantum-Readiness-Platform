@@ -54,6 +54,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - risk-engine now returns confidence_score and risk_dimensions for Stage 3 analysis.
 - planner-service now returns priority_score and clearer wave rationale for Stage 3 planning.
 - Stage 3 risk/planning smoke validation added for confidence, dimensions and planner priority_score.
+- Graph JSON snapshot smoke projection added: scripts/run_graph_projection_smoke.sh
 
 ## Architecture and delivery navigation
 - Core architecture: `docs/architecture.md`
@@ -110,6 +111,20 @@ inventory-service, risk-engine and planner-service are running locally.
 
 Output:
 reports/stage3-risk-planning-smoke-report.md
+
+
+## Graph Projection Smoke
+
+Run:
+
+```bash
+bash scripts/run_graph_projection_smoke.sh
+```
+
+Output:
+
+reports/graph/latest/graph-snapshot.json
+reports/graph/latest/graph-projection-report.md
 
 ## Stage 2 documentation update (current code + fixtures)
 

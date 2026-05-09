@@ -259,3 +259,4 @@ Environment notes:
 - Official Stage 2 enriched evidence fixtures added for host and network ingest.
 - risk-engine now derives conservative scoring signals from Stage 2 enriched evidence.
 - planner-service now uses Stage 2 risk signals for conservative wave prioritization.
+- Dependency graph implementation boundary documented: docs/dependency-graph-implementation-boundary.md

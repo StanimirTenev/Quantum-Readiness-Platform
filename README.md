@@ -50,6 +50,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 4. TLS/SSH scanner
 
 - Stage 2 inventory smoke validation added for official enriched evidence fixtures.
+- Stage 2 E2E smoke validation added for inventory → risk → planner flow.
 
 ## Architecture and delivery navigation
 - Core architecture: `docs/architecture.md`
@@ -69,6 +70,21 @@ This smoke path validates:
 - scans are stored and retrievable
 - risk results are still generated after ingest
 - planner service still returns a plan response
+
+
+## Stage 2 E2E Smoke Validation
+
+Run:
+
+```bash
+bash scripts/run_stage2_e2e_smoke.sh
+```
+
+Precondition:
+inventory-service, risk-engine and planner-service are running locally.
+
+Output:
+reports/stage2-e2e-smoke-report.md
 
 ## Stage 2 documentation update (current code + fixtures)
 

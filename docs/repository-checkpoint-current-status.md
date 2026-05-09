@@ -1,0 +1,251 @@
+# Repository Checkpoint — Current Status
+
+## Purpose
+
+This document is a checkpoint to prevent scope drift before starting the next major direction.
+
+- This is a status checkpoint.
+- No new implementation is included.
+- The goal is to record what is working, what is frozen, and what must not be started accidentally.
+
+## Current Maturity
+
+Current maturity: TRL 5 candidate / enriched-evidence operational prototype with improved risk/planning analysis and lightweight JSON graph projection.
+
+## Current Architecture Principle
+
+- QRP is designed for internal/customer-controlled deployment.
+- Evidence stays local by default.
+- External LLM usage is optional and opt-in only.
+- Deterministic core must work without LLM.
+- Graph snapshots are sensitive infrastructure intelligence.
+- No mandatory cloud AI dependency.
+- Cross-platform by design, Linux-first implementation currently.
+
+## Stage 1 — Core Stabilization
+
+Status:
+
+CLOSED
+
+Summarize completed work:
+
+- service startup stabilization
+- TRL validation harness
+- evidence package
+- operator validation checklist
+- policy-engine /evaluate
+- API Gateway policy forwarding validation
+- repeatable local validation
+- README/status wording corrected to TRL 5 candidate
+
+Key artifacts:
+
+- scripts/run_trl_validation.sh
+- reports/trl-validation-report.md
+- reports/evidence/latest/
+- docs/operator-validation-checklist.md
+
+## Stage 2 — Discovery / Evidence Enrichment
+
+Status:
+
+FROZEN
+
+Reference:
+
+- docs/stage2-freeze-status.md
+
+Summarize completed work:
+
+### linux-host-agent
+- package metadata
+- certificate file indicators
+- SSH/TLS/VPN config indicators
+- stable evidence output contract
+- sample output
+
+### network-scanner
+- richer TLS metadata
+- leaf certificate metadata
+- SHA-256 fingerprint
+- certificate chain summary
+- stable TLS output contract
+
+### inventory-service
+- accepts enriched host evidence
+- accepts enriched network TLS evidence
+- official Stage 2 fixtures
+- Stage 2 inventory smoke validation
+
+### Stage 2 validation
+- scripts/run_stage2_inventory_smoke.sh
+- scripts/run_stage2_e2e_smoke.sh
+- reports/stage2-inventory-smoke-report.md
+- reports/stage2-e2e-smoke-report.md
+
+## Stage 3 — Risk / Planning Improvement
+
+Status:
+
+FROZEN
+
+Reference:
+
+- docs/stage3-freeze-status.md
+
+Summarize completed work:
+
+### risk-engine
+- Stage 2 evidence-derived signals
+- conservative score adjustments
+- confidence_score
+- risk_dimensions
+- backward compatibility
+- non-fatal missing/invalid optional evidence
+
+### planner-service
+- Stage 2 signal-aware prioritization
+- priority_score
+- clearer planning_reasons
+- weak key/private key not later than wave_2
+- no dependency graph logic
+
+### Stage 3 validation
+- scripts/run_stage3_risk_planning_smoke.sh
+- reports/stage3-risk-planning-smoke-report.md
+
+## Dependency Graph
+
+Status:
+
+FROZEN AS LIGHTWEIGHT JSON SNAPSHOT PROTOTYPE
+
+Reference documents:
+
+- docs/dependency-graph-design.md
+- docs/dependency-graph-contract.md
+- docs/dependency-graph-projection-plan.md
+- docs/dependency-graph-projection-validation-examples.md
+- docs/dependency-graph-implementation-boundary.md
+- docs/dependency-graph-freeze-status.md
+
+Implemented lightweight artifacts:
+
+- scripts/run_graph_projection_smoke.sh
+- tools/graph_projection/project_stage2_fixtures.py
+- tools/graph_projection/test_project_stage2_fixtures.py
+- reports/graph/latest/graph-snapshot.json
+- reports/graph/latest/graph-projection-report.md
+
+State clearly:
+
+- JSON Snapshot First
+- no graph DB
+- no Neo4j
+- no graph API
+- no graph UI
+- no full dependency traversal yet
+
+## Privacy Cleanup
+
+Summarize:
+
+- legacy demo hardcoded external Anthropic call disabled
+- local deterministic placeholder response used instead
+- no mandatory external LLM dependency preserved
+
+Reference:
+
+- docs/demo/qrp_demo_legacy.html
+
+## Current Validation Commands
+
+bash scripts/run_trl_validation.sh
+bash scripts/run_stage2_inventory_smoke.sh
+bash scripts/run_stage2_e2e_smoke.sh
+bash scripts/run_stage3_risk_planning_smoke.sh
+bash scripts/run_graph_projection_smoke.sh
+
+Service/unit tests:
+
+cd services/inventory-service && PYTHONPATH=. pytest -q
+cd services/risk-engine && PYTHONPATH=. pytest -q
+cd services/planner-service && PYTHONPATH=. pytest -q
+cd agents/linux-host-agent && go test ./...
+cd agents/network-scanner && go test ./...
+python -m pytest tools/graph_projection -q
+
+## What Is Not Implemented Yet
+
+- production graph database
+- graph API service
+- graph UI
+- Neo4j
+- PostgreSQL graph tables
+- real dependency traversal / blast-radius engine
+- real Copilot/RAG implementation
+- external LLM provider interface
+- Windows agent
+- AD/certificate estate discovery
+- cloud/KMS/HSM integrations
+- production auth/RBAC
+- production deployment hardening
+- autonomous execution
+
+## Code Weight Assessment
+
+The code is still controlled because:
+- no new database was added
+- no graph DB dependency was added
+- no graph API service was added
+- no graph UI was added
+- no Copilot/RAG implementation was added
+- most additions are deterministic scripts, tests, fixtures, reports and docs
+
+Main risk:
+opening too many new tracks at once.
+
+## Recommended Next Options
+
+### Option A — Copilot Local-First Design
+Docs-only design for provider boundary:
+- disabled provider
+- local provider
+- optional external provider
+- no external default
+
+### Option B — Cross-Platform Agent Design
+Docs-only design for:
+- Linux current implementation
+- Windows future agent
+- workstation/server differences
+- no coding yet
+
+### Option C — Graph Pause / Review
+Stop graph work and review whether JSON snapshot is enough for now.
+
+Recommended default:
+
+Option A — Copilot Local-First Design, because privacy/local-first is a core product differentiator and must be designed before any Copilot implementation.
+
+## Stop Rules
+
+Do not start the following until explicitly chosen:
+
+- graph DB
+- graph API
+- graph UI
+- Neo4j
+- Copilot implementation
+- RAG implementation
+- external LLM integration
+- auth/RBAC
+- production infra
+- Windows agent implementation
+- cloud integrations
+- autonomous execution
+
+## One-Sentence Status
+
+"QRP is currently a TRL 5 candidate operational prototype with validated enriched evidence ingestion, improved risk/planning analysis, and a first lightweight JSON dependency-graph projection smoke path, still local-first and without production graph/Copilot infrastructure."

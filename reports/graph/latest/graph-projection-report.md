@@ -1,7 +1,7 @@
 # Graph Projection Smoke Report
 
 ## Validation Date
-2026-05-09T10:03:49Z
+2026-05-09T15:12:50Z
 
 ## Scope
 - Stage 2 host enriched fixture projection

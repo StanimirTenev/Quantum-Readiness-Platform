@@ -12,7 +12,21 @@
 
 ## Inputs / outputs
 - Input: bounded numeric factors (`0..5`) plus scenario name and asset metadata.
-- Output: JSON with base/final score, normalized score, rating, and rationale fields.
+- Output: JSON with base/final score, normalized score, rating, stage2 signals/adjustment, and rationale fields.
+
+### Stage 2 (optional)
+- `stage2_notes` is an optional free-text input used for deterministic signal extraction.
+- Extracted signals:
+  - `has_hndl_signal`
+  - `has_pqc_plan_signal`
+  - `high_dependency_pressure`
+  - `vendor_blocked`
+- Conservative deterministic adjustment:
+  - `+0.20` when vendor is blocked
+  - `+0.15` when dependency pressure is high (`dependency_count >= 10`)
+  - `+0.10` when HNDL signal is present
+  - `-0.10` when PQC migration-plan signal is present
+  - floor at `0.0` (never negative)
 
 ## Current status
 - Working prototype service.

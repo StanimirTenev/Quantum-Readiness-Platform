@@ -37,6 +37,7 @@ class RiskInput(BaseModel):
     dependency_count: int = Field(default=0, ge=0)
     vendor_blocked: bool = False
     scenario: ScenarioName = "public_timeline"
+    stage2_notes: str | None = None
 
 
 class RiskOutput(BaseModel):
@@ -50,7 +51,33 @@ class RiskOutput(BaseModel):
     rating: str
     dependency_count: int
     vendor_blocked: bool
+    stage2_signals: dict[str, bool | int]
+    stage2_adjustment: float
     rationale: dict[str, float | int | bool]
+
+
+def extract_stage2_signals(data: RiskInput) -> dict[str, bool | int]:
+    notes = (data.stage2_notes or "").lower()
+    return {
+        "has_hndl_signal": "hndl" in notes or "harvest now decrypt later" in notes,
+        "has_pqc_plan_signal": "pqc plan" in notes or "migration plan" in notes,
+        "high_dependency_pressure": data.dependency_count >= 10,
+        "vendor_blocked": data.vendor_blocked,
+        "dependency_count": data.dependency_count,
+    }
+
+
+def calculate_stage2_adjustment(signals: dict[str, bool | int]) -> float:
+    adjustment = 0.0
+    if signals["vendor_blocked"]:
+        adjustment += 0.20
+    if signals["high_dependency_pressure"]:
+        adjustment += 0.15
+    if signals["has_hndl_signal"]:
+        adjustment += 0.10
+    if signals["has_pqc_plan_signal"]:
+        adjustment -= 0.10
+    return max(adjustment, 0.0)
 
 
 def calculate_base_score(data: RiskInput) -> float:
@@ -90,7 +117,9 @@ def get_scenarios() -> dict[str, float]:
 def score(data: RiskInput) -> RiskOutput:
     base_score = calculate_base_score(data)
     scenario_multiplier = SCENARIO_MULTIPLIERS[data.scenario]
-    final_score = base_score * scenario_multiplier
+    stage2_signals = extract_stage2_signals(data)
+    stage2_adjustment = calculate_stage2_adjustment(stage2_signals)
+    final_score = (base_score * scenario_multiplier) + stage2_adjustment
 
     # base_score max is 5.0, scenario max multiplier here is 1.40
     # clamp to 100 for stable UI behavior
@@ -108,6 +137,8 @@ def score(data: RiskInput) -> RiskOutput:
         rating=rating,
         dependency_count=data.dependency_count,
         vendor_blocked=data.vendor_blocked,
+        stage2_signals=stage2_signals,
+        stage2_adjustment=round(stage2_adjustment, 4),
         rationale={
             "criticality": data.criticality,
             "confidentiality_lifetime": data.confidentiality_lifetime,

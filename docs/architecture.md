@@ -56,6 +56,59 @@ LLM е:
 
 ---
 
+
+## 2.1 Deployment and Privacy Boundary
+
+QRP is designed to run inside a customer-controlled deployment environment (internal network, private datacenter, or equivalent controlled boundary).
+
+- Sensitive evidence must remain inside the deployment boundary by default.
+- The platform must not require external cloud LLM services to operate.
+- The deterministic core must fully operate without any LLM dependency.
+- External LLM providers are optional, disabled by default, and require explicit operator configuration.
+
+## 2.2 Copilot Provider Boundary
+
+Copilot capabilities are strictly advisory and must never bypass deterministic controls or approval workflows.
+
+- Copilot is advisory only (co-pilot, not autopilot).
+- Default Copilot provider mode must be disabled or local.
+- Local LLM provider is preferred for sensitive environments.
+- External provider is opt-in only and must never be default.
+- No evidence, scan results, inventory data, hostnames, IP addresses, certificate metadata, configuration paths, internal documents, risk scores, or migration plans may leave the deployment boundary unless explicitly configured by the operator.
+
+Suggested provider modes:
+
+```bash
+COPILOT_PROVIDER=disabled
+COPILOT_PROVIDER=local
+COPILOT_PROVIDER=external
+```
+
+## 2.3 Cross-Platform Deployment Requirement
+
+QRP must support heterogeneous enterprise environments and must not assume Linux-only infrastructure.
+
+- Server-side services should run Linux-first and containerized internal deployment first.
+- Agents and scanners should be designed for multi-OS support over time:
+  - Linux servers
+  - Windows servers
+  - Linux workstations
+  - Windows workstations
+  - macOS later if needed
+- Linux agent is the current first implementation.
+- Windows/AD/certificate estate discovery is future work and not part of the current implementation task.
+
+## 2.4 Current Non-Goals
+
+The current phase explicitly does **not** start implementation of:
+
+- Windows agent implementation now
+- cloud LLM integration now
+- RAG/copilot implementation now
+- production hardening now
+- auth/RBAC now
+- graph implementation now
+
 ## 3. Продуктова визия
 
 Платформата трябва да отговаря на въпроси като:

@@ -62,6 +62,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Stage 2 freeze/status document added: `docs/stage2-freeze-status.md`
 - Stage 3 freeze/status document added: `docs/stage3-freeze-status.md`
 - Stage 3 risk/planning audit added: `docs/stage3-risk-planning-audit.md`
+- Dependency graph design document added: `docs/dependency-graph-design.md`
 
 ## Stage 2 smoke validation (short path)
 Run:

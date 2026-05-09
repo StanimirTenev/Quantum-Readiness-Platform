@@ -1,5 +1,7 @@
 # Quantum Readiness Platform
 
+QRP is designed for internal/customer-controlled deployment with local-first evidence processing, optional local Copilot support, and no mandatory external LLM dependency.
+
 Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning. Current status: TRL 5 candidate based on repeatable local validation with preserved evidence artifacts.
 
 ## Modules

@@ -51,6 +51,7 @@ def build_plan(assets: list[dict[str, Any]], risks: list[dict[str, Any]]) -> dic
             "rating": risk.get("rating"),
             "normalized_score_100": risk.get("normalized_score_100"),
             "priority_score_100": _priority_score(asset, risk),
+            "priority_score": _priority_score(asset, risk),
             "scenario": risk.get("scenario"),
             "dependency_count": _dependency_count(asset, risk),
             "vendor_blocked": _vendor_blocked(asset, risk),
@@ -110,11 +111,25 @@ def recommend_action(asset: dict[str, Any], risk: dict[str, Any]) -> str:
 
 
 def _priority_score(asset: dict[str, Any], risk: dict[str, Any]) -> float:
-    base_score = float(risk.get("normalized_score_100", 0))
+    base_score = _base_score(risk)
+    risk_dimensions = risk.get("risk_dimensions", {})
+    urgency = _dimension_score(risk_dimensions, "urgency")
+    exposure = _dimension_score(risk_dimensions, "exposure")
+    impact = _dimension_score(risk_dimensions, "impact")
+    confidence_score = _safe_float(risk.get("confidence_score"))
+
+    dimension_boost = (urgency * 0.10) + (exposure * 0.05) + (impact * 0.05)
+    confidence_adjustment = 0.0
+    if confidence_score is not None and confidence_score >= 80:
+        confidence_adjustment = 5.0
+    elif confidence_score is not None and confidence_score < 50:
+        confidence_adjustment = -5.0
+
     dependency_boost = min(_dependency_count(asset, risk), 10) * 1.5
     vendor_boost = 8.0 if _vendor_blocked(asset, risk) else 0.0
     stage2_boost = _stage2_priority_boost(risk)
-    return min(base_score + dependency_boost + vendor_boost + stage2_boost, 100.0)
+    score = base_score + dimension_boost + confidence_adjustment + dependency_boost + vendor_boost + stage2_boost
+    return max(0.0, min(score, 100.0))
 
 
 def _ordering_tuple(asset: dict[str, Any], risk: dict[str, Any]) -> tuple[float, int, int]:
@@ -162,17 +177,72 @@ def _stage2_priority_boost(risk: dict[str, Any]) -> float:
 
 def _planning_reasons(risk: dict[str, Any]) -> list[str]:
     evidence_signals = _evidence_signals(risk)
-    reasons: list[str] = []
+    reasons: list[str] = ["priority_score_computed"]
+    base_reason = _base_score_reason(risk)
+    if base_reason:
+        reasons.append(base_reason)
+
+    risk_dimensions = risk.get("risk_dimensions", {})
+    if _dimension_score(risk_dimensions, "urgency") > 0:
+        reasons.append("priority_from_urgency_dimension")
+    if _dimension_score(risk_dimensions, "exposure") > 0:
+        reasons.append("priority_from_exposure_dimension")
+    if _dimension_score(risk_dimensions, "impact") > 0:
+        reasons.append("priority_from_impact_dimension")
+
+    confidence_score = _safe_float(risk.get("confidence_score"))
+    if confidence_score is not None and confidence_score >= 80:
+        reasons.append("priority_from_high_confidence")
+    elif confidence_score is not None and confidence_score < 50:
+        reasons.append("priority_reduced_low_confidence")
 
     for signal, reason in HIGH_PRIORITY_STAGE2_SIGNALS.items():
         if bool(evidence_signals.get(signal)):
             reasons.append(reason)
+            if signal == "weak_public_key_detected":
+                reasons.append("wave_cap_from_weak_public_key")
+            if signal == "private_key_files_detected":
+                reasons.append("wave_cap_from_private_key_files")
+            if signal == "expiring_certificate_detected":
+                reasons.append("wave_reason_expiring_certificate")
 
     for signal, reason in MEDIUM_PRIORITY_STAGE2_SIGNALS.items():
         if bool(evidence_signals.get(signal)):
             reasons.append(reason)
 
     return reasons
+
+
+def _base_score(risk: dict[str, Any]) -> float:
+    for key in ("normalized_score_100", "final_score", "score"):
+        value = _safe_float(risk.get(key))
+        if value is not None:
+            return value
+    return 0.0
+
+
+def _base_score_reason(risk: dict[str, Any]) -> str | None:
+    if _safe_float(risk.get("normalized_score_100")) is not None:
+        return "priority_from_normalized_score"
+    if _safe_float(risk.get("final_score")) is not None:
+        return "priority_from_final_score"
+    if _safe_float(risk.get("score")) is not None:
+        return "priority_from_score"
+    return None
+
+
+def _dimension_score(risk_dimensions: Any, key: str) -> float:
+    if not isinstance(risk_dimensions, dict):
+        return 0.0
+    value = _safe_float(risk_dimensions.get(key))
+    return value if value is not None else 0.0
+
+
+def _safe_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _enforce_stage2_wave_caps(

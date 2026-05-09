@@ -32,3 +32,19 @@
 - Informational signal: `certificate_chain_available` (does not increase priority by itself).
 - Missing or partial Stage 2 signals are non-fatal and preserve backward-compatible planning behavior for old inputs.
 - This is conservative wave prioritization only and is not dependency graph planning.
+
+## Stage 3 Priority Score and Wave Rationale
+
+- Planner now returns `priority_score` (0-100) on each plan item, while keeping existing score fields for backward compatibility.
+- `priority_score` starts from `normalized_score_100`, falls back to `final_score` or `score`, and defaults to 0 when missing.
+- Optional `risk_dimensions` influence priority deterministically:
+  - urgency contributes up to +10 (`urgency * 0.10`)
+  - exposure contributes up to +5 (`exposure * 0.05`)
+  - impact contributes up to +5 (`impact * 0.05`)
+- Optional `confidence_score` adjusts priority slightly:
+  - `>= 80` adds +5
+  - `< 50` subtracts 5
+- Stage 2 wave caps are retained: `weak_public_key_detected` and `private_key_files_detected` are never planned later than wave 2.
+- `certificate_chain_available` remains informational and does not increase priority by itself.
+- Missing `risk_dimensions`, `confidence_score`, or `stage2_signals` fields are non-fatal and preserve compatible planning behavior.
+- This is conservative wave-based prioritization and is not dependency graph planning.

@@ -133,3 +133,82 @@ def test_stage2_missing_or_unknown_signals_do_not_fail() -> None:
     )
 
     assert plan["summary"]["total_risks"] == 2
+
+
+def test_old_input_without_risk_dimensions_still_works_and_has_priority_score() -> None:
+    plan = build_plan(
+        assets=[],
+        risks=[{"asset_name": "legacy-input", "rating": "medium", "normalized_score_100": 55.0}],
+    )
+
+    item = plan["wave_2"][0]
+    assert item["priority_score"] == item["priority_score_100"]
+    assert "priority_score_computed" in item["planning_reasons"]
+
+
+def test_priority_score_increases_with_urgency_dimension() -> None:
+    base_plan = build_plan(
+        assets=[],
+        risks=[{"asset_name": "base", "rating": "low", "normalized_score_100": 40.0}],
+    )
+    urgent_plan = build_plan(
+        assets=[],
+        risks=[
+            {
+                "asset_name": "urgent",
+                "rating": "low",
+                "normalized_score_100": 40.0,
+                "risk_dimensions": {"urgency": 100},
+            }
+        ],
+    )
+
+    assert urgent_plan["wave_2"][0]["priority_score"] > base_plan["wave_3"][0]["priority_score"]
+
+
+def test_high_confidence_adds_small_boost() -> None:
+    low_conf = build_plan(
+        assets=[],
+        risks=[{"asset_name": "low-conf", "rating": "low", "normalized_score_100": 40.0, "confidence_score": 79}],
+    )
+    high_conf = build_plan(
+        assets=[],
+        risks=[{"asset_name": "high-conf", "rating": "low", "normalized_score_100": 40.0, "confidence_score": 80}],
+    )
+
+    assert high_conf["wave_2"][0]["priority_score"] - low_conf["wave_3"][0]["priority_score"] == 5.0
+
+
+def test_low_confidence_applies_small_reduction() -> None:
+    neutral = build_plan(
+        assets=[],
+        risks=[{"asset_name": "neutral", "rating": "low", "normalized_score_100": 40.0, "confidence_score": 50}],
+    )
+    low = build_plan(
+        assets=[],
+        risks=[{"asset_name": "low", "rating": "low", "normalized_score_100": 40.0, "confidence_score": 49}],
+    )
+
+    assert neutral["wave_3"][0]["priority_score"] - low["wave_3"][0]["priority_score"] == 5.0
+
+
+def test_priority_score_capped_0_to_100() -> None:
+    high = build_plan(
+        assets=[{"name": "over", "dependency_count": 50, "vendor_blocked": True}],
+        risks=[
+            {
+                "asset_name": "over",
+                "normalized_score_100": 99,
+                "risk_dimensions": {"urgency": 100, "exposure": 100, "impact": 100},
+                "confidence_score": 100,
+                "stage2_signals": {"evidence_signals": {"weak_public_key_detected": True}},
+            }
+        ],
+    )
+    low = build_plan(
+        assets=[],
+        risks=[{"asset_name": "under", "normalized_score_100": 1, "confidence_score": 0}],
+    )
+
+    assert high["wave_1"][0]["priority_score"] == 100.0
+    assert low["wave_3"][0]["priority_score"] == 0.0

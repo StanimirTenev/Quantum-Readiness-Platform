@@ -53,6 +53,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Stage 2 E2E smoke validation added for inventory → risk → planner flow.
 - risk-engine now returns confidence_score and risk_dimensions for Stage 3 analysis.
 - planner-service now returns priority_score and clearer wave rationale for Stage 3 planning.
+- Stage 3 risk/planning smoke validation added for confidence, dimensions and planner priority_score.
 
 ## Architecture and delivery navigation
 - Core architecture: `docs/architecture.md`
@@ -89,6 +90,21 @@ inventory-service, risk-engine and planner-service are running locally.
 
 Output:
 reports/stage2-e2e-smoke-report.md
+
+
+## Stage 3 Risk/Planning Smoke Validation
+
+Run:
+
+```bash
+bash scripts/run_stage3_risk_planning_smoke.sh
+```
+
+Precondition:
+inventory-service, risk-engine and planner-service are running locally.
+
+Output:
+reports/stage3-risk-planning-smoke-report.md
 
 ## Stage 2 documentation update (current code + fixtures)
 

@@ -47,6 +47,8 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 3. Linux host agent
 4. TLS/SSH scanner
 
+- Stage 2 inventory smoke validation added for official enriched evidence fixtures.
+
 ## Architecture and delivery navigation
 - Core architecture: `docs/architecture.md`
 - TRL5 execution roadmap: `docs/trl5-working-navigator.md`

@@ -49,3 +49,18 @@
 - `network_enriched_ingest.json`: network ingest payload with Stage 2 `tls_metadata`, including `certificate` and `certificate_chain.certificates`.
 - `invalid_tls_metadata.json`: negative-test fixture with intentionally invalid `tls_metadata.port` shape.
 - `invalid_package_metadata.json`: negative-test fixture with intentionally invalid `crypto_evidence.package_metadata.packages` shape.
+
+
+## Stage 2 Inventory Smoke Validation
+
+Run:
+
+```bash
+bash scripts/run_stage2_inventory_smoke.sh
+```
+
+Precondition:
+- inventory-service is running locally on port 8001.
+
+Output:
+- `reports/stage2-inventory-smoke-report.md`

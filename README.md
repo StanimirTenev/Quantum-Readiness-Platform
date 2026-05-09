@@ -65,6 +65,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Dependency graph design document added: `docs/dependency-graph-design.md`
 - Dependency graph contract document added: `docs/dependency-graph-contract.md`
 - Dependency graph projection plan added: `docs/dependency-graph-projection-plan.md`
+- Dependency graph projection validation examples added: `docs/dependency-graph-projection-validation-examples.md`
 
 ## Stage 2 smoke validation (short path)
 Run:

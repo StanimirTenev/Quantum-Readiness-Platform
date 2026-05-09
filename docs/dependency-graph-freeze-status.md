@@ -1,19 +1,19 @@
 # Dependency Graph Freeze Status
 
-## Current Status
+## Current Graph Prototype Status
 
-The dependency graph layer is frozen as a lightweight JSON snapshot projection prototype.
+The dependency graph layer is currently frozen as a lightweight JSON snapshot projection prototype with fixture-based validation and a polished projection report.
 
-## What Has Been Completed
+## Completed Graph Prototype Artifacts
 
-### Design Documents
+### Design / Contract Docs
 - docs/dependency-graph-design.md
 - docs/dependency-graph-contract.md
 - docs/dependency-graph-projection-plan.md
 - docs/dependency-graph-projection-validation-examples.md
 - docs/dependency-graph-implementation-boundary.md
 
-### Implementation
+### Implementation / Smoke
 - scripts/run_graph_projection_smoke.sh
 - tools/graph_projection/project_stage2_fixtures.py
 - reports/graph/latest/graph-snapshot.json
@@ -21,13 +21,6 @@ The dependency graph layer is frozen as a lightweight JSON snapshot projection p
 
 ### Tests
 - tools/graph_projection/test_project_stage2_fixtures.py
-- validates snapshot shape
-- validates deterministic IDs
-- validates node/edge uniqueness
-- validates edge references
-- validates confidence bounds
-- validates warning shape
-- validates ConfigFile path-hashed IDs
 
 ## Proven Flow
 
@@ -37,14 +30,29 @@ Stage 2 fixtures
 → graph projection report
 → helper tests
 
+## What The Projection Report Now Shows
+
+- snapshot summary
+- node type counts
+- edge type counts
+- warning summary
+- evidence coverage
+- validation checks
+- privacy boundary
+- non-goals
+- PASS/FAIL result
+
 ## Validation Commands
 
 - python -m pytest tools/graph_projection -q
 - bash scripts/run_graph_projection_smoke.sh
 - python -m json.tool reports/graph/latest/graph-snapshot.json >/tmp/graph-snapshot.validated.json
 - grep -n "PASS" reports/graph/latest/graph-projection-report.md
+- grep -n "Evidence Coverage" reports/graph/latest/graph-projection-report.md
+- grep -n "Validation Checks" reports/graph/latest/graph-projection-report.md
+- grep -n "Privacy Boundary" reports/graph/latest/graph-projection-report.md
 
-## What Is Explicitly Not Included
+## Current Non-Goals
 
 - no graph database
 - no Neo4j
@@ -65,29 +73,18 @@ The graph projection must work without LLM.
 
 ## Current Maturity
 
-Graph maturity: JSON snapshot prototype with fixture-based projection validation.
+Graph maturity: JSON snapshot prototype with fixture-based projection validation and polished report outputs.
 
 ## Recommended Next Options
 
-1. Stop graph work here and review full repo package.
-2. Add graph snapshot report polish only if needed.
-3. Later: design graph API, but no implementation yet.
+1. Stop graph work here and review full repository package.
+2. Add timestamped graph run archive later if needed.
+3. Design graph API later, but no implementation until explicitly chosen.
 
-Recommended default next step:
+Recommended default:
 
-Stop graph work here and review the full repository package before adding more graph functionality.
+Stop graph work here and review the full repository before adding storage/API/traversal.
 
 ## Stop Rules
 
-Do not start:
-- graph DB
-- graph API
-- graph UI
-- Neo4j
-- Postgres graph tables
-- Copilot graph reasoning
-- RAG
-- auth/RBAC
-- production hardening
-
-until explicitly chosen after full repo review.
+Do not start graph DB, graph API, graph UI, Neo4j, Postgres graph tables, Copilot graph reasoning, RAG, auth/RBAC, or production hardening until explicitly chosen after repo review.

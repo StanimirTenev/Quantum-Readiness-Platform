@@ -68,6 +68,8 @@ def test_score_endpoint_backward_compatible_without_enriched_evidence() -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["stage2_adjustment"] == 0.0
+    assert "confidence_score" in data
+    assert "risk_dimensions" in data
 
 
 def test_evidence_signal_crypto_packages_detected() -> None:
@@ -209,3 +211,84 @@ def test_extract_stage2_signals_returns_notes_and_evidence_blocks() -> None:
     assert signals["stage2_notes_signals"]["has_hndl_signal"] is True
     assert signals["stage2_notes_signals"]["has_pqc_plan_signal"] is True
     assert signals["evidence_signals"]["crypto_packages_detected"] is True
+
+
+def test_confidence_score_increases_with_enriched_evidence() -> None:
+    minimal = _base_payload()
+    enriched = _base_payload()
+    enriched["environment"] = "production"
+    enriched["stage2_notes"] = "hndl noted"
+    enriched["crypto_evidence"] = {"package_metadata": {"packages": ["openssl"]}}
+    enriched["tls_metadata"] = {"collected": True, "certificate_chain": {"available": True, "length": 2}}
+
+    minimal_data = client.post("/score", json=minimal).json()
+    enriched_data = client.post("/score", json=enriched).json()
+
+    assert enriched_data["confidence_score"] > minimal_data["confidence_score"]
+
+
+def test_risk_dimensions_exposure_increases_with_tls_signals() -> None:
+    base_payload = _base_payload()
+    base_payload["quantum_exposure"] = 2
+    tls_payload = _base_payload()
+    tls_payload["quantum_exposure"] = 2
+    tls_payload["tls_metadata"] = {"collected": True}
+    tls_payload["crypto_evidence"] = {
+        "cert_indicators": {"config_file_indicators": {"counts": {"tls_server_config": 1}}}
+    }
+
+    base_data = client.post("/score", json=base_payload).json()
+    tls_data = client.post("/score", json=tls_payload).json()
+    assert tls_data["risk_dimensions"]["exposure"] > base_data["risk_dimensions"]["exposure"]
+
+
+def test_risk_dimensions_impact_reflects_criticality_and_production() -> None:
+    payload = _base_payload()
+    payload["criticality"] = 5
+    payload["environment"] = "production"
+    data = client.post("/score", json=payload).json()
+    assert data["risk_dimensions"]["impact"] == 100.0
+
+
+def test_risk_dimensions_urgency_increases_for_expiring_or_weak_key() -> None:
+    payload = _base_payload()
+    payload["tls_metadata"] = {
+        "certificate": {
+            "public_key_algorithm": "RSA",
+            "public_key_size": 1024,
+            "not_after": (datetime.now(UTC) + timedelta(days=30)).isoformat(),
+        }
+    }
+    data = client.post("/score", json=payload).json()
+    assert data["risk_dimensions"]["urgency"] >= 75.0
+
+
+def test_risk_dimensions_migration_complexity_increases_for_dependencies_and_blockers() -> None:
+    payload = _base_payload()
+    payload["dependency_count"] = 30
+    payload["vendor_blocked"] = True
+    payload["crypto_evidence"] = {
+        "cert_indicators": {"certificate_file_indicators": {"counts": {"certificate": 2, "key": 2}}}
+    }
+    data = client.post("/score", json=payload).json()
+    assert data["risk_dimensions"]["migration_complexity"] == 100.0
+
+
+def test_risk_dimensions_are_capped_at_100() -> None:
+    payload = _base_payload()
+    payload["criticality"] = 5
+    payload["dependency_count"] = 999
+    payload["vendor_blocked"] = True
+    payload["environment"] = "production"
+    payload["crypto_evidence"] = {
+        "cert_indicators": {
+            "certificate_file_indicators": {"counts": {"certificate": 1, "key": 1}},
+            "config_file_indicators": {"counts": {"tls_server_config": 1, "ssh_server_config": 1}},
+        }
+    }
+    payload["tls_metadata"] = {"collected": True}
+    data = client.post("/score", json=payload).json()
+
+    assert data["confidence_score"] <= 100
+    for value in data["risk_dimensions"].values():
+        assert value <= 100

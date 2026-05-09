@@ -1,6 +1,11 @@
 from fastapi.testclient import TestClient
 
-from app.main import app, calculate_base_score
+from app.main import (
+    app,
+    calculate_base_score,
+    calculate_stage2_adjustment,
+    extract_stage2_signals,
+)
 
 client = TestClient(app)
 
@@ -59,7 +64,52 @@ def test_score_endpoint() -> None:
     assert data["scenario_multiplier"] == 1.35
     assert data["base_score"] > 0
     assert data["final_score"] >= data["base_score"]
+    assert "stage2_signals" in data
+    assert "stage2_adjustment" in data
     assert data["rating"] in {"minimal", "low", "medium", "high", "critical"}
+
+
+def test_extract_stage2_signals_returns_expected_flags() -> None:
+    class Obj:
+        stage2_notes = "HNDL concern; migration plan in progress"
+        dependency_count = 12
+        vendor_blocked = True
+
+    signals = extract_stage2_signals(Obj())
+    assert signals["has_hndl_signal"] is True
+    assert signals["has_pqc_plan_signal"] is True
+    assert signals["high_dependency_pressure"] is True
+    assert signals["vendor_blocked"] is True
+
+
+def test_calculate_stage2_adjustment_never_returns_negative_value() -> None:
+    signals = {
+        "has_hndl_signal": False,
+        "has_pqc_plan_signal": True,
+        "high_dependency_pressure": False,
+        "vendor_blocked": False,
+        "dependency_count": 0,
+    }
+
+    assert calculate_stage2_adjustment(signals) == 0.0
+
+
+def test_score_endpoint_backward_compatible_without_stage2_notes() -> None:
+    payload = {
+        "contract_version": "stage1-v1",
+        "asset_name": "legacy-edge",
+        "criticality": 3,
+        "confidentiality_lifetime": 3,
+        "quantum_exposure": 3,
+        "blast_radius": 3,
+        "vendor_lock_in": 3,
+        "migration_difficulty": 3,
+        "scenario": "public_timeline",
+    }
+    response = client.post("/score", json=payload)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["stage2_adjustment"] == 0.0
 
 
 def test_score_validation() -> None:

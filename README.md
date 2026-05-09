@@ -51,6 +51,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 
 - Stage 2 inventory smoke validation added for official enriched evidence fixtures.
 - Stage 2 E2E smoke validation added for inventory → risk → planner flow.
+- risk-engine now returns confidence_score and risk_dimensions for Stage 3 analysis.
 
 ## Architecture and delivery navigation
 - Core architecture: `docs/architecture.md`

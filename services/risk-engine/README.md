@@ -42,6 +42,15 @@ Safety behavior:
 - Unknown public key algorithms are not treated as weak.
 - Final normalized score is capped at `100`.
 
+## Stage 3 Risk Dimensions and Confidence
+- Stage 3 is additive and backward-compatible: existing score fields, normalized score, rating, rationale, `stage2_signals`, and `stage2_adjustment` remain available.
+- `confidence_score` (`0..100`) is always returned and represents deterministic confidence based on evidence completeness (criticality/environment/evidence presence).
+- `risk_dimensions.exposure` (`0..100`) captures quantum exposure with additive TLS/config evidence hints.
+- `risk_dimensions.impact` (`0..100`) is primarily driven by criticality, with production environment lift.
+- `risk_dimensions.urgency` (`0..100`) reflects immediate certificate/key urgency signals (expiring certs, weak keys, private key indicators).
+- `risk_dimensions.migration_complexity` (`0..100`) reflects dependencies plus migration blockers (certificate/private key artifacts, vendor blocked).
+- This stage is not dependency graph scoring yet; dimension logic is deterministic and local to risk-engine.
+
 ## Current status
 - Working prototype service.
 

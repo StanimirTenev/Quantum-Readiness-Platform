@@ -48,6 +48,7 @@ class RiskInput(BaseModel):
     vendor_lock_in: float = Field(..., ge=0, le=5)
     migration_difficulty: float = Field(..., ge=0, le=5)
     dependency_count: int = Field(default=0, ge=0)
+    environment: str | None = None
     vendor_blocked: bool = False
     scenario: ScenarioName = "public_timeline"
     stage2_notes: str | None = None
@@ -68,7 +69,9 @@ class RiskOutput(BaseModel):
     vendor_blocked: bool
     stage2_signals: dict[str, bool | int | dict[str, bool]]
     stage2_adjustment: float
-    rationale: dict[str, float | int | bool]
+    confidence_score: float
+    risk_dimensions: dict[str, float]
+    rationale: dict[str, float | int | bool | str]
 
 
 def _safe_int(value: Any) -> int:
@@ -181,6 +184,74 @@ def calculate_base_score(data: RiskInput) -> float:
     )
 
 
+def _cap_score(value: float) -> float:
+    return max(0.0, min(value, 100.0))
+
+
+def calculate_confidence_score(data: RiskInput, stage2_signals: dict[str, bool | int | dict[str, bool]]) -> float:
+    confidence_score = 50.0
+    if data.criticality > 0:
+        confidence_score += 10.0
+    if bool((data.environment or "").strip()):
+        confidence_score += 10.0
+
+    evidence_signals = stage2_signals.get("evidence_signals", {})
+    has_enriched_signal = isinstance(evidence_signals, dict) and any(bool(v) for v in evidence_signals.values())
+    if has_enriched_signal:
+        confidence_score += 10.0
+
+    if bool((data.tls_metadata or {}).get("collected") is True):
+        confidence_score += 10.0
+    if data.crypto_evidence is not None:
+        confidence_score += 10.0
+    if bool((evidence_signals or {}).get("certificate_chain_available")):
+        confidence_score += 5.0
+    if bool((data.stage2_notes or "").strip()):
+        confidence_score += 5.0
+
+    return _cap_score(confidence_score)
+
+
+def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | int | dict[str, bool]]) -> dict[str, float]:
+    evidence_signals = stage2_signals.get("evidence_signals", {})
+    evidence = evidence_signals if isinstance(evidence_signals, dict) else {}
+
+    exposure = (data.quantum_exposure / 5.0) * 100.0
+    if bool(evidence.get("tls_detected")):
+        exposure += 10.0
+    if bool(evidence.get("tls_config_detected")):
+        exposure += 8.0
+    if bool(evidence.get("ssh_config_detected")):
+        exposure += 6.0
+
+    impact = (data.criticality / 5.0) * 100.0
+    if (data.environment or "").strip().lower() == "production":
+        impact += 10.0
+
+    urgency = 0.0
+    if bool(evidence.get("expiring_certificate_detected")):
+        urgency += 45.0
+    if bool(evidence.get("weak_public_key_detected")):
+        urgency += 30.0
+    if bool(evidence.get("private_key_files_detected")):
+        urgency += 25.0
+
+    migration_complexity = min((data.dependency_count * 4.0), 70.0)
+    if bool(evidence.get("certificate_files_detected")):
+        migration_complexity += 10.0
+    if bool(evidence.get("private_key_files_detected")):
+        migration_complexity += 15.0
+    if data.vendor_blocked:
+        migration_complexity += 20.0
+
+    return {
+        "exposure": _cap_score(exposure),
+        "impact": _cap_score(impact),
+        "urgency": _cap_score(urgency),
+        "migration_complexity": _cap_score(migration_complexity),
+    }
+
+
 def classify_rating(normalized_score_100: float) -> str:
     if normalized_score_100 >= 80:
         return "critical"
@@ -210,6 +281,8 @@ def score(data: RiskInput) -> RiskOutput:
     stage2_signals = extract_stage2_signals(data)
     stage2_adjustment = calculate_stage2_adjustment(stage2_signals)
     final_score = (base_score * scenario_multiplier) + stage2_adjustment
+    confidence_score = calculate_confidence_score(data, stage2_signals)
+    risk_dimensions = calculate_risk_dimensions(data, stage2_signals)
 
     normalized_score_100 = min((final_score / 5.0) * 100.0, 100.0)
     rating = classify_rating(normalized_score_100)
@@ -227,6 +300,8 @@ def score(data: RiskInput) -> RiskOutput:
         vendor_blocked=data.vendor_blocked,
         stage2_signals=stage2_signals,
         stage2_adjustment=round(stage2_adjustment, 4),
+        confidence_score=round(confidence_score, 2),
+        risk_dimensions={k: round(v, 2) for k, v in risk_dimensions.items()},
         rationale={
             "criticality": data.criticality,
             "confidentiality_lifetime": data.confidentiality_lifetime,
@@ -245,5 +320,15 @@ def score(data: RiskInput) -> RiskOutput:
             "weak_public_key_detected": bool(stage2_signals["evidence_signals"].get("weak_public_key_detected")),
             "expiring_certificate_detected": bool(stage2_signals["evidence_signals"].get("expiring_certificate_detected")),
             "certificate_chain_available": bool(stage2_signals["evidence_signals"].get("certificate_chain_available")),
+            "confidence_score_computed": "yes",
+            "risk_dimensions_computed": "yes",
+            "exposure_dimension_from_tls": bool(stage2_signals["evidence_signals"].get("tls_detected")),
+            "impact_dimension_from_criticality": True,
+            "urgency_dimension_from_expiring_certificate": bool(
+                stage2_signals["evidence_signals"].get("expiring_certificate_detected")
+            ),
+            "migration_complexity_from_private_key_files": bool(
+                stage2_signals["evidence_signals"].get("private_key_files_detected")
+            ),
         },
     )

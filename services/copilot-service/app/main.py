@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import os
+import uuid
+from typing import Any
+
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from .clients.planner import PlannerClient
 from .clients.retrieval import RetrievalClient
@@ -11,15 +15,36 @@ app = FastAPI(title="Copilot Service", version="0.4.0")
 retrieval = RetrievalClient()
 planner = PlannerClient()
 workflow = WorkflowClient()
+DISABLED_ANSWER = (
+    "Copilot provider is disabled. The deterministic QRP core remains available. "
+    "Configure a local provider for offline analysis."
+)
 
 
 class QueryRequest(BaseModel):
     question: str
 
 
+class CopilotSensitivity(BaseModel):
+    contains_sensitive_data: bool | None = None
+    allowed_external: bool | None = None
+
+
+class CopilotRequest(BaseModel):
+    query: str = ""
+    context: dict[str, Any] = Field(default_factory=dict)
+    sensitivity: CopilotSensitivity | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "copilot-service"}
+
+
+@app.post("/copilot/query")
+def copilot_query(payload: CopilotRequest) -> dict[str, Any]:
+    return _disabled_copilot_response(payload.metadata.get("request_id"))
 
 
 @app.get("/summary")
@@ -154,6 +179,30 @@ def query(payload: QueryRequest) -> dict:
         return {"intent": "search", "result": retrieval.search(question)}
 
     return {"intent": "search", "result": retrieval.search(question)}
+
+
+def _resolve_provider_mode() -> str:
+    provider_mode = os.getenv("COPILOT_PROVIDER", "disabled").strip().lower()
+    if provider_mode not in {"disabled", "local", "external"}:
+        return "disabled"
+    return provider_mode
+
+
+def _disabled_copilot_response(request_id: str | None) -> dict[str, Any]:
+    _ = _resolve_provider_mode()
+    resolved_request_id = request_id or f"copilot-disabled-{uuid.uuid4().hex[:12]}"
+    return {
+        "answer": DISABLED_ANSWER,
+        "provider_mode": "disabled",
+        "citations": [],
+        "warnings": ["copilot_provider_disabled"],
+        "used_external_provider": False,
+        "redaction_applied": False,
+        "metadata": {
+            "request_id": resolved_request_id,
+            "provider_name": "disabled",
+        },
+    }
 
 
 def _risk_counts_from_top_risks(risks: list[dict]) -> dict[str, int]:

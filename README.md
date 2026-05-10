@@ -73,6 +73,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Repository checkpoint added: `docs/repository-checkpoint-current-status.md`
 - Copilot local-first design documented: `docs/copilot-local-first-design.md`
 - Copilot provider test plan documented: `docs/copilot-provider-test-plan.md`
+- Copilot context packaging policy documented: `docs/copilot-context-packaging-policy.md`
 
 ## Stage 2 smoke validation (short path)
 Run:

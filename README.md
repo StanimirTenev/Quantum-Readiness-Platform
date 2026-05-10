@@ -75,6 +75,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Copilot provider test plan documented: `docs/copilot-provider-test-plan.md`
 - Copilot context packaging policy documented: `docs/copilot-context-packaging-policy.md`
 - Copilot implementation boundary documented: `docs/copilot-implementation-boundary.md`
+- Copilot disabled-provider stub and offline smoke validation added.
 
 ## Stage 2 smoke validation (short path)
 Run:
@@ -283,3 +284,15 @@ Environment notes:
 - risk-engine now derives conservative scoring signals from Stage 2 enriched evidence.
 - planner-service now uses Stage 2 risk signals for conservative wave prioritization.
 - Dependency graph implementation boundary documented: docs/dependency-graph-implementation-boundary.md
+
+## Copilot Offline Smoke
+
+Run:
+
+```bash
+bash scripts/run_copilot_offline_smoke.sh
+```
+
+Output:
+
+reports/copilot/offline-smoke-report.md

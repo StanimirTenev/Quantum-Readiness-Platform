@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from app.main import app
+from app.main import DISABLED_ANSWER, app
 
 client = TestClient(app)
 
@@ -83,3 +83,55 @@ def test_query_search(monkeypatch) -> None:
     response = client.post("/query", json={"question": "google"})
     assert response.status_code == 200
     assert response.json()["intent"] == "search"
+
+
+def test_copilot_query_missing_provider_defaults_disabled(monkeypatch) -> None:
+    monkeypatch.delenv("COPILOT_PROVIDER", raising=False)
+    response = client.post("/copilot/query", json={"query": "hello"})
+    data = response.json()
+    assert response.status_code == 200
+    assert data["provider_mode"] == "disabled"
+    assert data["used_external_provider"] is False
+    assert "copilot_provider_disabled" in data["warnings"]
+
+
+def test_copilot_query_explicit_disabled(monkeypatch) -> None:
+    monkeypatch.setenv("COPILOT_PROVIDER", "disabled")
+    response = client.post("/copilot/query", json={"query": "hello"})
+    assert response.status_code == 200
+    assert response.json()["provider_mode"] == "disabled"
+
+
+def test_copilot_query_unknown_provider_fails_closed(monkeypatch) -> None:
+    monkeypatch.setenv("COPILOT_PROVIDER", "unexpected")
+    response = client.post("/copilot/query", json={"query": "hello"})
+    assert response.status_code == 200
+    assert response.json()["provider_mode"] == "disabled"
+
+
+def test_copilot_query_local_not_implemented_fails_safely(monkeypatch) -> None:
+    monkeypatch.setenv("COPILOT_PROVIDER", "local")
+    response = client.post("/copilot/query", json={"query": "hello"})
+    data = response.json()
+    assert response.status_code == 200
+    assert data["provider_mode"] == "disabled"
+    assert data["metadata"]["provider_name"] == "disabled"
+
+
+def test_copilot_query_external_not_implemented_fails_safely(monkeypatch) -> None:
+    monkeypatch.setenv("COPILOT_PROVIDER", "external")
+    response = client.post("/copilot/query", json={"query": "hello"})
+    assert response.status_code == 200
+    assert response.json()["provider_mode"] == "disabled"
+
+
+def test_copilot_query_request_id_preserved_and_no_api_key_required(monkeypatch) -> None:
+    monkeypatch.delenv("COPILOT_EXTERNAL_API_KEY", raising=False)
+    response = client.post(
+        "/copilot/query",
+        json={"query": "hello", "metadata": {"request_id": "req-123"}},
+    )
+    data = response.json()
+    assert response.status_code == 200
+    assert data["metadata"]["request_id"] == "req-123"
+    assert data["answer"] == DISABLED_ANSWER

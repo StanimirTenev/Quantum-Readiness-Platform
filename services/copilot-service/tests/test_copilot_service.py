@@ -93,20 +93,31 @@ def test_copilot_query_missing_provider_defaults_disabled(monkeypatch) -> None:
     assert data["provider_mode"] == "disabled"
     assert data["used_external_provider"] is False
     assert "copilot_provider_disabled" in data["warnings"]
+    assert data["citations"] == []
+    assert data["redaction_applied"] is False
 
 
 def test_copilot_query_explicit_disabled(monkeypatch) -> None:
     monkeypatch.setenv("COPILOT_PROVIDER", "disabled")
     response = client.post("/copilot/query", json={"query": "hello"})
+    data = response.json()
     assert response.status_code == 200
-    assert response.json()["provider_mode"] == "disabled"
+    assert data["provider_mode"] == "disabled"
+    assert data["used_external_provider"] is False
+    assert data["metadata"]["provider_name"] == "disabled"
+    assert "copilot_provider_disabled" in data["warnings"]
 
 
 def test_copilot_query_unknown_provider_fails_closed(monkeypatch) -> None:
     monkeypatch.setenv("COPILOT_PROVIDER", "unexpected")
     response = client.post("/copilot/query", json={"query": "hello"})
+    data = response.json()
     assert response.status_code == 200
-    assert response.json()["provider_mode"] == "disabled"
+    assert data["provider_mode"] == "disabled"
+    assert data["used_external_provider"] is False
+    assert data["metadata"]["provider_name"] == "disabled"
+    assert "copilot_provider_disabled" in data["warnings"]
+    assert data["citations"] == []
 
 
 def test_copilot_query_local_not_implemented_fails_safely(monkeypatch) -> None:
@@ -116,13 +127,19 @@ def test_copilot_query_local_not_implemented_fails_safely(monkeypatch) -> None:
     assert response.status_code == 200
     assert data["provider_mode"] == "disabled"
     assert data["metadata"]["provider_name"] == "disabled"
+    assert data["used_external_provider"] is False
+    assert "copilot_provider_disabled" in data["warnings"]
 
 
 def test_copilot_query_external_not_implemented_fails_safely(monkeypatch) -> None:
     monkeypatch.setenv("COPILOT_PROVIDER", "external")
     response = client.post("/copilot/query", json={"query": "hello"})
+    data = response.json()
     assert response.status_code == 200
-    assert response.json()["provider_mode"] == "disabled"
+    assert data["provider_mode"] == "disabled"
+    assert data["used_external_provider"] is False
+    assert data["metadata"]["provider_name"] == "disabled"
+    assert "copilot_provider_disabled" in data["warnings"]
 
 
 def test_copilot_query_request_id_preserved_and_no_api_key_required(monkeypatch) -> None:
@@ -135,3 +152,5 @@ def test_copilot_query_request_id_preserved_and_no_api_key_required(monkeypatch)
     assert response.status_code == 200
     assert data["metadata"]["request_id"] == "req-123"
     assert data["answer"] == DISABLED_ANSWER
+    assert data["citations"] == []
+    assert data["redaction_applied"] is False

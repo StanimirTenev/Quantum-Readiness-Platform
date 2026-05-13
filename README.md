@@ -78,6 +78,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Copilot implementation boundary documented: `docs/copilot-implementation-boundary.md`
 - Local Copilot provider design documented: `docs/copilot-local-provider-design.md`
 - Local Copilot Provider Test Contract documented: `docs/copilot-local-provider-test-contract.md`
+- Local Copilot Provider Implementation Plan documented: `docs/copilot-local-provider-implementation-plan.md`
 - Copilot disabled-provider stub and offline smoke validation added.
 - Copilot freeze/status document added: docs/copilot-freeze-status.md
 

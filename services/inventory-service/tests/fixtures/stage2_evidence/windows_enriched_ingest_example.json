@@ -1,16 +1,13 @@
 {
-  "source": "host",
-  "assets": [
-    {
-      "id": "asset-win-fixture-001",
-      "type": "endpoint",
-      "name": "redacted-windows-host",
-      "platform": "windows",
-      "hostname_redacted": true,
-      "domain_name_redacted": true,
-      "ip_redacted": true
-    }
-  ],
+  "asset": {
+    "asset_id": "asset-win-fixture-001",
+    "asset_type": "endpoint",
+    "name": "redacted-windows-host",
+    "platform": "windows",
+    "hostname_redacted": true,
+    "domain_name_redacted": true,
+    "ip_redacted": true
+  },
   "windows_evidence": {
     "os_metadata": {
       "family": "windows",

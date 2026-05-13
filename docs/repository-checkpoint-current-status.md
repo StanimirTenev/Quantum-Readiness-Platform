@@ -232,6 +232,7 @@ Option A — Copilot Local-First Design, because privacy/local-first is a core p
 Additional docs-only recommended option:
 
 - Cross-Platform Agent Design (`docs/cross-platform-agent-design.md`) for future Windows/AD evidence modeling without implementation changes.
+- Windows Evidence Fixture Contract (`docs/windows-evidence-fixture-contract.md`) as docs/fixture-only preparation for future Windows evidence ingestion without implementation changes.
 
 ## Stop Rules
 

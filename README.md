@@ -301,3 +301,5 @@ bash scripts/run_copilot_offline_smoke.sh
 Output:
 
 reports/copilot/offline-smoke-report.md
+
+- Copilot Safety Contract Smoke: `bash scripts/run_copilot_safety_contract_smoke.sh` (report: `reports/copilot/safety-contract-smoke-report.md`)

@@ -143,6 +143,12 @@ Run:
 bash scripts/run_graph_projection_smoke.sh
 ```
 
+Validation command:
+
+```bash
+bash scripts/run_graph_snapshot_loader_smoke.sh
+```
+
 Output:
 
 reports/graph/latest/graph-snapshot.json

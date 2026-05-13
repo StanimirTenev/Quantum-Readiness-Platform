@@ -130,7 +130,7 @@ Reference documents:
 - docs/dependency-graph-implementation-boundary.md
 - docs/dependency-graph-freeze-status.md
 - docs/graph-api-design.md (docs-only preparation; API not implemented)
-- docs/graph-snapshot-loader-design.md (docs-only preparation; loader not implemented)
+- docs/graph-snapshot-loader-design.md (design reference for read-only local-file helper behavior)
 
 Implemented lightweight artifacts:
 
@@ -145,7 +145,7 @@ State clearly:
 - JSON Snapshot First
 - no graph DB
 - no Neo4j
-- graph snapshot loader is not implemented
+- graph snapshot loader helper is implemented for local read-only snapshot validation
 - no graph API
 - no graph UI
 - no full dependency traversal yet
@@ -169,6 +169,7 @@ bash scripts/run_stage2_inventory_smoke.sh
 bash scripts/run_stage2_e2e_smoke.sh
 bash scripts/run_stage3_risk_planning_smoke.sh
 bash scripts/run_graph_projection_smoke.sh
+bash scripts/run_graph_snapshot_loader_smoke.sh
 
 Service/unit tests:
 

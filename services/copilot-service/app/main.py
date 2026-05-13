@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import os
-import uuid
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
@@ -10,18 +8,13 @@ from pydantic import BaseModel, Field
 from .clients.planner import PlannerClient
 from .clients.retrieval import RetrievalClient
 from .clients.workflow import WorkflowClient
-from .local_url_validation import validate_local_url
-from .provider_config import parse_provider_config
+from .providers import DISABLED_ANSWER, CopilotProviderRuntime
 
 app = FastAPI(title="Copilot Service", version="0.4.0")
 retrieval = RetrievalClient()
 planner = PlannerClient()
 workflow = WorkflowClient()
-DISABLED_ANSWER = (
-    "Copilot provider is disabled. The deterministic QRP core remains available. "
-    "Configure a local provider for offline analysis."
-)
-
+provider_runtime = CopilotProviderRuntime()
 
 class QueryRequest(BaseModel):
     question: str
@@ -46,7 +39,7 @@ def health() -> dict[str, str]:
 
 @app.post("/copilot/query")
 def copilot_query(payload: CopilotRequest) -> dict[str, Any]:
-    return _disabled_copilot_response(payload.metadata.get("request_id"))
+    return provider_runtime.query(payload.metadata.get("request_id"))
 
 
 @app.get("/summary")
@@ -182,42 +175,6 @@ def query(payload: QueryRequest) -> dict:
 
     return {"intent": "search", "result": retrieval.search(question)}
 
-
-def _disabled_copilot_response(request_id: str | None) -> dict[str, Any]:
-    provider_config = parse_provider_config()
-    warnings = ["copilot_provider_disabled", *provider_config.warnings]
-    metadata: dict[str, Any] = {
-        "provider_name": "disabled",
-        "requested_provider": provider_config.requested_provider,
-        "effective_provider": provider_config.effective_provider,
-    }
-
-    if provider_config.warnings:
-        metadata["provider_config_reason"] = provider_config.warnings[0]
-
-    if provider_config.requested_provider == "external":
-        warnings.append("copilot_external_provider_not_implemented")
-
-    if provider_config.requested_provider == "local":
-        local_validation = validate_local_url(os.environ.get("COPILOT_LOCAL_URL"))
-        metadata["local_url_validation_reason"] = local_validation.reason
-        if local_validation.is_allowed:
-            warnings.append("copilot_local_provider_not_implemented")
-        else:
-            warnings.append("copilot_local_url_rejected")
-
-    resolved_request_id = request_id or f"copilot-disabled-{uuid.uuid4().hex[:12]}"
-    metadata["request_id"] = resolved_request_id
-
-    return {
-        "answer": DISABLED_ANSWER,
-        "provider_mode": "disabled",
-        "citations": [],
-        "warnings": list(dict.fromkeys(warnings)),
-        "used_external_provider": False,
-        "redaction_applied": False,
-        "metadata": metadata,
-    }
 
 
 def _risk_counts_from_top_risks(risks: list[dict]) -> dict[str, int]:

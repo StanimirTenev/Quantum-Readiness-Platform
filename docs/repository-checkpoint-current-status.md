@@ -233,6 +233,7 @@ Additional docs-only recommended option:
 
 - Cross-Platform Agent Design (`docs/cross-platform-agent-design.md`) for future Windows/AD evidence modeling without implementation changes.
 - Windows Evidence Fixture Contract (`docs/windows-evidence-fixture-contract.md`) as docs/fixture-only preparation for future Windows evidence ingestion without implementation changes.
+- Inventory Windows Evidence Acceptance Design (`docs/inventory-windows-evidence-acceptance-design.md`) as docs-only next preparation for future inventory acceptance modeling without runtime ingestion changes.
 
 ## Stop Rules
 

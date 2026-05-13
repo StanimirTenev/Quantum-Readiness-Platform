@@ -1,0 +1,64 @@
+{
+  "source": "host",
+  "assets": [
+    {
+      "id": "asset-win-fixture-001",
+      "type": "endpoint",
+      "name": "redacted-windows-host",
+      "platform": "windows",
+      "hostname_redacted": true,
+      "domain_name_redacted": true,
+      "ip_redacted": true
+    }
+  ],
+  "windows_evidence": {
+    "os_metadata": {
+      "family": "windows",
+      "version_family": "windows_server_or_workstation",
+      "architecture": "x86_64"
+    },
+    "installed_software_summary": {
+      "total_observed": 42,
+      "crypto_relevant_observed": 3,
+      "package_names_redacted": true
+    },
+    "crypto_package_indicators": {
+      "crypto_packages_observed": 3,
+      "package_details_redacted": true
+    },
+    "certificate_store_indicators": {
+      "stores_observed": [
+        "LocalMachine\\My",
+        "LocalMachine\\Root"
+      ],
+      "certificates_observed_count": 12,
+      "expired_certificates_count": 1,
+      "weak_signature_indicators_count": 0,
+      "certificate_fingerprints_redacted": true,
+      "private_keys_exported": false
+    },
+    "windows_service_indicators": {
+      "crypto_relevant_services_observed": 2,
+      "service_names_redacted": true
+    },
+    "schannel_tls_indicators": {
+      "schannel_policy_observed": true,
+      "tls_legacy_protocols_enabled_observed": false,
+      "cipher_policy_summary_redacted": true
+    },
+    "domain_membership_indicators": {
+      "domain_joined": true,
+      "domain_name_redacted": true,
+      "ad_details_collected": false
+    },
+    "machine_role_indicators": {
+      "server_role_observed": false,
+      "workstation_role_observed": true,
+      "domain_controller_role_observed": false
+    },
+    "warnings": [
+      "fixture_only_windows_evidence_contract"
+    ],
+    "errors": []
+  }
+}

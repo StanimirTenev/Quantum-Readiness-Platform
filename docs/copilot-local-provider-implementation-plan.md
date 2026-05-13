@@ -18,6 +18,17 @@ Current baseline behavior to preserve:
 - Deterministic QRP services remain the source of truth.
 - Local provider remains not implemented.
 
+
+### Current preparation completed
+
+- Phase 0 baseline verification: completed
+- provider config parser: completed
+- local URL validation helper: completed
+- context packaging helper: completed
+- disabled-only provider runtime shell: completed
+- mock-only contract harness: completed
+- real local provider call: not started
+
 ## 3) Implementation Principles
 
 Any future implementation should follow these principles:

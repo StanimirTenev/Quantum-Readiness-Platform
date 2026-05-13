@@ -130,6 +130,7 @@ Reference documents:
 - docs/dependency-graph-implementation-boundary.md
 - docs/dependency-graph-freeze-status.md
 - docs/graph-api-design.md (docs-only preparation; API not implemented)
+- docs/graph-snapshot-loader-design.md (docs-only preparation; loader not implemented)
 
 Implemented lightweight artifacts:
 
@@ -144,6 +145,7 @@ State clearly:
 - JSON Snapshot First
 - no graph DB
 - no Neo4j
+- graph snapshot loader is not implemented
 - no graph API
 - no graph UI
 - no full dependency traversal yet

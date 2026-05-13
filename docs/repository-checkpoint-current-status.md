@@ -229,6 +229,10 @@ Recommended default:
 
 Option A — Copilot Local-First Design, because privacy/local-first is a core product differentiator and must be designed before any Copilot implementation.
 
+Additional docs-only recommended option:
+
+- Cross-Platform Agent Design (`docs/cross-platform-agent-design.md`) for future Windows/AD evidence modeling without implementation changes.
+
 ## Stop Rules
 
 Do not start the following until explicitly chosen:

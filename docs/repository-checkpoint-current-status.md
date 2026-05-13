@@ -129,6 +129,7 @@ Reference documents:
 - docs/dependency-graph-projection-validation-examples.md
 - docs/dependency-graph-implementation-boundary.md
 - docs/dependency-graph-freeze-status.md
+- docs/graph-api-design.md (docs-only preparation; API not implemented)
 
 Implemented lightweight artifacts:
 

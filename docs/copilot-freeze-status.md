@@ -133,3 +133,5 @@ until explicitly chosen after repo review.
 ## Design-only Local Provider Note
 
 Local provider remains design-only and is not implemented. See `docs/copilot-local-provider-design.md` for the future boundary definition that preserves disabled-provider fail-closed behavior in the current system.
+
+The local provider test contract is documentation-only and does not activate or implement a provider.

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import uuid
 from typing import Any
 
@@ -9,6 +10,7 @@ from pydantic import BaseModel, Field
 from .clients.planner import PlannerClient
 from .clients.retrieval import RetrievalClient
 from .clients.workflow import WorkflowClient
+from .local_url_validation import validate_local_url
 from .provider_config import parse_provider_config
 
 app = FastAPI(title="Copilot Service", version="0.4.0")
@@ -182,19 +184,39 @@ def query(payload: QueryRequest) -> dict:
 
 
 def _disabled_copilot_response(request_id: str | None) -> dict[str, Any]:
-    _ = parse_provider_config()
+    provider_config = parse_provider_config()
+    warnings = ["copilot_provider_disabled", *provider_config.warnings]
+    metadata: dict[str, Any] = {
+        "provider_name": "disabled",
+        "requested_provider": provider_config.requested_provider,
+        "effective_provider": provider_config.effective_provider,
+    }
+
+    if provider_config.warnings:
+        metadata["provider_config_reason"] = provider_config.warnings[0]
+
+    if provider_config.requested_provider == "external":
+        warnings.append("copilot_external_provider_not_implemented")
+
+    if provider_config.requested_provider == "local":
+        local_validation = validate_local_url(os.environ.get("COPILOT_LOCAL_URL"))
+        metadata["local_url_validation_reason"] = local_validation.reason
+        if local_validation.is_allowed:
+            warnings.append("copilot_local_provider_not_implemented")
+        else:
+            warnings.append("copilot_local_url_rejected")
+
     resolved_request_id = request_id or f"copilot-disabled-{uuid.uuid4().hex[:12]}"
+    metadata["request_id"] = resolved_request_id
+
     return {
         "answer": DISABLED_ANSWER,
         "provider_mode": "disabled",
         "citations": [],
-        "warnings": ["copilot_provider_disabled"],
+        "warnings": list(dict.fromkeys(warnings)),
         "used_external_provider": False,
         "redaction_applied": False,
-        "metadata": {
-            "request_id": resolved_request_id,
-            "provider_name": "disabled",
-        },
+        "metadata": metadata,
     }
 
 

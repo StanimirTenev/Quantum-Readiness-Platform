@@ -73,6 +73,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Repository checkpoint added: `docs/repository-checkpoint-current-status.md`
 - Cross-Platform Agent Design: `docs/cross-platform-agent-design.md`
 - Windows Evidence Fixture Contract: `docs/windows-evidence-fixture-contract.md`
+- Inventory Windows Evidence Acceptance Design: `docs/inventory-windows-evidence-acceptance-design.md`
 - Post-Copilot-freeze repository checkpoint added: docs/repository-checkpoint-post-copilot-freeze.md
 - Copilot local-first design documented: `docs/copilot-local-first-design.md`
 - Copilot provider test plan documented: `docs/copilot-provider-test-plan.md`

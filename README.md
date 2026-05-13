@@ -80,6 +80,8 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Local Copilot Provider Test Contract documented: `docs/copilot-local-provider-test-contract.md`
 - Local Copilot Provider Implementation Plan documented: `docs/copilot-local-provider-implementation-plan.md`
 - Copilot disabled-provider stub and offline smoke validation added.
+- Copilot safety-contract smoke command: `bash scripts/run_copilot_safety_contract_smoke.sh`
+- Copilot remains disabled-safe; local provider is not implemented.
 - Copilot freeze/status document added: docs/copilot-freeze-status.md
 
 ## Stage 2 smoke validation (short path)

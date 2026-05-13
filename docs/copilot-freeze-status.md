@@ -33,6 +33,34 @@ The Copilot layer is frozen as a disabled-provider stub with offline-safe valida
 - reports/copilot/offline-smoke-report.md
 - smoke report PASS
 
+
+## Post-Preparation Implementation Status
+
+### Implemented
+- provider config parser
+- local URL validation helper
+- context packaging/redaction helper
+- disabled-only provider runtime shell
+- safety-contract smoke script
+
+### Test-only
+- mock-only local provider contract test harness
+
+### Still Not Implemented
+- real local provider
+- external provider
+- HTTP/provider calls
+- OpenAI/OpenRouter/Anthropic/Ollama/LangChain/LlamaIndex clients
+- RAG/vector DB/embeddings
+- graph reasoning
+- autonomous execution
+
+### Runtime Status
+- `/copilot/query` remains disabled-safe
+- `provider_mode` remains disabled
+- `used_external_provider` remains false
+- raw `COPILOT_LOCAL_URL` is not exposed
+
 ## Current Response Contract
 
 ```json

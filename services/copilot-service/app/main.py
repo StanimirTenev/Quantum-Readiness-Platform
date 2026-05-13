@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import uuid
 from typing import Any
 
@@ -10,6 +9,7 @@ from pydantic import BaseModel, Field
 from .clients.planner import PlannerClient
 from .clients.retrieval import RetrievalClient
 from .clients.workflow import WorkflowClient
+from .provider_config import parse_provider_config
 
 app = FastAPI(title="Copilot Service", version="0.4.0")
 retrieval = RetrievalClient()
@@ -181,15 +181,8 @@ def query(payload: QueryRequest) -> dict:
     return {"intent": "search", "result": retrieval.search(question)}
 
 
-def _resolve_provider_mode() -> str:
-    provider_mode = os.getenv("COPILOT_PROVIDER", "disabled").strip().lower()
-    if provider_mode not in {"disabled", "local", "external"}:
-        return "disabled"
-    return provider_mode
-
-
 def _disabled_copilot_response(request_id: str | None) -> dict[str, Any]:
-    _ = _resolve_provider_mode()
+    _ = parse_provider_config()
     resolved_request_id = request_id or f"copilot-disabled-{uuid.uuid4().hex[:12]}"
     return {
         "answer": DISABLED_ANSWER,

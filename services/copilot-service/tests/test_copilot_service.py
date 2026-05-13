@@ -93,6 +93,7 @@ def test_copilot_query_missing_provider_defaults_disabled(monkeypatch) -> None:
     assert data["provider_mode"] == "disabled"
     assert data["used_external_provider"] is False
     assert "copilot_provider_disabled" in data["warnings"]
+    assert data["metadata"]["requested_provider"] == "missing"
     assert data["citations"] == []
     assert data["redaction_applied"] is False
 
@@ -106,6 +107,7 @@ def test_copilot_query_explicit_disabled(monkeypatch) -> None:
     assert data["used_external_provider"] is False
     assert data["metadata"]["provider_name"] == "disabled"
     assert "copilot_provider_disabled" in data["warnings"]
+    assert data["metadata"]["requested_provider"] == "disabled"
 
 
 def test_copilot_query_unknown_provider_fails_closed(monkeypatch) -> None:
@@ -117,11 +119,14 @@ def test_copilot_query_unknown_provider_fails_closed(monkeypatch) -> None:
     assert data["used_external_provider"] is False
     assert data["metadata"]["provider_name"] == "disabled"
     assert "copilot_provider_disabled" in data["warnings"]
+    assert "copilot_provider_unknown" in data["warnings"]
+    assert data["metadata"]["provider_config_reason"] == "copilot_provider_unknown"
     assert data["citations"] == []
 
 
-def test_copilot_query_local_not_implemented_fails_safely(monkeypatch) -> None:
+def test_copilot_query_local_missing_url_fails_safely(monkeypatch) -> None:
     monkeypatch.setenv("COPILOT_PROVIDER", "local")
+    monkeypatch.delenv("COPILOT_LOCAL_URL", raising=False)
     response = client.post("/copilot/query", json={"query": "hello"})
     data = response.json()
     assert response.status_code == 200
@@ -129,6 +134,44 @@ def test_copilot_query_local_not_implemented_fails_safely(monkeypatch) -> None:
     assert data["metadata"]["provider_name"] == "disabled"
     assert data["used_external_provider"] is False
     assert "copilot_provider_disabled" in data["warnings"]
+    assert "copilot_local_url_rejected" in data["warnings"]
+    assert data["metadata"]["local_url_validation_reason"] == "url_missing"
+
+
+def test_copilot_query_local_public_url_rejected(monkeypatch) -> None:
+    monkeypatch.setenv("COPILOT_PROVIDER", "local")
+    monkeypatch.setenv("COPILOT_LOCAL_URL", "https://example.com/infer")
+    response = client.post("/copilot/query", json={"query": "hello"})
+    data = response.json()
+    assert response.status_code == 200
+    assert data["provider_mode"] == "disabled"
+    assert data["used_external_provider"] is False
+    assert "copilot_local_url_rejected" in data["warnings"]
+    assert data["metadata"]["local_url_validation_reason"] == "host_not_local"
+
+
+def test_copilot_query_local_malformed_url_rejected(monkeypatch) -> None:
+    monkeypatch.setenv("COPILOT_PROVIDER", "local")
+    monkeypatch.setenv("COPILOT_LOCAL_URL", "localhost:11434")
+    response = client.post("/copilot/query", json={"query": "hello"})
+    data = response.json()
+    assert response.status_code == 200
+    assert data["provider_mode"] == "disabled"
+    assert data["used_external_provider"] is False
+    assert "copilot_local_url_rejected" in data["warnings"]
+    assert data["metadata"]["local_url_validation_reason"] == "scheme_missing"
+
+
+def test_copilot_query_local_allowed_url_still_not_implemented(monkeypatch) -> None:
+    monkeypatch.setenv("COPILOT_PROVIDER", "local")
+    monkeypatch.setenv("COPILOT_LOCAL_URL", "http://localhost:11434/api")
+    response = client.post("/copilot/query", json={"query": "hello"})
+    data = response.json()
+    assert response.status_code == 200
+    assert data["provider_mode"] == "disabled"
+    assert data["used_external_provider"] is False
+    assert "copilot_local_provider_not_implemented" in data["warnings"]
+    assert data["metadata"]["local_url_validation_reason"] == "allowed"
 
 
 def test_copilot_query_external_not_implemented_fails_safely(monkeypatch) -> None:
@@ -140,6 +183,7 @@ def test_copilot_query_external_not_implemented_fails_safely(monkeypatch) -> Non
     assert data["used_external_provider"] is False
     assert data["metadata"]["provider_name"] == "disabled"
     assert "copilot_provider_disabled" in data["warnings"]
+    assert "copilot_external_provider_not_implemented" in data["warnings"]
 
 
 def test_copilot_query_request_id_preserved_and_no_api_key_required(monkeypatch) -> None:

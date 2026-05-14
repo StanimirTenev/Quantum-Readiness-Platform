@@ -235,6 +235,9 @@ The TRL validation run now generates an Evidence Package v1 with sanitized input
 - Location: `reports/evidence/latest/`
 - Regenerate: `bash scripts/run_trl_validation.sh`
 - Operator checklist: `docs/operator-validation-checklist.md`
+- Evidence Pack Index helper: `bash scripts/run_evidence_pack_index.sh`
+- Outputs: `reports/evidence-pack/evidence-pack-index.json`, `reports/evidence-pack/evidence-pack-index.md`
+- Indexes existing local validation artifacts; does not run tests or imply production readiness.
 - Supports TRL 5 candidate status by proving a repeatable local validation run with persisted evidence artifacts.
 
 ## TRL Validation

@@ -45,6 +45,16 @@ Key artifacts:
 - reports/trl-validation-report.md
 - reports/evidence/latest/
 - docs/operator-validation-checklist.md
+- scripts/run_evidence_pack_index.sh
+- reports/evidence-pack/evidence-pack-index.json
+- reports/evidence-pack/evidence-pack-index.md
+
+Evidence Pack Index status:
+- implemented helper/report tool
+- scans predefined local artifacts
+- writes JSON/Markdown index
+- does not run tests/services
+- does not imply production readiness
 
 ## Stage 2 — Discovery / Evidence Enrichment
 

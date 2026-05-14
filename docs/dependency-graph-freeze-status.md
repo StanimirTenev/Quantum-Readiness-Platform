@@ -88,3 +88,8 @@ Stop graph work here and review the full repository before adding storage/API/tr
 ## Stop Rules
 
 Do not start graph DB, graph API, graph UI, Neo4j, Postgres graph tables, Copilot graph reasoning, RAG, auth/RBAC, or production hardening until explicitly chosen after repo review.
+
+## Graph API Read-only Update
+
+Minimal read-only Graph API is now implemented in the existing api-gateway service (snapshot-backed only).
+Graph DB, Neo4j, graph UI, traversal engine, and blast-radius analysis remain not implemented.

@@ -131,6 +131,7 @@ Reference documents:
 - docs/dependency-graph-freeze-status.md
 - docs/graph-api-design.md (minimal read-only snapshot API endpoints implemented)
 - docs/graph-snapshot-loader-design.md (design reference for read-only local-file helper behavior)
+- docs/graph-api-readonly-freeze-status.md (read-only boundary freeze for current Graph API scope)
 
 Implemented lightweight artifacts:
 
@@ -149,6 +150,7 @@ State clearly:
 - minimal read-only graph API endpoints are implemented in api-gateway (snapshot-backed only)
 - no graph UI
 - no full dependency traversal yet
+- production graph infrastructure remains not implemented
 
 ## Privacy Cleanup
 

@@ -272,3 +272,9 @@ Do not start the following until explicitly chosen:
 ## One-Sentence Status
 
 "QRP is currently a TRL 5 candidate operational prototype with validated enriched evidence ingestion, improved risk/planning analysis, and a first lightweight JSON dependency-graph projection smoke path, still local-first and without production graph/Copilot infrastructure."
+
+## TRL 6 Readiness Track (Next Direction)
+
+- Next direction: execute a docs-first TRL 6 readiness track focused on relevant-environment validation planning and operator-driven demonstration evidence.
+- Status remains conservative: TRL 6 is not yet claimed.
+- See: `docs/trl6-readiness-plan.md`

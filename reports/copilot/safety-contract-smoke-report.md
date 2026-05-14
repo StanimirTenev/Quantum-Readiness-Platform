@@ -1,7 +1,7 @@
 # Copilot Safety Contract Smoke Report
 
 ## Timestamp (UTC)
-2026-05-14T05:56:11Z
+2026-05-14T06:23:57Z
 
 ## Scope
 - Validate Copilot safety-contract helper module presence.

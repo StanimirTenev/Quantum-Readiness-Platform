@@ -72,6 +72,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Dependency graph freeze/status document added: `docs/dependency-graph-freeze-status.md`
 - Graph API Design: `docs/graph-api-design.md`
 - Graph Snapshot Loader Design: `docs/graph-snapshot-loader-design.md`
+- Graph API Read-only Freeze Status: `docs/graph-api-readonly-freeze-status.md`
 - Repository checkpoint added: `docs/repository-checkpoint-current-status.md`
 - Cross-Platform Agent Design: `docs/cross-platform-agent-design.md`
 - Windows Evidence Fixture Contract: `docs/windows-evidence-fixture-contract.md`

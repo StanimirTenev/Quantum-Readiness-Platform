@@ -115,3 +115,92 @@ def test_post_api_policies_evaluate_forwards_payload_and_returns_upstream(monkey
         "rule_id": "pqc-readiness-gate-v1",
         "rule_version": "1.0.0",
     }
+
+
+def test_get_graph_summary_returns_expected_shape(monkeypatch) -> None:
+    snapshot = {
+        "graph_schema_version": "v1",
+        "nodes": [{"id": "n1", "type": "asset"}],
+        "edges": [{"from": "n1", "to": "n1", "type": "depends_on"}],
+        "warnings": [{"code": "sample"}],
+    }
+    monkeypatch.setattr(main, "_load_graph_snapshot_or_raise", lambda: snapshot)
+
+    response = client.get("/graph/summary")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "graph_schema_version": "v1",
+        "node_count": 1,
+        "edge_count": 1,
+        "warning_count": 1,
+        "node_types": ["asset"],
+        "edge_types": ["depends_on"],
+    }
+
+
+def test_get_graph_snapshot_returns_expected_shape(monkeypatch) -> None:
+    snapshot = {
+        "graph_schema_version": "v1",
+        "nodes": [],
+        "edges": [],
+        "warnings": [],
+        "metadata": {"generated_at": "2026-05-14T00:00:00Z"},
+    }
+    monkeypatch.setattr(main, "_load_graph_snapshot_or_raise", lambda: snapshot)
+
+    response = client.get("/graph/snapshot")
+
+    assert response.status_code == 200
+    assert set(response.json().keys()) == {"graph_schema_version", "nodes", "edges", "warnings", "metadata"}
+
+
+def test_get_graph_nodes_returns_list(monkeypatch) -> None:
+    snapshot = {"graph_schema_version": "v1", "nodes": [{"id": "n1", "type": "asset"}], "edges": [], "warnings": []}
+    monkeypatch.setattr(main, "_load_graph_snapshot_or_raise", lambda: snapshot)
+
+    response = client.get("/graph/nodes")
+
+    assert response.status_code == 200
+    assert isinstance(response.json()["nodes"], list)
+
+
+def test_get_graph_edges_returns_list(monkeypatch) -> None:
+    snapshot = {"graph_schema_version": "v1", "nodes": [{"id": "n1", "type": "asset"}], "edges": [{"from": "n1", "to": "n1", "type": "depends_on"}], "warnings": []}
+    monkeypatch.setattr(main, "_load_graph_snapshot_or_raise", lambda: snapshot)
+
+    response = client.get("/graph/edges")
+
+    assert response.status_code == 200
+    assert isinstance(response.json()["edges"], list)
+
+
+def test_get_graph_warnings_returns_list(monkeypatch) -> None:
+    snapshot = {"graph_schema_version": "v1", "nodes": [], "edges": [], "warnings": [{"code": "w1"}]}
+    monkeypatch.setattr(main, "_load_graph_snapshot_or_raise", lambda: snapshot)
+
+    response = client.get("/graph/warnings")
+
+    assert response.status_code == 200
+    assert isinstance(response.json()["warnings"], list)
+
+
+def test_graph_snapshot_missing_returns_structured_safe_error(monkeypatch) -> None:
+    monkeypatch.setenv("GRAPH_SNAPSHOT_PATH", "reports/graph/latest/missing.json")
+    response = client.get("/graph/summary")
+    assert response.status_code == 400
+    assert response.json() == {"detail": {"error": "graph_snapshot_missing"}}
+
+
+def test_graph_snapshot_remote_path_is_rejected(monkeypatch) -> None:
+    monkeypatch.setenv("GRAPH_SNAPSHOT_PATH", "https://example.com/graph-snapshot.json")
+    response = client.get("/graph/summary")
+    assert response.status_code == 400
+    assert response.json() == {"detail": {"error": "graph_snapshot_unsafe_path"}}
+
+
+def test_graph_api_has_no_mutation_methods() -> None:
+    openapi = client.get("/openapi.json").json()
+    for path, methods in openapi["paths"].items():
+        if path.startswith("/graph/"):
+            assert set(methods.keys()) == {"get"}

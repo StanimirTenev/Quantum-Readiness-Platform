@@ -2,10 +2,22 @@ from __future__ import annotations
 
 import json
 import os
+import sys
+from pathlib import Path
 from typing import Any
 from urllib import error, parse, request
 
 from fastapi import FastAPI, HTTPException, Query
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+
+from tools.graph_projection.graph_snapshot_loader import (
+    GraphSnapshotLoaderError,
+    load_graph_snapshot,
+    summarize_graph_snapshot,
+)
 
 app = FastAPI(title="API Gateway", version="0.2.0")
 
@@ -14,6 +26,7 @@ RISK_BASE_URL = os.getenv("RISK_ENGINE_URL", "http://risk-engine:8000")
 COPILOT_BASE_URL = os.getenv("COPILOT_SERVICE_URL", "http://copilot-service:8000")
 SCENARIO_ENGINE_BASE_URL = os.getenv("SCENARIO_ENGINE_URL", "http://scenario-engine:8000")
 POLICY_ENGINE_BASE_URL = os.getenv("POLICY_ENGINE_URL", "http://policy-engine:8000")
+GRAPH_SNAPSHOT_DEFAULT_PATH = "reports/graph/latest/graph-snapshot.json"
 
 
 @app.get("/health")
@@ -59,6 +72,50 @@ def run_scenario(payload: dict[str, Any]) -> dict[str, Any]:
     return _request_json("POST", f"{SCENARIO_ENGINE_BASE_URL}/run", payload=payload)
 
 
+@app.get("/graph/snapshot")
+def get_graph_snapshot() -> dict[str, Any]:
+    snapshot = _load_graph_snapshot_or_raise()
+    response = {
+        "graph_schema_version": snapshot["graph_schema_version"],
+        "nodes": snapshot["nodes"],
+        "edges": snapshot["edges"],
+        "warnings": snapshot["warnings"],
+    }
+    if "metadata" in snapshot:
+        response["metadata"] = snapshot["metadata"]
+    return response
+
+
+@app.get("/graph/summary")
+def get_graph_summary() -> dict[str, Any]:
+    snapshot = _load_graph_snapshot_or_raise()
+    return dict(summarize_graph_snapshot(snapshot))
+
+
+@app.get("/graph/nodes")
+def get_graph_nodes(node_type: str | None = Query(default=None)) -> dict[str, Any]:
+    snapshot = _load_graph_snapshot_or_raise()
+    nodes = snapshot["nodes"]
+    if node_type:
+        nodes = [node for node in nodes if node.get("type") == node_type]
+    return {"nodes": nodes}
+
+
+@app.get("/graph/edges")
+def get_graph_edges(edge_type: str | None = Query(default=None)) -> dict[str, Any]:
+    snapshot = _load_graph_snapshot_or_raise()
+    edges = snapshot["edges"]
+    if edge_type:
+        edges = [edge for edge in edges if edge.get("type") == edge_type]
+    return {"edges": edges}
+
+
+@app.get("/graph/warnings")
+def get_graph_warnings() -> dict[str, Any]:
+    snapshot = _load_graph_snapshot_or_raise()
+    return {"warnings": snapshot["warnings"]}
+
+
 
 
 @app.post("/api/policies/evaluate")
@@ -78,6 +135,14 @@ def copilot_explain_risk(payload: dict[str, Any]) -> dict[str, Any]:
 @app.post("/api/copilot/generate-wave-plan")
 def copilot_generate_wave_plan(payload: dict[str, Any]) -> dict[str, Any]:
     return _request_json("POST", f"{COPILOT_BASE_URL}/generate-wave-plan", payload=payload)
+
+
+def _load_graph_snapshot_or_raise() -> dict[str, Any]:
+    snapshot_path = os.getenv("GRAPH_SNAPSHOT_PATH", GRAPH_SNAPSHOT_DEFAULT_PATH)
+    try:
+        return load_graph_snapshot(snapshot_path)
+    except GraphSnapshotLoaderError as exc:
+        raise HTTPException(status_code=400, detail={"error": exc.code}) from exc
 
 
 def _ingest_scan(source: str, payload: dict[str, Any], scenario: str) -> dict[str, Any]:

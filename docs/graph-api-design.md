@@ -1,6 +1,6 @@
 # Graph API Design
 
-**Status:** Graph API Design — docs-only, not implemented.
+**Status:** Minimal read-only Graph API over JSON snapshot is implemented. Graph DB/Neo4j/UI/traversal remain not implemented.
 
 ## 1. Purpose
 
@@ -13,7 +13,7 @@ This document is design-only and does not implement an API.
 - JSON graph snapshot prototype exists.
 - Snapshot generation is offline and deterministic.
 - Graph database is not present.
-- Graph API is not present.
+- Minimal read-only Graph API is present in `services/api-gateway/main.py` (`GET /graph/snapshot`, `/graph/summary`, `/graph/nodes`, `/graph/edges`, `/graph/warnings`).
 - Graph UI is not present.
 - Neo4j is not present.
 - Graph remains JSON Snapshot First.
@@ -52,11 +52,10 @@ Conceptual endpoints:
 - `GET /graph/snapshot`
 - `GET /graph/nodes`
 - `GET /graph/edges`
-- `GET /graph/nodes/{node_id}`
 - `GET /graph/summary`
 - `GET /graph/warnings`
 
-These endpoints are design-only and are not implemented.
+These endpoints are implemented as read-only snapshot-backed routes. Node-by-id endpoint is intentionally deferred.
 
 ## 6. Out-of-scope endpoints
 
@@ -176,4 +175,4 @@ Stop if any of the following become required:
 
 ## 15. Status wording
 
-Graph API Design — docs-only, not implemented.
+Graph API status: minimal read-only snapshot endpoints implemented; graph DB/Neo4j/UI/traversal/blast-radius/LLM graph reasoning remain not implemented.

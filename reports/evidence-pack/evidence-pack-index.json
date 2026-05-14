@@ -1,0 +1,145 @@
+{
+  "generated_at_utc": "2026-05-14T04:14:27.109529+00:00",
+  "summary": {
+    "total_artifacts": 11,
+    "present": 11,
+    "missing": 0,
+    "pass_hint_count": 10,
+    "fail_hint_count": 0,
+    "unknown_hint_count": 1
+  },
+  "artifacts": [
+    {
+      "artifact_id": "trl_validation",
+      "title": "TRL Validation Report",
+      "path": "reports/trl-validation-report.md",
+      "category": "core_trl",
+      "exists": true,
+      "notes": "Core TRL validation evidence.",
+      "status_hint": "PASS",
+      "size_bytes": 2397,
+      "sha256": "7f496928d94797e81bc87f7b618c0d9f34414faaa9601dc2191a3e2f7075d468",
+      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+    },
+    {
+      "artifact_id": "stage2_inventory_smoke",
+      "title": "Stage 2 Inventory Smoke Report",
+      "path": "reports/stage2-inventory-smoke-report.md",
+      "category": "stage2_evidence",
+      "exists": true,
+      "notes": "Stage 2 inventory validation artifact.",
+      "status_hint": "PASS",
+      "size_bytes": 1076,
+      "sha256": "7842fbb2c1bdfbb679331da6d2c4435df38d47b48f3411d20dfe2b2cc91cd495",
+      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+    },
+    {
+      "artifact_id": "stage2_e2e_smoke",
+      "title": "Stage 2 E2E Smoke Report",
+      "path": "reports/stage2-e2e-smoke-report.md",
+      "category": "stage2_evidence",
+      "exists": true,
+      "notes": "Stage 2 end-to-end validation artifact.",
+      "status_hint": "PASS",
+      "size_bytes": 1392,
+      "sha256": "def7ccfb71bc753dfae712a237f8c715ff97f70d5e576f7075e1a7489aff0986",
+      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+    },
+    {
+      "artifact_id": "stage3_risk_planning_smoke",
+      "title": "Stage 3 Risk Planning Smoke Report",
+      "path": "reports/stage3-risk-planning-smoke-report.md",
+      "category": "stage3_risk_planning",
+      "exists": true,
+      "notes": "Stage 3 risk/planning validation artifact.",
+      "status_hint": "PASS",
+      "size_bytes": 2206,
+      "sha256": "c3e0cc0ce847d8ecdccf72d11fefd3449bf02dc997d5a011ac60171851b37887",
+      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+    },
+    {
+      "artifact_id": "graph_projection",
+      "title": "Graph Projection Report",
+      "path": "reports/graph/latest/graph-projection-report.md",
+      "category": "graph",
+      "exists": true,
+      "notes": "Graph projection validation artifact.",
+      "status_hint": "PASS",
+      "size_bytes": 2163,
+      "sha256": "9fb10bd83974dfc45a90eb379628422837949ee7b72ab3b1a81a188042398498",
+      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+    },
+    {
+      "artifact_id": "graph_snapshot_loader",
+      "title": "Graph Snapshot Loader Report",
+      "path": "reports/graph/latest/graph-snapshot-loader-report.md",
+      "category": "graph",
+      "exists": true,
+      "notes": "Graph snapshot loader validation artifact.",
+      "status_hint": "PASS",
+      "size_bytes": 494,
+      "sha256": "eb40ecb2b227833fe8b280a190cd484152ac4f7c9e641ac6e0146c6f24f0616b",
+      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+    },
+    {
+      "artifact_id": "graph_api_readonly",
+      "title": "Graph API Read-only Smoke Report",
+      "path": "reports/graph/latest/graph-api-readonly-smoke-report.md",
+      "category": "graph",
+      "exists": true,
+      "notes": "Minimal read-only graph API validation artifact.",
+      "status_hint": "PASS",
+      "size_bytes": 529,
+      "sha256": "0a10129c6140d6760c96b0f5e66eac8dfbaecf5a76d099b50bcfe8eac26988a7",
+      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+    },
+    {
+      "artifact_id": "copilot_offline_smoke",
+      "title": "Copilot Offline Smoke Report",
+      "path": "reports/copilot/offline-smoke-report.md",
+      "category": "copilot",
+      "exists": true,
+      "notes": "Copilot offline deterministic safety validation artifact.",
+      "status_hint": "PASS",
+      "size_bytes": 732,
+      "sha256": "90e365c8e9fd1d1a21b9307739ed40cb18d48e3419e837f21339093893e921eb",
+      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+    },
+    {
+      "artifact_id": "copilot_safety_contract",
+      "title": "Copilot Safety Contract Smoke Report",
+      "path": "reports/copilot/safety-contract-smoke-report.md",
+      "category": "copilot",
+      "exists": true,
+      "notes": "Copilot safety contract validation artifact.",
+      "status_hint": "PASS",
+      "size_bytes": 767,
+      "sha256": "3ca950cb7e104e42d9a4225597dd6f3edc5df001bfd67cdd1ad03705ef71bf84",
+      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+    },
+    {
+      "artifact_id": "operator_validation_checklist",
+      "title": "Operator Validation Checklist",
+      "path": "docs/operator-validation-checklist.md",
+      "category": "operator_docs",
+      "exists": true,
+      "notes": "Operator validation procedure document.",
+      "status_hint": "PASS",
+      "size_bytes": 3844,
+      "sha256": "e4a6260a45dc302be0bff951f281dfe7a7e570933b185785f0cf0aa88c2f936d",
+      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+    },
+    {
+      "artifact_id": "repository_checkpoint_status",
+      "title": "Repository Checkpoint Current Status",
+      "path": "docs/repository-checkpoint-current-status.md",
+      "category": "repository_status",
+      "exists": true,
+      "notes": "Repository status summary document.",
+      "status_hint": "UNKNOWN",
+      "size_bytes": 7791,
+      "sha256": "e6dce0414534d59cf64a624642b0d9ecd08e1b6992ff11af16119251b08bf67b",
+      "modified_time_utc": "2026-05-14T04:13:17.424886+00:00"
+    }
+  ]
+}

@@ -38,7 +38,7 @@ run_command() {
   local command_name
   command_name="$(basename "$script_path" .sh)"
   local safe_name
-  safe_name="$(echo "$command_name" | tr -c 'a-zA-Z0-9._-' '_')"
+  safe_name="$(printf '%s' "$command_name" | tr -c 'a-zA-Z0-9._-' '_')"
   local log_file="$EVIDENCE_DIR/${safe_name}.log"
 
   local started_at ended_at status

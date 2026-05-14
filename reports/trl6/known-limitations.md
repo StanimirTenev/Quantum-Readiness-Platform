@@ -1,9 +1,5 @@
-# TRL 6 Known Limitations
+# Known Limitations (TRL 6 Validation Context)
 
-- The platform is not production-ready.
-- There is no independent customer pilot yet.
-- Production auth/RBAC is not implemented.
-- Windows agent implementation is not available.
-- A real Copilot provider is not implemented.
-- Graph DB/traversal/blast-radius capabilities are not implemented.
-- TRL 6 is not claimed until relevant-environment demo execution is completed.
+- This validation is local-first and intentionally does not claim production readiness.
+- Any required command failure results in an overall FAIL.
+- Missing required scripts are treated as FAIL and logged under the evidence directory.

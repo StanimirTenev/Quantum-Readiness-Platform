@@ -129,7 +129,7 @@ Reference documents:
 - docs/dependency-graph-projection-validation-examples.md
 - docs/dependency-graph-implementation-boundary.md
 - docs/dependency-graph-freeze-status.md
-- docs/graph-api-design.md (docs-only preparation; API not implemented)
+- docs/graph-api-design.md (minimal read-only snapshot API endpoints implemented)
 - docs/graph-snapshot-loader-design.md (design reference for read-only local-file helper behavior)
 
 Implemented lightweight artifacts:
@@ -146,7 +146,7 @@ State clearly:
 - no graph DB
 - no Neo4j
 - graph snapshot loader helper is implemented for local read-only snapshot validation
-- no graph API
+- minimal read-only graph API endpoints are implemented in api-gateway (snapshot-backed only)
 - no graph UI
 - no full dependency traversal yet
 
@@ -183,7 +183,7 @@ python -m pytest tools/graph_projection -q
 ## What Is Not Implemented Yet
 
 - production graph database
-- graph API service
+- separate production graph API service
 - graph UI
 - Neo4j
 - PostgreSQL graph tables
@@ -202,7 +202,7 @@ python -m pytest tools/graph_projection -q
 The code is still controlled because:
 - no new database was added
 - no graph DB dependency was added
-- no graph API service was added
+- no separate graph API service was added; only minimal read-only graph endpoints were added to the existing api-gateway
 - no graph UI was added
 - no Copilot/RAG implementation was added
 - most additions are deterministic scripts, tests, fixtures, reports and docs

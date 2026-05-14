@@ -143,10 +143,11 @@ Run:
 bash scripts/run_graph_projection_smoke.sh
 ```
 
-Validation command:
+Validation commands:
 
 ```bash
 bash scripts/run_graph_snapshot_loader_smoke.sh
+bash scripts/run_graph_api_readonly_smoke.sh
 ```
 
 Output:

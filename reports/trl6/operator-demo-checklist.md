@@ -1,12 +1,7 @@
-# TRL 6 Operator Demo Checklist
+# Operator Demo Checklist (TRL 6)
 
-- [ ] Validation script executed (`bash scripts/run_trl6_readiness_validation.sh`)
-- [ ] Services started as required by underlying scripts
-- [ ] Evidence ingest reviewed
-- [ ] Risk/planning report reviewed
-- [ ] Graph API smoke reviewed
-- [ ] Evidence pack index reviewed
-- [ ] Known limitations reviewed
-- [ ] Operator name: ____________________
-- [ ] Date (UTC): ____________________
-- [ ] Sign-off: ____________________
+- Run the TRL 6 readiness validation script.
+- Review all evidence logs under the evidence directory.
+- Confirm command-by-command PASS/FAIL outcomes.
+- Confirm overall result is PASS before considering readiness evidence complete.
+- Do not treat this output as a TRL 6 achievement claim without operator review.

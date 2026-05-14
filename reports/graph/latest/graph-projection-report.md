@@ -1,7 +1,7 @@
 # Graph Projection Smoke Report
 
 ## Validation Date
-2026-05-09T15:30:13Z
+2026-05-14T04:43:40Z
 
 ## Scope
 - JSON snapshot projection

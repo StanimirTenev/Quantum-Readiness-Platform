@@ -182,6 +182,11 @@ bash scripts/run_stage2_e2e_smoke.sh
 bash scripts/run_stage3_risk_planning_smoke.sh
 bash scripts/run_graph_projection_smoke.sh
 bash scripts/run_graph_snapshot_loader_smoke.sh
+bash scripts/run_trl6_readiness_validation.sh
+
+TRL 6 readiness validation script status:
+- implemented as deterministic validation orchestration/reporting only
+- does not claim TRL 6 achieved
 
 Service/unit tests:
 

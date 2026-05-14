@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-05-14T04:14:27.109529+00:00",
+  "generated_at_utc": "2026-05-14T04:43:56.459393+00:00",
   "summary": {
     "total_artifacts": 11,
     "present": 11,
@@ -19,7 +19,7 @@
       "status_hint": "PASS",
       "size_bytes": 2397,
       "sha256": "7f496928d94797e81bc87f7b618c0d9f34414faaa9601dc2191a3e2f7075d468",
-      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+      "modified_time_utc": "2026-05-14T04:13:36.729348+00:00"
     },
     {
       "artifact_id": "stage2_inventory_smoke",
@@ -31,7 +31,7 @@
       "status_hint": "PASS",
       "size_bytes": 1076,
       "sha256": "7842fbb2c1bdfbb679331da6d2c4435df38d47b48f3411d20dfe2b2cc91cd495",
-      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+      "modified_time_utc": "2026-05-14T04:13:36.729348+00:00"
     },
     {
       "artifact_id": "stage2_e2e_smoke",
@@ -43,7 +43,7 @@
       "status_hint": "PASS",
       "size_bytes": 1392,
       "sha256": "def7ccfb71bc753dfae712a237f8c715ff97f70d5e576f7075e1a7489aff0986",
-      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+      "modified_time_utc": "2026-05-14T04:13:36.729348+00:00"
     },
     {
       "artifact_id": "stage3_risk_planning_smoke",
@@ -55,7 +55,7 @@
       "status_hint": "PASS",
       "size_bytes": 2206,
       "sha256": "c3e0cc0ce847d8ecdccf72d11fefd3449bf02dc997d5a011ac60171851b37887",
-      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+      "modified_time_utc": "2026-05-14T04:13:36.729348+00:00"
     },
     {
       "artifact_id": "graph_projection",
@@ -66,8 +66,8 @@
       "notes": "Graph projection validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 2163,
-      "sha256": "9fb10bd83974dfc45a90eb379628422837949ee7b72ab3b1a81a188042398498",
-      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+      "sha256": "6504003d260d47d350ee37c477e8db18587529062126443a948a97fe494fa784",
+      "modified_time_utc": "2026-05-14T04:43:40.769848+00:00"
     },
     {
       "artifact_id": "graph_snapshot_loader",
@@ -78,8 +78,8 @@
       "notes": "Graph snapshot loader validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 494,
-      "sha256": "eb40ecb2b227833fe8b280a190cd484152ac4f7c9e641ac6e0146c6f24f0616b",
-      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+      "sha256": "62447f3b12b2e691490e1d63ab14942c445c4737004778152904e479b4b07ca8",
+      "modified_time_utc": "2026-05-14T04:43:41.521847+00:00"
     },
     {
       "artifact_id": "graph_api_readonly",
@@ -90,8 +90,8 @@
       "notes": "Minimal read-only graph API validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 529,
-      "sha256": "0a10129c6140d6760c96b0f5e66eac8dfbaecf5a76d099b50bcfe8eac26988a7",
-      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+      "sha256": "15a2033947b52c23c1d7120bdd77e32df7837b14bfca2ba4c529d03aa8351f24",
+      "modified_time_utc": "2026-05-14T04:43:43.565843+00:00"
     },
     {
       "artifact_id": "copilot_offline_smoke",
@@ -102,8 +102,8 @@
       "notes": "Copilot offline deterministic safety validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 732,
-      "sha256": "90e365c8e9fd1d1a21b9307739ed40cb18d48e3419e837f21339093893e921eb",
-      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+      "sha256": "ee7c419987f91a44cf323678e26c066630a21e0fb8c7a043136264b8d52d41fd",
+      "modified_time_utc": "2026-05-14T04:43:55.653819+00:00"
     },
     {
       "artifact_id": "copilot_safety_contract",
@@ -114,8 +114,8 @@
       "notes": "Copilot safety contract validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 767,
-      "sha256": "3ca950cb7e104e42d9a4225597dd6f3edc5df001bfd67cdd1ad03705ef71bf84",
-      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+      "sha256": "b13d9c8248400c946f32e3182e086f6cafcbc0f37f970e0fbb5d36174515efff",
+      "modified_time_utc": "2026-05-14T04:43:55.657819+00:00"
     },
     {
       "artifact_id": "operator_validation_checklist",
@@ -127,7 +127,7 @@
       "status_hint": "PASS",
       "size_bytes": 3844,
       "sha256": "e4a6260a45dc302be0bff951f281dfe7a7e570933b185785f0cf0aa88c2f936d",
-      "modified_time_utc": "2026-05-14T03:51:11.587690+00:00"
+      "modified_time_utc": "2026-05-14T04:13:36.725348+00:00"
     },
     {
       "artifact_id": "repository_checkpoint_status",
@@ -137,9 +137,9 @@
       "exists": true,
       "notes": "Repository status summary document.",
       "status_hint": "UNKNOWN",
-      "size_bytes": 7791,
-      "sha256": "e6dce0414534d59cf64a624642b0d9ecd08e1b6992ff11af16119251b08bf67b",
-      "modified_time_utc": "2026-05-14T04:13:17.424886+00:00"
+      "size_bytes": 8413,
+      "sha256": "663a72e39da2a1c714e6b2c24a8d18dc2e000a078c3ad5081495994f3e0100d3",
+      "modified_time_utc": "2026-05-14T04:43:37.773854+00:00"
     }
   ]
 }

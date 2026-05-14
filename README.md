@@ -323,3 +323,9 @@ Output:
 reports/copilot/offline-smoke-report.md
 
 - Copilot Safety Contract Smoke: `bash scripts/run_copilot_safety_contract_smoke.sh` (report: `reports/copilot/safety-contract-smoke-report.md`)
+
+## TRL 6 readiness validation
+
+```bash
+bash scripts/run_trl6_readiness_validation.sh
+```

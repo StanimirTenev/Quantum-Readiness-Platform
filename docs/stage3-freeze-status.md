@@ -71,7 +71,7 @@ Deterministic core must work without LLM.
 
 ## Current Maturity
 
-Current maturity: TRL 5 candidate / enriched-evidence operational prototype with improved risk/planning analysis.
+Current maturity: TRL6 readiness validation package PASS (local relevant-environment simulation) with enriched-evidence operational prototype behavior. TRL 6 achieved is not claimed.
 
 ## Recommended Next Options
 

@@ -14,6 +14,7 @@ This document is a checkpoint to prevent scope drift before starting the next ma
 Repository consistency cleanup aligned status wording after TRL6 readiness PASS and demo bundle smoke.
 
 Current maturity: TRL6 readiness validation package PASS (local relevant-environment simulation) with an enriched-evidence operational prototype, improved risk/planning analysis, and lightweight JSON graph projection. TRL 6 achieved is not claimed.
+TRL6 readiness package PASS; TRL 6 achieved is not claimed; production readiness is not claimed.
 
 ## Current Architecture Principle
 
@@ -173,6 +174,23 @@ State clearly:
 - no graph UI
 - no full dependency traversal yet
 - production graph infrastructure remains not implemented
+
+Graph API read-only hardening status:
+- Graph API read-only hardening coverage has been added for the existing snapshot-backed GET endpoints; no new endpoints, mutation methods, graph DB, Neo4j, traversal, blast-radius, or production graph infrastructure were added.
+- stronger tests/smoke cover stable response keys/shapes for existing GET /graph/* endpoint responses
+- node_type and edge_type filters are checked
+- unsafe/missing GRAPH_SNAPSHOT_PATH error behavior is checked
+- mutation methods are verified not to return successful 2xx responses
+- response content is checked for no DB/Neo4j/traversal/blast-radius indicators
+- endpoint surface area remains unchanged
+
+Windows inventory schema/validator hardening status:
+- Windows inventory schema/validator contract coverage has been strengthened as tests-only preparation; Windows runtime ingestion, Windows agent, AD scanner, and credential/private key handling remain not implemented.
+- strict tests-only Windows schema/validator contract coverage is added
+- recursive sensitive-key/value safety scan coverage is added
+- normalized aggregate-only summary contract coverage is strengthened
+- no runtime ingestion is implemented
+- no Windows support implemented claim is made
 
 ## Privacy Cleanup
 

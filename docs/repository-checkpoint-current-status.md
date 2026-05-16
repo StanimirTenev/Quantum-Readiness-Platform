@@ -197,6 +197,16 @@ cd agents/linux-host-agent && go test ./...
 cd agents/network-scanner && go test ./...
 python -m pytest tools/graph_projection -q
 
+
+## Next TRL6 Evidence Step
+
+- Operator Review / Demo Sign-off Package
+  - `reports/trl6/operator-review-summary.md`
+  - `reports/trl6/operator-demo-checklist.md`
+  - `docs/trl6-operator-review-boundary.md`
+- This is an evidence review/sign-off step only.
+- TRL 6 achieved is not claimed in this checkpoint.
+
 ## What Is Not Implemented Yet
 
 - production graph database

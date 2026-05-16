@@ -35,6 +35,38 @@ for path in ["/graph/snapshot", "/graph/summary", "/graph/nodes", "/graph/edges"
         raise SystemExit(f"Smoke failed for {path}: {response.status_code} {response.text}")
 
 summary = client.get("/graph/summary").json()
+nodes = client.get("/graph/nodes").json()["nodes"]
+edges = client.get("/graph/edges").json()["edges"]
+
+if nodes:
+    sample_node_type = nodes[0].get("type")
+    if sample_node_type:
+        filtered_nodes = client.get(f"/graph/nodes?node_type={sample_node_type}")
+        if filtered_nodes.status_code != 200:
+            raise SystemExit(f"Smoke failed for /graph/nodes filter: {filtered_nodes.status_code} {filtered_nodes.text}")
+        if any(node.get("type") != sample_node_type for node in filtered_nodes.json().get("nodes", [])):
+            raise SystemExit("Smoke failed: /graph/nodes filter returned non-matching node types")
+
+if edges:
+    sample_edge_type = edges[0].get("type")
+    if sample_edge_type:
+        filtered_edges = client.get(f"/graph/edges?edge_type={sample_edge_type}")
+        if filtered_edges.status_code != 200:
+            raise SystemExit(f"Smoke failed for /graph/edges filter: {filtered_edges.status_code} {filtered_edges.text}")
+        if any(edge.get("type") != sample_edge_type for edge in filtered_edges.json().get("edges", [])):
+            raise SystemExit("Smoke failed: /graph/edges filter returned non-matching edge types")
+
+for method, path in [
+    ("post", "/graph/snapshot"),
+    ("put", "/graph/snapshot"),
+    ("patch", "/graph/snapshot"),
+    ("delete", "/graph/snapshot"),
+    ("post", "/graph/nodes"),
+    ("delete", "/graph/nodes"),
+]:
+    mutation_response = client.request(method.upper(), path, json={})
+    if 200 <= mutation_response.status_code < 300:
+        raise SystemExit(f"Smoke failed: mutation endpoint unexpectedly succeeded: {method.upper()} {path}")
 
 report_lines = [
     "# Graph API Read-only Smoke Report",
@@ -48,8 +80,8 @@ report_lines = [
     "- endpoints_checked: /graph/snapshot, /graph/summary, /graph/nodes, /graph/edges, /graph/warnings",
     "- result: PASS",
     "",
-    "This smoke validates read-only Graph API endpoints over the JSON snapshot only.",
-    "No graph database, Neo4j, traversal engine, or mutation endpoint is used.",
+    "Graph API remains read-only over the local JSON snapshot.",
+    "No graph database, Neo4j, traversal engine, blast-radius engine, or mutation endpoint is used.",
     "",
 ]
 

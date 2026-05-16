@@ -1,7 +1,7 @@
 # TRL Validation Report
 
 ## Validation Date
-2026-05-08T15:09:34.027511+00:00
+2026-05-16T03:59:54.699382+00:00
 
 ## Validation Scope
 - inventory ingest
@@ -21,18 +21,18 @@
 | api-gateway | http://127.0.0.1:8000/health | UP |
 
 ## Evidence Ingest Result
-- scan_id: f09c3973-483c-46bd-8646-580985761e53
+- scan_id: 26b8f837-ade9-4afd-a17a-097ae1f5dd68
 - created assets: 1
-- asset_ids: 5f321b9d-0a25-4716-a060-bab78f49f5b8
+- asset_ids: fd139177-2868-48f5-bcab-14c9cdf20070
 
 ## Risk Result
-- total risk records: 8
-- sample asset: payments.example.com:443
-- normalized score: 74.0
+- total risk records: 2
+- sample asset: api.example.internal:443
+- normalized score: 73.0
 - rating: high
 
 ## Policy Decision
-- asset: payments.example.com:443
+- asset: api.example.internal:443
 - decision: deny
 - reasons: vendor_blocked
 - rule_id: pqc-readiness-gate-v1

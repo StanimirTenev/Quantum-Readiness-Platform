@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-05-14T06:24:06.277115+00:00",
+  "generated_at_utc": "2026-05-16T04:00:31.844293+00:00",
   "summary": {
     "total_artifacts": 11,
     "present": 11,
@@ -18,8 +18,8 @@
       "notes": "Core TRL validation evidence.",
       "status_hint": "PASS",
       "size_bytes": 2397,
-      "sha256": "7f496928d94797e81bc87f7b618c0d9f34414faaa9601dc2191a3e2f7075d468",
-      "modified_time_utc": "2026-05-14T04:42:31.925813+00:00"
+      "sha256": "d9f16a3607f47da87d8097c7e1087014bf612aae3d77330adff5bfc535d3b988",
+      "modified_time_utc": "2026-05-16T03:59:54.694080+00:00"
     },
     {
       "artifact_id": "stage2_inventory_smoke",
@@ -30,8 +30,8 @@
       "notes": "Stage 2 inventory validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 1076,
-      "sha256": "7842fbb2c1bdfbb679331da6d2c4435df38d47b48f3411d20dfe2b2cc91cd495",
-      "modified_time_utc": "2026-05-14T04:42:31.921813+00:00"
+      "sha256": "5337f5cf86acdefa9fb4fd505e6f2f66c8033d253a4a746f94fb9433feec8204",
+      "modified_time_utc": "2026-05-16T03:59:55.590090+00:00"
     },
     {
       "artifact_id": "stage2_e2e_smoke",
@@ -41,9 +41,9 @@
       "exists": true,
       "notes": "Stage 2 end-to-end validation artifact.",
       "status_hint": "PASS",
-      "size_bytes": 1392,
-      "sha256": "def7ccfb71bc753dfae712a237f8c715ff97f70d5e576f7075e1a7489aff0986",
-      "modified_time_utc": "2026-05-14T04:42:31.921813+00:00"
+      "size_bytes": 1480,
+      "sha256": "3233d0d4108e32aa57023ad6ec27cd0607035dc045adcd7636d99e0447e071e1",
+      "modified_time_utc": "2026-05-16T04:00:00.878148+00:00"
     },
     {
       "artifact_id": "stage3_risk_planning_smoke",
@@ -54,8 +54,8 @@
       "notes": "Stage 3 risk/planning validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 2206,
-      "sha256": "c3e0cc0ce847d8ecdccf72d11fefd3449bf02dc997d5a011ac60171851b37887",
-      "modified_time_utc": "2026-05-14T04:42:31.925813+00:00"
+      "sha256": "c5cf5b4ccb682c622eef1c4b3b991c89be3e9a895d62ebee8b3be9988c655cbd",
+      "modified_time_utc": "2026-05-16T04:00:07.182220+00:00"
     },
     {
       "artifact_id": "graph_projection",
@@ -66,8 +66,8 @@
       "notes": "Graph projection validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 2163,
-      "sha256": "c0a867c770ff7282799bfe29b173bed0f153748fc15b13caae482f6a15990c69",
-      "modified_time_utc": "2026-05-14T06:23:49.110651+00:00"
+      "sha256": "fa4c227d59e0c9aa18d4120c9f070fbc6eef3676562889807525e6c5670b155d",
+      "modified_time_utc": "2026-05-16T04:00:08.434234+00:00"
     },
     {
       "artifact_id": "graph_snapshot_loader",
@@ -78,8 +78,8 @@
       "notes": "Graph snapshot loader validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 494,
-      "sha256": "bdbb2026abf4af50e43fb70e0ecd8917bd9cd56041ad354ae5bdbdf9477290c0",
-      "modified_time_utc": "2026-05-14T06:23:49.974640+00:00"
+      "sha256": "dd16509937e00d388288ab7ce62b1c04e949c901d296ea6e7d6e638f6e635683",
+      "modified_time_utc": "2026-05-16T04:00:09.642247+00:00"
     },
     {
       "artifact_id": "graph_api_readonly",
@@ -90,8 +90,8 @@
       "notes": "Minimal read-only graph API validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 529,
-      "sha256": "871f705a5ce96086229adfc084c878ac27cc87e39bfdc5bfe367d10372d1ad86",
-      "modified_time_utc": "2026-05-14T06:23:52.130613+00:00"
+      "sha256": "062893f388821d2622def45400b8023183fbb76fc0edf92cc074e858e8d93b02",
+      "modified_time_utc": "2026-05-16T04:00:12.558282+00:00"
     },
     {
       "artifact_id": "copilot_offline_smoke",
@@ -102,8 +102,8 @@
       "notes": "Copilot offline deterministic safety validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 732,
-      "sha256": "d51687f3ef9f0a2f64f0a935358c9d8e12b9ad1bae15b67b7f64843e406d592c",
-      "modified_time_utc": "2026-05-14T06:24:05.470443+00:00"
+      "sha256": "ca92ba29da9ee8585ad7721024124923f270deeae96b7659272daf5c17c4e570",
+      "modified_time_utc": "2026-05-16T04:00:30.698497+00:00"
     },
     {
       "artifact_id": "copilot_safety_contract",
@@ -114,8 +114,8 @@
       "notes": "Copilot safety contract validation artifact.",
       "status_hint": "PASS",
       "size_bytes": 767,
-      "sha256": "3525d040234818d433a1259a08f0a96231055539d14a236e730fa712c1a3c8e2",
-      "modified_time_utc": "2026-05-14T06:24:05.474442+00:00"
+      "sha256": "776e97b6d56bd43125f7745a6ca0382a9c2ea8746eaa62f490bbd3db155295d8",
+      "modified_time_utc": "2026-05-16T04:00:30.702497+00:00"
     },
     {
       "artifact_id": "operator_validation_checklist",
@@ -127,7 +127,7 @@
       "status_hint": "PASS",
       "size_bytes": 3844,
       "sha256": "e4a6260a45dc302be0bff951f281dfe7a7e570933b185785f0cf0aa88c2f936d",
-      "modified_time_utc": "2026-05-14T04:42:31.921813+00:00"
+      "modified_time_utc": "2026-05-16T03:57:37.152325+00:00"
     },
     {
       "artifact_id": "repository_checkpoint_status",
@@ -139,7 +139,7 @@
       "status_hint": "UNKNOWN",
       "size_bytes": 8605,
       "sha256": "427d67c17a1cb6671c5dfcd332b8a4d3e2a24f7777555fe379c36743f5914ae8",
-      "modified_time_utc": "2026-05-14T06:23:35.918817+00:00"
+      "modified_time_utc": "2026-05-16T03:57:37.152325+00:00"
     }
   ]
 }

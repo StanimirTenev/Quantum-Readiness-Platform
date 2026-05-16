@@ -29,7 +29,43 @@ COMMANDS=(
 )
 
 RESULT_ROWS=()
+PREFLIGHT_ROWS=()
 OVERALL_FAIL=0
+
+record_preflight() {
+  local command="$1"
+  local required="${2:-yes}"
+  local script_path
+  script_path="$(awk '{print $2}' <<<"$command")"
+  local command_name
+  command_name="$(basename "$script_path" .sh)"
+  local safe_name
+  safe_name="$(printf '%s' "$command_name" | tr -c 'a-zA-Z0-9._-' '_')"
+  local log_file="$EVIDENCE_DIR/${safe_name}.log"
+  local started_at ended_at status
+
+  started_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  if [[ ! -f "$script_path" ]]; then
+    status="FAIL"
+    if [[ "$required" == "yes" ]]; then
+      OVERALL_FAIL=1
+    fi
+    {
+      echo "ERROR: Preflight script is missing: $script_path"
+      echo "Command: $command"
+      echo "Required: $required"
+    } >"$log_file"
+  elif eval "$command" >"$log_file" 2>&1; then
+    status="PASS"
+  else
+    status="FAIL"
+    if [[ "$required" == "yes" ]]; then
+      OVERALL_FAIL=1
+    fi
+  fi
+  ended_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  PREFLIGHT_ROWS+=("| \`$command\` | $status | $required | $started_at | $ended_at | \`$log_file\` |")
+}
 
 run_command() {
   local command="$1"
@@ -62,6 +98,9 @@ run_command() {
   RESULT_ROWS+=("| \`$command\` | $status | $started_at | $ended_at | \`$log_file\` |")
 }
 
+record_preflight "bash scripts/start_all.sh" "yes"
+record_preflight "bash scripts/status_all.sh" "no"
+
 for cmd in "${COMMANDS[@]}"; do
   run_command "$cmd"
 done
@@ -92,9 +131,9 @@ CHECKLIST
 cat >"$DIAGNOSIS_FILE" <<DIAGNOSIS
 # TRL 6 Failure Diagnosis Note
 
-- Diagnosis category: artifact persistence and missing generated outputs.
-- Fix: validation script now creates report/evidence structure and companion markdown artifacts before returning status.
-- Behavior: required command failures still produce overall FAIL and non-zero exit.
+- Diagnosis category: missing deterministic service preflight before service-dependent checks.
+- Primary blocker observed: \`inventory-service\` unavailable at \`http://127.0.0.1:8001/health\`, which causes downstream validation/smoke commands to fail.
+- Fix: run local preflight startup using \`scripts/start_all.sh\` (and optional \`scripts/status_all.sh\`) before required checks, while preserving strict FAIL behavior for required command failures.
 DIAGNOSIS
 
 {
@@ -103,6 +142,14 @@ DIAGNOSIS
   echo "- **UTC Timestamp:** $UTC_NOW"
   echo "- **Purpose:** Deterministic orchestration of existing local validation/smoke commands to support TRL 6 readiness assessment evidence collection."
   echo "- **Relevant Environment Assumption:** Local-first execution in a controlled operator environment; no internet, no external LLM, and no graph database required by this orchestration script."
+  echo
+  echo "## Preflight Results"
+  echo
+  echo "| Command | Result | Required | Started (UTC) | Ended (UTC) | Evidence Log |"
+  echo "| --- | --- | --- | --- | --- | --- |"
+  for row in "${PREFLIGHT_ROWS[@]}"; do
+    echo "$row"
+  done
   echo
   echo "## Command Results"
   echo
@@ -115,6 +162,8 @@ DIAGNOSIS
   echo "## Evidence Log Paths"
   echo
   echo "- Evidence directory: \`$EVIDENCE_DIR\`"
+  echo "- Service preflight start log: \`$EVIDENCE_DIR/start_all.log\`"
+  echo "- Service preflight status log: \`$EVIDENCE_DIR/status_all.log\`"
   echo "- Consolidated report: \`$REPORT_FILE\`"
   echo
   echo "## Acceptance Criteria Checklist"

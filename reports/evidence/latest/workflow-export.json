@@ -5,23 +5,23 @@
   "created_count": 2,
   "tasks": [
     {
-      "title": "Review crypto-host-01",
-      "asset_name": "crypto-host-01",
+      "title": "Review qrp-linux-demo-01",
+      "asset_name": "qrp-linux-demo-01",
       "wave": "wave_1",
-      "priority": "critical",
-      "description": "Planned remediation for crypto-host-01 in wave_1.",
+      "priority": "high",
+      "description": "Planned remediation for qrp-linux-demo-01 in wave_1.",
       "recommended_action": "Vendor readiness blocker detected. Initiate vendor escalation and tracked exception path.",
-      "id": "411e5bbb-ffee-41a7-91da-9b83898b1407",
+      "id": "6cd599da-6d4c-4205-a2fc-bdfdaa5d5b4d",
       "status": "draft"
     },
     {
-      "title": "Review payments.example.com:443",
-      "asset_name": "payments.example.com:443",
+      "title": "Review api.example.internal:443",
+      "asset_name": "api.example.internal:443",
       "wave": "wave_1",
       "priority": "high",
-      "description": "Planned remediation for payments.example.com:443 in wave_1.",
+      "description": "Planned remediation for api.example.internal:443 in wave_1.",
       "recommended_action": "Vendor readiness blocker detected. Initiate vendor escalation and tracked exception path.",
-      "id": "081f4d0b-4580-4435-9493-29f316ad9229",
+      "id": "dfebafb7-1cad-4633-bd60-a298c62e74b1",
       "status": "draft"
     }
   ]

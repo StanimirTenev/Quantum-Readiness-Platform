@@ -216,6 +216,7 @@ python -m pytest tools/graph_projection -q
   - `reports/trl6/operator-review-summary.md`
   - `reports/trl6/operator-demo-checklist.md`
   - `docs/trl6-operator-review-boundary.md`
+  - `reports/external-review/partner-handoff-pack.md` (external partner/operator technical review handoff artifact)
 - This is an evidence review/sign-off step only.
 - TRL 6 achieved is not claimed in this checkpoint.
 

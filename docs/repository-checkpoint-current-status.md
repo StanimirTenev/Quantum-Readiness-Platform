@@ -46,6 +46,7 @@ Key artifacts:
 - reports/evidence/latest/
 - docs/operator-validation-checklist.md
 - scripts/run_evidence_pack_index.sh
+- scripts/run_trl6_demo_bundle.sh
 - reports/evidence-pack/evidence-pack-index.json
 - reports/evidence-pack/evidence-pack-index.md
 
@@ -55,6 +56,13 @@ Evidence Pack Index status:
 - writes JSON/Markdown index
 - does not run tests/services
 - does not imply production readiness
+
+TRL6 Demo Evidence Bundle status:
+- implemented deterministic review/export bundle tool
+- scans predefined TRL6/operator/evidence artifacts
+- writes JSON/Markdown bundle indexes to reports/trl6/demo-bundle/
+- does not run tests/services or regenerate source evidence
+- does not claim TRL 6 achieved or production readiness
 
 ## Stage 2 — Discovery / Evidence Enrichment
 

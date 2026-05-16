@@ -157,6 +157,14 @@ Output:
 reports/graph/latest/graph-snapshot.json
 reports/graph/latest/graph-projection-report.md
 
+
+## TRL 6 Operator Review / Demo Sign-off Package
+
+Validation/status artifacts:
+- `reports/trl6/operator-review-summary.md`
+- `reports/trl6/operator-demo-checklist.md`
+- `docs/trl6-operator-review-boundary.md`
+
 ## Stage 2 documentation update (current code + fixtures)
 
 ### 1) New evidence collected by `linux-host-agent`

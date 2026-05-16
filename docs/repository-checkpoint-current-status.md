@@ -63,6 +63,7 @@ TRL6 Demo Evidence Bundle status:
 - writes JSON/Markdown bundle indexes to reports/trl6/demo-bundle/
 - does not run tests/services or regenerate source evidence
 - does not claim TRL 6 achieved or production readiness
+- TRL6 Demo Bundle Integrity Smoke validation tooling added: `bash scripts/run_trl6_demo_bundle_smoke.sh` (integrity/report validation only)
 
 ## Stage 2 — Discovery / Evidence Enrichment
 

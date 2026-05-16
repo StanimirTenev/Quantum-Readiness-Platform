@@ -337,4 +337,5 @@ reports/copilot/offline-smoke-report.md
 
 ```bash
 bash scripts/run_trl6_readiness_validation.sh
+bash scripts/run_trl6_demo_bundle_smoke.sh
 ```

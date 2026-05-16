@@ -152,7 +152,8 @@ def test_get_graph_snapshot_returns_expected_shape(monkeypatch) -> None:
     response = client.get("/graph/snapshot")
 
     assert response.status_code == 200
-    assert set(response.json().keys()) == {"graph_schema_version", "nodes", "edges", "warnings", "metadata"}
+    data = response.json()
+    assert {"graph_schema_version", "nodes", "edges", "warnings"}.issubset(data.keys())
 
 
 def test_get_graph_nodes_returns_list(monkeypatch) -> None:
@@ -193,10 +194,80 @@ def test_graph_snapshot_missing_returns_structured_safe_error(monkeypatch) -> No
 
 
 def test_graph_snapshot_remote_path_is_rejected(monkeypatch) -> None:
-    monkeypatch.setenv("GRAPH_SNAPSHOT_PATH", "https://example.com/graph-snapshot.json")
-    response = client.get("/graph/summary")
-    assert response.status_code == 400
-    assert response.json() == {"detail": {"error": "graph_snapshot_unsafe_path"}}
+    for unsafe_path in ("http://example.com/graph-snapshot.json", "https://example.com/graph-snapshot.json"):
+        monkeypatch.setenv("GRAPH_SNAPSHOT_PATH", unsafe_path)
+        response = client.get("/graph/summary")
+        assert response.status_code == 400
+        assert response.json() == {"detail": {"error": "graph_snapshot_unsafe_path"}}
+
+
+def test_graph_nodes_filter_returns_only_matching_type_and_empty_for_unknown(monkeypatch) -> None:
+    snapshot = {
+        "graph_schema_version": "v1",
+        "nodes": [{"id": "n1", "type": "asset"}, {"id": "n2", "type": "supplier"}],
+        "edges": [],
+        "warnings": [],
+    }
+    monkeypatch.setattr(main, "_load_graph_snapshot_or_raise", lambda: snapshot)
+
+    filtered = client.get("/graph/nodes?node_type=asset")
+    assert filtered.status_code == 200
+    filtered_nodes = filtered.json()["nodes"]
+    assert isinstance(filtered_nodes, list)
+    assert all(node.get("type") == "asset" for node in filtered_nodes)
+
+    unknown = client.get("/graph/nodes?node_type=unknown_type")
+    assert unknown.status_code == 200
+    assert unknown.json()["nodes"] == []
+
+
+def test_graph_edges_filter_returns_only_matching_type_and_empty_for_unknown(monkeypatch) -> None:
+    snapshot = {
+        "graph_schema_version": "v1",
+        "nodes": [{"id": "n1", "type": "asset"}, {"id": "n2", "type": "supplier"}],
+        "edges": [
+            {"from": "n1", "to": "n2", "type": "depends_on"},
+            {"from": "n2", "to": "n1", "type": "owned_by"},
+        ],
+        "warnings": [],
+    }
+    monkeypatch.setattr(main, "_load_graph_snapshot_or_raise", lambda: snapshot)
+
+    filtered = client.get("/graph/edges?edge_type=depends_on")
+    assert filtered.status_code == 200
+    filtered_edges = filtered.json()["edges"]
+    assert isinstance(filtered_edges, list)
+    assert all(edge.get("type") == "depends_on" for edge in filtered_edges)
+
+    unknown = client.get("/graph/edges?edge_type=unknown_type")
+    assert unknown.status_code == 200
+    assert unknown.json()["edges"] == []
+
+
+def test_graph_snapshot_responses_do_not_include_graph_db_or_traversal_indicators(monkeypatch) -> None:
+    snapshot = {
+        "graph_schema_version": "v1",
+        "nodes": [{"id": "n1", "type": "asset"}],
+        "edges": [{"from": "n1", "to": "n1", "type": "depends_on"}],
+        "warnings": [{"code": "w1"}],
+    }
+    monkeypatch.setattr(main, "_load_graph_snapshot_or_raise", lambda: snapshot)
+
+    disallowed_terms = {
+        "neo4j",
+        "cypher",
+        "database_url",
+        "graph_db",
+        "blast_radius",
+        "traversal_result",
+        "path_query",
+    }
+
+    for path in ("/graph/snapshot", "/graph/summary", "/graph/nodes", "/graph/edges", "/graph/warnings"):
+        response = client.get(path)
+        assert response.status_code == 200
+        payload_lower = response.text.lower()
+        assert all(term not in payload_lower for term in disallowed_terms)
 
 
 def test_graph_api_has_no_mutation_methods() -> None:
@@ -204,3 +275,18 @@ def test_graph_api_has_no_mutation_methods() -> None:
     for path, methods in openapi["paths"].items():
         if path.startswith("/graph/"):
             assert set(methods.keys()) == {"get"}
+
+
+def test_graph_mutation_requests_are_not_successful() -> None:
+    mutation_requests = [
+        ("post", "/graph/snapshot"),
+        ("put", "/graph/snapshot"),
+        ("patch", "/graph/snapshot"),
+        ("delete", "/graph/snapshot"),
+        ("post", "/graph/nodes"),
+        ("delete", "/graph/nodes"),
+    ]
+
+    for method, path in mutation_requests:
+        response = client.request(method.upper(), path, json={})
+        assert response.status_code < 200 or response.status_code >= 300

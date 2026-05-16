@@ -1,6 +1,6 @@
 # Graph API Read-only Smoke Report
 
-- utc_timestamp: 2026-05-16T04:00:12.561586+00:00
+- utc_timestamp: 2026-05-16T06:21:32.351994+00:00
 - snapshot_path: /workspace/Quantum-Readiness-Platform/reports/graph/latest/graph-snapshot.json
 - graph_schema_version: 0.1
 - node_count: 8
@@ -9,5 +9,5 @@
 - endpoints_checked: /graph/snapshot, /graph/summary, /graph/nodes, /graph/edges, /graph/warnings
 - result: PASS
 
-This smoke validates read-only Graph API endpoints over the JSON snapshot only.
-No graph database, Neo4j, traversal engine, or mutation endpoint is used.
+Graph API remains read-only over the local JSON snapshot.
+No graph database, Neo4j, traversal engine, blast-radius engine, or mutation endpoint is used.

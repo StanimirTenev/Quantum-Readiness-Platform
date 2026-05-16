@@ -4,7 +4,7 @@ QRP is designed for internal/customer-controlled deployment with local-first evi
 
 Note: the legacy demo (`docs/demo/qrp_demo_legacy.html`) has external LLM calls disabled to preserve the local-first/privacy boundary.
 
-Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning. Current status: TRL 5 candidate based on repeatable local validation with preserved evidence artifacts.
+Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning. Current status: QRP has a passing TRL6 readiness validation package in a local relevant-environment simulation. TRL 6 achieved is not claimed until relevant-environment demo execution and operator review/sign-off are completed.
 
 ## Modules
 - API Gateway
@@ -163,7 +163,10 @@ reports/graph/latest/graph-projection-report.md
 Validation/status artifacts:
 - `reports/trl6/operator-review-summary.md`
 - `reports/trl6/operator-demo-checklist.md`
+- `docs/trl6-readiness-plan.md`
 - `docs/trl6-operator-review-boundary.md`
+- `reports/trl6/demo-bundle/trl6-demo-bundle-index.md`
+- `reports/trl6/demo-bundle/trl6-demo-bundle-smoke-report.md`
 
 ## Stage 2 documentation update (current code + fixtures)
 

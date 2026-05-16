@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This checklist is used to manually verify that the local TRL validation run is repeatable, evidence-backed and suitable for TRL 5 candidate assessment.
+This checklist is used to manually verify that the local TRL validation run is repeatable, evidence-backed and suitable for readiness-package assessment and evidence quality review.
 
 ## Preconditions
 
@@ -124,4 +124,4 @@ If any check fails:
 1. Capture failing command output and relevant service logs from `logs/*.log`.
 2. Record which checklist step failed and why.
 3. Fix the issue and restart from **Step 1 — Clean Start**.
-4. Do not claim TRL 5 candidate readiness until all acceptance criteria pass.
+4. Do not claim TRL 6 achieved or production readiness based on this checklist alone.

@@ -10,7 +10,7 @@ This checkpoint records the current repository state after the dependency-graph 
 
 ## Current Maturity
 
-Current maturity: TRL 5 candidate / enriched-evidence operational prototype with improved risk/planning analysis, lightweight JSON graph projection, and disabled-provider Copilot stub.
+Current maturity: TRL6 readiness validation package PASS (local relevant-environment simulation) with enriched-evidence operational prototype capabilities, lightweight JSON graph projection, and disabled-provider Copilot stub. TRL 6 achieved is not claimed.
 
 ## Architecture Principles Locked
 
@@ -109,7 +109,8 @@ Summarize:
 - graph projection from Stage 2 fixtures
 - graph helper tests
 - polished projection report
-- no graph DB/API/UI
+- minimal read-only Graph API over local JSON snapshot is implemented in the existing api-gateway
+- no graph DB/Neo4j/mutation endpoints/traversal/blast-radius/graph UI/production graph infrastructure
 
 Key artifacts:
 - scripts/run_graph_projection_smoke.sh

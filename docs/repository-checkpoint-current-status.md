@@ -10,7 +10,10 @@ This document is a checkpoint to prevent scope drift before starting the next ma
 
 ## Current Maturity
 
-Current maturity: TRL 5 candidate / enriched-evidence operational prototype with improved risk/planning analysis and lightweight JSON graph projection.
+
+Repository consistency cleanup aligned status wording after TRL6 readiness PASS and demo bundle smoke.
+
+Current maturity: TRL6 readiness validation package PASS (local relevant-environment simulation) with an enriched-evidence operational prototype, improved risk/planning analysis, and lightweight JSON graph projection. TRL 6 achieved is not claimed.
 
 ## Current Architecture Principle
 

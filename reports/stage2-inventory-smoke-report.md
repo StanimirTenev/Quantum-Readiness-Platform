@@ -1,7 +1,7 @@
 # Stage 2 Inventory Smoke Report
 
 ## Validation Date
-2026-05-09T04:38:44Z
+2026-05-16T03:59:55Z
 
 ## Scope
 - minimal Stage 1-compatible ingest
@@ -21,9 +21,9 @@
 
 ## Success Responses
 
-- minimal scan_id: 228ced85-d17a-4861-a1d4-e8db7f8a6350, created: 1, asset_ids count: 1
-- host enriched scan_id: ed18f23c-3bcd-4109-b63f-d2c7e5074847, created: 1, asset_ids count: 1
-- network enriched scan_id: e3d04587-e675-40ec-b6a8-9597ee81d423, created: 1, asset_ids count: 1
+- minimal scan_id: def82829-02de-490e-a856-729540fcb4bc, created: 1, asset_ids count: 1
+- host enriched scan_id: 9adc8e5a-6641-4356-b228-03ec697d5695, created: 1, asset_ids count: 1
+- network enriched scan_id: 95875cfb-73ff-4140-9abf-6e973a743e2a, created: 1, asset_ids count: 1
 
 ## Invalid Fixture Results
 

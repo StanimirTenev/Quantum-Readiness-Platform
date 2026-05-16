@@ -1,7 +1,7 @@
 # Copilot Offline Smoke Report
 
 ## Validation Date
-2026-05-14T06:24:05Z
+2026-05-16T04:00:30Z
 
 ## Scope
 - disabled provider default

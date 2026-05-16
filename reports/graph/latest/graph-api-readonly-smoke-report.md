@@ -1,6 +1,6 @@
 # Graph API Read-only Smoke Report
 
-- utc_timestamp: 2026-05-14T06:23:52.134807+00:00
+- utc_timestamp: 2026-05-16T04:00:12.561586+00:00
 - snapshot_path: /workspace/Quantum-Readiness-Platform/reports/graph/latest/graph-snapshot.json
 - graph_schema_version: 0.1
 - node_count: 8

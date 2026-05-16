@@ -1,22 +1,22 @@
 [
   {
-    "asset_type": "server",
-    "name": "crypto-host-01",
+    "asset_type": "endpoint",
+    "name": "api.example.internal:443",
     "owner": null,
-    "criticality": 5,
+    "criticality": 3,
     "environment": "production",
-    "vendor": "linux-foundation",
-    "lifecycle_years": 8,
-    "id": "5f321b9d-0a25-4716-a060-bab78f49f5b8"
+    "vendor": "example-edge-vendor",
+    "lifecycle_years": null,
+    "id": "fc2c0657-f12d-4cb4-8449-ec4eeb8e5bd4"
   },
   {
-    "asset_type": "endpoint",
-    "name": "payments.example.com:443",
+    "asset_type": "server",
+    "name": "qrp-linux-demo-01",
     "owner": null,
     "criticality": 4,
     "environment": "production",
-    "vendor": "payments-vendor",
-    "lifecycle_years": 5,
-    "id": "e8aef8f3-4970-4623-b8dd-632ad2843c67"
+    "vendor": "example-linux-vendor",
+    "lifecycle_years": null,
+    "id": "fd139177-2868-48f5-bcab-14c9cdf20070"
   }
 ]

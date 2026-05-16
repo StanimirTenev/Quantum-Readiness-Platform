@@ -1,18 +1,18 @@
 {
   "request": {
-    "asset_name": "payments.example.com:443",
+    "asset_name": "api.example.internal:443",
     "environment": "production",
     "criticality": 4,
-    "normalized_score_100": 74.0,
+    "normalized_score_100": 73.0,
     "rating": "high",
     "vendor_blocked": true,
     "dependency_count": 3,
     "scenario": "public_timeline"
   },
   "response": {
-    "asset_name": "payments.example.com:443",
+    "asset_name": "api.example.internal:443",
     "decision": "deny",
-    "score": 74.0,
+    "score": 73.0,
     "reasons": [
       "vendor_blocked"
     ],

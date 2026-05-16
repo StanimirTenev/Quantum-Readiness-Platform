@@ -1,7 +1,7 @@
 # Stage 2 E2E Smoke Report
 
 ## Validation Date
-2026-05-09T05:39:11.922223+00:00
+2026-05-16T04:00:00.880875+00:00
 
 ## Scope
 - enriched host evidence ingest
@@ -26,10 +26,10 @@
 
 ## Inventory Results
 
-- host scan_id: b44ae8ab-40aa-4834-8971-9ff2e224794e
+- host scan_id: ba6f013d-2f5d-4f27-8760-d45c9327d7c7
 - host created: 1
 - host asset_ids count: 1
-- network scan_id: a431b811-0894-4079-89f6-e04c11a2d23e
+- network scan_id: a1d78c5c-70e4-4758-8b7b-90acd975e36f
 - network created: 1
 - network asset_ids count: 1
 
@@ -43,7 +43,7 @@
 ## Planner Results
 
 - assigned wave: wave_2
-- planning reasons: stage2_weak_public_key
+- planning reasons: priority_score_computed, priority_from_normalized_score, stage2_weak_public_key, wave_cap_from_weak_public_key
 - no later than wave_2 check: PASS
 
 ## Result

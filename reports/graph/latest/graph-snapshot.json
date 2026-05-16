@@ -2,7 +2,7 @@
   "graph_schema_version": "0.1",
   "projection_version": "0.1.0",
   "graph_snapshot_id": "50eb0ae424cec904",
-  "generated_at": "2026-05-14T06:23:49Z",
+  "generated_at": "2026-05-16T04:00:08Z",
   "source": "stage2_fixture_projection_smoke",
   "inputs": {
     "fixtures": [

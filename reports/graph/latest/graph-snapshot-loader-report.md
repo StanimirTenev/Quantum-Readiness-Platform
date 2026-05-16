@@ -1,6 +1,6 @@
 # Graph Snapshot Loader Smoke Report
 
-- utc_timestamp: 2026-05-14T06:23:49.977518+00:00
+- utc_timestamp: 2026-05-16T04:00:09.646258+00:00
 - snapshot_path: reports/graph/latest/graph-snapshot.json
 - graph_schema_version: 0.1
 - node_count: 8

@@ -3,16 +3,16 @@
     "source": "host",
     "created": 1,
     "asset_ids": [
-      "5f321b9d-0a25-4716-a060-bab78f49f5b8"
+      "fd139177-2868-48f5-bcab-14c9cdf20070"
     ],
-    "scan_id": "f09c3973-483c-46bd-8646-580985761e53"
+    "scan_id": "26b8f837-ade9-4afd-a17a-097ae1f5dd68"
   },
   "network_ingest": {
     "source": "network",
     "created": 1,
     "asset_ids": [
-      "e8aef8f3-4970-4623-b8dd-632ad2843c67"
+      "fc2c0657-f12d-4cb4-8449-ec4eeb8e5bd4"
     ],
-    "scan_id": "1828d74c-0c74-474f-9b47-5c633cee57a6"
+    "scan_id": "3d7854f2-983f-4a98-9b02-d99212b55457"
   }
 }

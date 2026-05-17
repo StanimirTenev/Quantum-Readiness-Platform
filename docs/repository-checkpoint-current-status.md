@@ -244,13 +244,21 @@ python -m pytest tools/graph_projection -q
 - TRL 6 achieved is not claimed in this checkpoint.
 
 
-## External Review Status (StravixLab)
+## StravixLab External Review and Follow-up
 
-- External review completed by StravixLab (2026-05-17).
-- Decision: Accepted with limitations.
+- External review completed by StravixLab.
+- Decision: ACCEPTED WITH LIMITATIONS.
+- Date: 2026-05-17.
+- Reviewer: Dimitar Parashkevov, Founder.
+- TRL6 readiness validation: PASS.
+- TRL6 demo bundle smoke: PASS.
+- Follow-up action plan: `reports/external-review/stravixlab-follow-up-action-plan.md`.
+- Follow-up actions SRX-001 through SRX-005: ADDRESSED.
+- Setup prerequisites were clarified (`python3` / `python-is-python3`, and `pytest`).
+- Known limitations were improved and split for clearer operational vs scope boundaries.
+- Demo-bundle `status_hint` known-limitations false-positive behavior was fixed.
 - TRL 6 achieved: not claimed.
-- Production readiness: not claimed.
-- Follow-up action plan opened: `reports/external-review/stravixlab-follow-up-action-plan.md`.
+- production readiness: not claimed.
 
 ## What Is Not Implemented Yet
 

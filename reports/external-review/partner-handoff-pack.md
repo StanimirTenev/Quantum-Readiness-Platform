@@ -42,7 +42,8 @@ Recommended review order:
 6. `reports/trl6/known-limitations.md`
 7. `reports/trl6/demo-bundle/trl6-demo-bundle-index.md`
 8. `reports/trl6/demo-bundle/trl6-demo-bundle-smoke-report.md`
-9. `reports/repo-review/repo-review-after-trl6-cleanup.md`
+9. `reports/trl6/relevant-environment-demo-run-instructions.md`
+10. `reports/repo-review/repo-review-after-trl6-cleanup.md`
 
 ## Validation commands for reviewer
 - `bash scripts/run_trl6_readiness_validation.sh`
@@ -112,7 +113,7 @@ Not acceptable:
 
 ## Next steps after review
 A. Complete operator checklist/sign-off  
-B. Attach relevant-environment demo evidence  
+B. Follow `reports/trl6/relevant-environment-demo-run-instructions.md` and attach relevant-environment demo evidence  
 C. Update status to TRL6 candidate package if review is accepted  
 D. Do not claim TRL6 achieved until sign-off evidence is complete
 

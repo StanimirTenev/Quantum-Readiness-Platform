@@ -234,6 +234,7 @@ python -m pytest tools/graph_projection -q
 - Operator Review Execution Record: `reports/trl6/operator-review-execution-record.md` (prepared; pending named operator/reviewer sign-off)
 - Relevant-Environment Demo Evidence Record: `reports/trl6/relevant-environment-demo-evidence.md` (prepared template; pending real relevant-environment demo execution)
 - Relevant-Environment Demo Execution Summary: `reports/trl6/relevant-environment-demo-execution-summary.md` (prepared; pending real relevant-environment demo execution)
+- Relevant-Environment Demo Run Instructions: `reports/trl6/relevant-environment-demo-run-instructions.md` (prepared instruction sheet; demo execution remains pending)
 - TRL6 Claim Review Readiness Checklist: `reports/trl6/trl6-claim-review-readiness-checklist.md` (prepared; current claim decision state: NOT_READY)
   - `reports/trl6/operator-review-summary.md`
   - `reports/trl6/operator-demo-checklist.md`

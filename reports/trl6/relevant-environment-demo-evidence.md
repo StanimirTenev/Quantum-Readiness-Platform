@@ -6,6 +6,8 @@ UTC timestamp: 2026-05-17T00:00:00Z
 
 This record is a template/evidence record for documenting a relevant-environment demo execution. It is prepared for completion after a real observed run and does not indicate completion by itself.
 
+Reference: `reports/trl6/relevant-environment-demo-execution-summary.md` (prepared pending execution summary for the real demo run).
+
 ## Current status
 
 - TRL6 readiness package: PASS

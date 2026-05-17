@@ -224,6 +224,13 @@ TRL7 operational dry-run script status:
 - does not claim TRL 7 achieved
 - does not claim production readiness
 
+TRL7 operational evidence bundle builder status:
+- `scripts/run_trl7_operational_evidence_bundle.sh` added as deterministic indexing/preparation for operational evidence review
+- indexes TRL7 dry-run/pilot preparation artifacts
+- writes JSON/Markdown indexes under `reports/trl7/operational-evidence/`
+- TRL 7 achieved is not claimed
+- Production readiness is not claimed
+
 Service/unit tests:
 
 cd services/inventory-service && PYTHONPATH=. pytest -q

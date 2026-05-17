@@ -7,7 +7,7 @@
     "environment": "production",
     "vendor": "example-edge-vendor",
     "lifecycle_years": null,
-    "id": "fc2c0657-f12d-4cb4-8449-ec4eeb8e5bd4"
+    "id": "20398b27-9e35-4941-9833-6c0025f8b82e"
   },
   {
     "asset_type": "server",
@@ -17,6 +17,6 @@
     "environment": "production",
     "vendor": "example-linux-vendor",
     "lifecycle_years": null,
-    "id": "fd139177-2868-48f5-bcab-14c9cdf20070"
+    "id": "54e69345-8c0a-44e8-a020-7cb68af66287"
   }
 ]

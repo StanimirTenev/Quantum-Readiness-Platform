@@ -11,7 +11,7 @@
       "priority": "high",
       "description": "Planned remediation for qrp-linux-demo-01 in wave_1.",
       "recommended_action": "Vendor readiness blocker detected. Initiate vendor escalation and tracked exception path.",
-      "id": "6cd599da-6d4c-4205-a2fc-bdfdaa5d5b4d",
+      "id": "46c3bd63-0977-4bb3-8d72-e0c52a1b0c30",
       "status": "draft"
     },
     {
@@ -21,7 +21,7 @@
       "priority": "high",
       "description": "Planned remediation for api.example.internal:443 in wave_1.",
       "recommended_action": "Vendor readiness blocker detected. Initiate vendor escalation and tracked exception path.",
-      "id": "dfebafb7-1cad-4633-bd60-a298c62e74b1",
+      "id": "08d24a4c-d769-4dcb-9e82-f87c28ec3190",
       "status": "draft"
     }
   ]

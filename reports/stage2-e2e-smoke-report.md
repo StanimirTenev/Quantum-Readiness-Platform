@@ -1,7 +1,7 @@
 # Stage 2 E2E Smoke Report
 
 ## Validation Date
-2026-05-16T04:00:00.880875+00:00
+2026-05-17T06:51:38.264354+00:00
 
 ## Scope
 - enriched host evidence ingest
@@ -26,10 +26,10 @@
 
 ## Inventory Results
 
-- host scan_id: ba6f013d-2f5d-4f27-8760-d45c9327d7c7
+- host scan_id: b0a17e6e-724a-4ecd-98ed-b69b5cbf0b29
 - host created: 1
 - host asset_ids count: 1
-- network scan_id: a1d78c5c-70e4-4758-8b7b-90acd975e36f
+- network scan_id: fe20551a-906c-48ed-ae28-f43bb431de89
 - network created: 1
 - network asset_ids count: 1
 

@@ -1,7 +1,7 @@
 # Stage 3 Risk/Planning Smoke Report
 
 ## Validation Date
-2026-05-16T04:00:07Z
+2026-05-17T06:51:42Z
 
 ## Scope
 - enriched evidence ingest
@@ -21,10 +21,10 @@
 
 ## Inventory Results
 
-- host scan_id: 9ca91fc1-cdfa-45d9-b38a-d2a38425b263
+- host scan_id: 04d6780c-9643-4096-8b95-a99135dc92d6
 - host created: 1
 - host asset_ids count: 1
-- network scan_id: d0e9a0d2-50df-4cff-b94d-e10263aa76f3
+- network scan_id: ca153e39-a475-49b1-adaa-72749e6a2bad
 - network created: 1
 - network asset_ids count: 1
 

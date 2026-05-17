@@ -218,6 +218,12 @@ TRL 6 readiness validation script status:
 - implemented as deterministic validation orchestration/reporting only
 - does not claim TRL 6 achieved
 
+TRL7 operational dry-run script status:
+- `scripts/run_trl7_operational_dry_run.sh` added as deterministic orchestration/reporting preparation for operational pilot rehearsal
+- writes TRL7 dry-run command logs and report artifacts under `reports/trl7/`
+- does not claim TRL 7 achieved
+- does not claim production readiness
+
 Service/unit tests:
 
 cd services/inventory-service && PYTHONPATH=. pytest -q

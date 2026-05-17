@@ -354,5 +354,7 @@ Do not start the following until explicitly chosen:
 - Next direction: execute a docs-first TRL 6 readiness track focused on relevant-environment validation planning and operator-driven demonstration evidence.
 - Status remains conservative: TRL 6 is not yet claimed.
 - See: `docs/trl6-readiness-plan.md`
+- Next direction: execute a TRL7 Operational Readiness Track (docs-first) to plan operational-environment pilot validation; TRL 7 achieved is not claimed.
+- See: `docs/trl7-operational-readiness-plan.md`
 
 - Production readiness remains not claimed.

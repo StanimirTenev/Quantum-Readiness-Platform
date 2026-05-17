@@ -60,6 +60,7 @@ These commands are local validation/report commands and do not imply production 
 ### Operator review
 - `reports/trl6/operator-review-summary.md`
 - `reports/trl6/operator-demo-checklist.md`
+- `reports/trl6/relevant-environment-demo-evidence.md` (pending required evidence before any TRL 6 achieved wording)
 - `docs/trl6-operator-review-boundary.md`
 
 ### Demo bundle

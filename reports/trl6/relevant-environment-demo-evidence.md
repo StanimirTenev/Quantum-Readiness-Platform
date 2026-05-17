@@ -8,6 +8,8 @@ This record is a template/evidence record for documenting a relevant-environment
 
 Reference: `reports/trl6/relevant-environment-demo-execution-summary.md` (prepared pending execution summary for the real demo run).
 
+Run instructions: `reports/trl6/relevant-environment-demo-run-instructions.md` (prepared instruction sheet for real demo execution recording).
+
 ## Current status
 
 - TRL6 readiness package: PASS

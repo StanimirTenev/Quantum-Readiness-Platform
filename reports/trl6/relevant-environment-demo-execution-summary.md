@@ -31,6 +31,7 @@ This is a pending execution summary for the relevant-environment demo.
 - `reports/trl6/trl6-readiness-report.md`
 - `reports/trl6/operator-review-execution-record.md`
 - `reports/trl6/relevant-environment-demo-evidence.md`
+- `reports/trl6/relevant-environment-demo-run-instructions.md`
 - `reports/trl6/operator-demo-checklist.md`
 - `reports/trl6/known-limitations.md`
 - `reports/trl6/demo-bundle/trl6-demo-bundle-index.md`

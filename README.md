@@ -169,6 +169,14 @@ Run:
 bash scripts/run_trl7_operational_dry_run.sh
 ```
 
+## TRL7 Operational Evidence Bundle Smoke
+
+Run:
+
+```bash
+bash scripts/run_trl7_operational_evidence_bundle_smoke.sh
+```
+
 ## TRL 6 Operator Review / Demo Sign-off Package
 
 Validation/status artifacts:

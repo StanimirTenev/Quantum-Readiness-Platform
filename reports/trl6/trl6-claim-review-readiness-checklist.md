@@ -19,7 +19,7 @@ This checklist prepares for a future TRL 6 claim review and does not itself clai
 ## Required prerequisites before TRL 6 achieved wording may be considered
 
 - External review result (StravixLab): ACCEPTED WITH LIMITATIONS
-- Remaining external-review action items must be addressed before any stronger claim wording is considered.
+- External review follow-up action items (SRX-001..SRX-005) are addressed; final claim decision approval is still required before any stronger claim wording is considered.
 
 - [ ] TRL6 readiness report reviewed
 - [ ] Operator review execution record reviewed
@@ -59,7 +59,7 @@ This checklist prepares for a future TRL 6 claim review and does not itself clai
 
 Current claim decision state: **NOT_READY**
 
-Reason: Remaining limitations/action items are open (including documentation and status_hint follow-ups), and stronger claim wording must wait until those items are addressed.
+Reason: External review is completed and follow-up actions are addressed, but final explicit claim decision/sign-off is still required before any TRL 6 achieved wording may be used.
 
 ## Safe wording before claim review
 

@@ -6,6 +6,16 @@ This pack is for partner, operator, and external technical review of the current
 ## Current safe status wording
 QRP has a passing TRL6 readiness validation package in a local relevant-environment simulation. TRL 6 achieved is not claimed until relevant-environment demo execution and operator review/sign-off are completed.
 
+## StravixLab review completion status
+- External review completed by StravixLab on 2026-05-17.
+- Reviewer: Dimitar Parashkevov, Founder.
+- Decision: ACCEPTED WITH LIMITATIONS.
+- TRL6 readiness validation: PASS.
+- Demo bundle smoke: PASS.
+- Follow-up actions SRX-001..SRX-005: ADDRESSED (`reports/external-review/stravixlab-follow-up-action-plan.md`).
+- TRL 6 achieved: not claimed.
+- Production readiness: not claimed.
+
 ## What is currently demonstrated
 - local-first evidence flow
 - inventory ingest

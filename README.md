@@ -75,6 +75,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Graph API Read-only Freeze Status: `docs/graph-api-readonly-freeze-status.md`
 - Repository checkpoint added: `docs/repository-checkpoint-current-status.md`
 - TRL 6 Readiness Plan: `docs/trl6-readiness-plan.md`
+- TRL7 Operational Readiness Plan: `docs/trl7-operational-readiness-plan.md`
 - Cross-Platform Agent Design: `docs/cross-platform-agent-design.md`
 - Windows Evidence Fixture Contract: `docs/windows-evidence-fixture-contract.md`
 - Inventory Windows Evidence Acceptance Design: `docs/inventory-windows-evidence-acceptance-design.md`

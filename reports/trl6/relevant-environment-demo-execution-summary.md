@@ -39,6 +39,7 @@ This is a pending execution summary for the relevant-environment demo.
 - `reports/external-review/partner-handoff-pack.md`
 - `reports/repo-review/repo-review-after-trl6-cleanup.md`
 - `reports/trl6/trl6-claim-review-readiness-checklist.md`
+- `reports/trl6/final-trl6-claim-review-decision.md`
 
 ## Execution status
 
@@ -71,4 +72,4 @@ This execution summary does not claim TRL 6 achieved or production readiness.
 
 ## Next step
 
-Run the relevant-environment demo with a named operator/reviewer, attach evidence, complete sign-off, then perform a separate TRL 6 claim review using `reports/trl6/trl6-claim-review-readiness-checklist.md`.
+Run the relevant-environment demo with a named operator/reviewer, attach evidence, complete sign-off, then perform a separate TRL 6 claim review using `reports/trl6/trl6-claim-review-readiness-checklist.md` and `reports/trl6/final-trl6-claim-review-decision.md`.

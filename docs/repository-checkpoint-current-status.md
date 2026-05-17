@@ -235,7 +235,8 @@ python -m pytest tools/graph_projection -q
 - Relevant-Environment Demo Evidence Record: `reports/trl6/relevant-environment-demo-evidence.md` (prepared template; pending real relevant-environment demo execution)
 - Relevant-Environment Demo Execution Summary: `reports/trl6/relevant-environment-demo-execution-summary.md` (prepared; pending real relevant-environment demo execution)
 - Relevant-Environment Demo Run Instructions: `reports/trl6/relevant-environment-demo-run-instructions.md` (prepared instruction sheet; demo execution remains pending)
-- TRL6 Claim Review Readiness Checklist: `reports/trl6/trl6-claim-review-readiness-checklist.md` (prepared; current claim decision state: NOT_READY)
+- TRL6 Claim Review Readiness Checklist: `reports/trl6/trl6-claim-review-readiness-checklist.md` (updated; current claim decision state: READY_FOR_REVIEW_WITH_LIMITATIONS)
+- Final TRL6 Claim Review Decision Package: `reports/trl6/final-trl6-claim-review-decision.md` (conservative evidence review package; does not itself claim TRL 6 achieved)
   - `reports/trl6/operator-review-summary.md`
   - `reports/trl6/operator-demo-checklist.md`
   - `docs/trl6-operator-review-boundary.md`
@@ -257,7 +258,7 @@ python -m pytest tools/graph_projection -q
 - Setup prerequisites were clarified (`python3` / `python-is-python3`, and `pytest`).
 - Known limitations were improved and split for clearer operational vs scope boundaries.
 - Demo-bundle `status_hint` known-limitations false-positive behavior was fixed.
-- TRL 6 achieved: not claimed.
+- TRL 6 achieved: not claimed unless a future explicit claim approval record is added.
 - production readiness: not claimed.
 
 ## What Is Not Implemented Yet
@@ -346,3 +347,5 @@ Do not start the following until explicitly chosen:
 - Next direction: execute a docs-first TRL 6 readiness track focused on relevant-environment validation planning and operator-driven demonstration evidence.
 - Status remains conservative: TRL 6 is not yet claimed.
 - See: `docs/trl6-readiness-plan.md`
+
+- Production readiness remains not claimed.

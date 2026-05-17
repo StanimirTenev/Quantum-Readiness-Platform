@@ -161,6 +161,13 @@ Output:
 reports/graph/latest/graph-snapshot.json
 reports/graph/latest/graph-projection-report.md
 
+## TRL7 Operational Dry-Run (Orchestration/Reporting)
+
+Run:
+
+```bash
+bash scripts/run_trl7_operational_dry_run.sh
+```
 
 ## TRL 6 Operator Review / Demo Sign-off Package
 
@@ -373,4 +380,3 @@ sudo apt-get update
 sudo apt-get install -y python3 python3-pip python-is-python3
 python3 -m pip install pytest
 ```
-

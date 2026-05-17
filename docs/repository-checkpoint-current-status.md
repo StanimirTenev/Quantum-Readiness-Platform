@@ -231,6 +231,13 @@ TRL7 operational evidence bundle builder status:
 - TRL 7 achieved is not claimed
 - Production readiness is not claimed
 
+TRL7 operational evidence bundle smoke status:
+- `scripts/run_trl7_operational_evidence_bundle_smoke.sh` added as integrity/report validation tooling
+- validates required bundle artifact presence, JSON structure/summary fields, and boundary wording
+- writes smoke report to `reports/trl7/operational-evidence/trl7-operational-evidence-bundle-smoke-report.md`
+- does not claim TRL 7 achieved
+- does not claim production readiness
+
 Service/unit tests:
 
 cd services/inventory-service && PYTHONPATH=. pytest -q

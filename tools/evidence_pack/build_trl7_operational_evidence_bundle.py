@@ -59,6 +59,7 @@ def scan_artifact(repo_root: Path, spec: ArtifactSpec) -> dict[str, Any]:
         "path": spec.path,
         "category": spec.category,
         "exists": artifact_path.exists(),
+        "present": artifact_path.exists(),
         "required_for_review": spec.required_for_review,
         "status_hint": "UNKNOWN",
         "notes": spec.notes,
@@ -94,6 +95,7 @@ def build_index(repo_root: Path) -> dict[str, Any]:
             "pass_hint_count": sum(1 for a in artifacts if a["status_hint"] == "PASS"),
             "fail_hint_count": sum(1 for a in artifacts if a["status_hint"] == "FAIL"),
             "unknown_hint_count": sum(1 for a in artifacts if a["status_hint"] == "UNKNOWN"),
+            "review_required_count": sum(1 for a in artifacts if a["required_for_review"] and a["status_hint"] != "PASS"),
         },
         "artifacts": artifacts,
     }
@@ -111,9 +113,9 @@ def build_markdown(index: dict[str, Any]) -> str:
         "",
         "## Bundle Summary",
         "",
-        "| total artifacts | present | missing | required_present | required_missing | pass_hint_count | fail_hint_count | unknown_hint_count |",
-        "|---:|---:|---:|---:|---:|---:|---:|---:|",
-        f"| {s['total_artifacts']} | {s['present']} | {s['missing']} | {s['required_present']} | {s['required_missing']} | {s['pass_hint_count']} | {s['fail_hint_count']} | {s['unknown_hint_count']} |",
+        "| total artifacts | present | missing | required_present | required_missing | pass_hint_count | fail_hint_count | unknown_hint_count | review_required_count |",
+        "|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+        f"| {s['total_artifacts']} | {s['present']} | {s['missing']} | {s['required_present']} | {s['required_missing']} | {s['pass_hint_count']} | {s['fail_hint_count']} | {s['unknown_hint_count']} | {s['review_required_count']} |",
         "",
         "## Artifact Table",
         "",
@@ -126,10 +128,10 @@ def build_markdown(index: dict[str, Any]) -> str:
     lines.extend([
         "",
         "## Review Boundary Statements",
-        "- This bundle supports TRL7 dry-run/pilot preparation review only.",
+        "- This bundle supports TRL7 operational pilot preparation only.",
         "- TRL 7 achieved is not claimed by this bundle.",
         "- Production readiness is not claimed by this bundle.",
-        "- This bundle does not execute operational pilots or imply production readiness.",
+        "- This bundle does not run tests, start services, regenerate evidence, or perform remediation.",
         "",
     ])
     return "\n".join(lines)

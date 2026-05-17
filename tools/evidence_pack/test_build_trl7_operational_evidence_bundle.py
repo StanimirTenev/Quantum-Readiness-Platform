@@ -16,6 +16,7 @@ def test_build_index_shape_and_missing_counts(tmp_path: Path) -> None:
     assert index["summary"]["total_artifacts"] == 6
     assert index["summary"]["present"] == 1
     assert index["summary"]["required_missing"] == 4
+    assert "review_required_count" in index["summary"]
 
 
 def test_required_dry_run_report_status_and_hash(tmp_path: Path) -> None:
@@ -24,6 +25,7 @@ def test_required_dry_run_report_status_and_hash(tmp_path: Path) -> None:
     index = build_index(tmp_path)
     artifact = next(a for a in index["artifacts"] if a["artifact_id"] == "trl7_operational_dry_run_report")
     assert artifact["exists"] is True
+    assert artifact["present"] is True
     assert artifact["status_hint"] == "PASS"
     assert artifact["sha256"] == hashlib.sha256(content.encode("utf-8")).hexdigest()
 
@@ -32,3 +34,5 @@ def test_markdown_contains_boundary_statements(tmp_path: Path) -> None:
     md = build_markdown(build_index(tmp_path))
     assert "TRL 7 achieved is not claimed by this bundle." in md
     assert "Production readiness is not claimed by this bundle." in md
+    assert "This bundle supports TRL7 operational pilot preparation only." in md
+    assert "This bundle does not run tests, start services, regenerate evidence, or perform remediation." in md

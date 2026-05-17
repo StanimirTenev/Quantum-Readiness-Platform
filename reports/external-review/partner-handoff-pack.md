@@ -15,6 +15,7 @@ QRP has a passing TRL6 readiness validation package in a local relevant-environm
 - Follow-up actions SRX-001..SRX-005: ADDRESSED (`reports/external-review/stravixlab-follow-up-action-plan.md`).
 - TRL 6 achieved: not claimed.
 - Production readiness: not claimed.
+- Final claim review decision package: `reports/trl6/final-trl6-claim-review-decision.md` (recommended current state READY_FOR_REVIEW_WITH_LIMITATIONS; explicit claim approval still required for any external TRL 6 achieved wording).
 
 ## What is currently demonstrated
 - local-first evidence flow

@@ -53,13 +53,13 @@ This checklist prepares for a future TRL 6 claim review and does not itself clai
 ## Claim decision states
 
 - NOT_READY
-- READY_FOR_REVIEW
+- READY_FOR_REVIEW_WITH_LIMITATIONS
 - ACCEPTED_WITH_LIMITATIONS
 - REJECTED
 
-Current claim decision state: **NOT_READY**
+Current claim decision state: **READY_FOR_REVIEW_WITH_LIMITATIONS**
 
-Reason: External review is completed and follow-up actions are addressed, but final explicit claim decision/sign-off is still required before any TRL 6 achieved wording may be used.
+Reason: Readiness validation and demo bundle smoke are PASS, external review is ACCEPTED WITH LIMITATIONS, and SRX-001..SRX-005 are addressed. This is not a TRL 6 achieved claim; explicit claim approval/sign-off is still required before any TRL 6 achieved wording may be used externally.
 
 ## Safe wording before claim review
 

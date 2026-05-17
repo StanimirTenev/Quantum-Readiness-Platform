@@ -246,6 +246,13 @@ TRL7 operational dry-run review report status:
 - TRL7 achieved not claimed
 - production readiness not claimed
 
+TRL7 external pilot package status:
+- `reports/trl7/trl7-external-pilot-package.md` prepared as external pilot handoff artifact
+- external pilot package prepared
+- operational pilot/sign-off pending
+- TRL 7 achieved is not claimed
+- production readiness is not claimed
+
 Service/unit tests:
 
 cd services/inventory-service && PYTHONPATH=. pytest -q

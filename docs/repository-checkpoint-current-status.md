@@ -237,6 +237,7 @@ python -m pytest tools/graph_projection -q
 - Relevant-Environment Demo Run Instructions: `reports/trl6/relevant-environment-demo-run-instructions.md` (prepared instruction sheet; demo execution remains pending)
 - TRL6 Claim Review Readiness Checklist: `reports/trl6/trl6-claim-review-readiness-checklist.md` (updated; current claim decision state: READY_FOR_REVIEW_WITH_LIMITATIONS)
 - TRL7 Operational Pilot Checklist: `reports/trl7/trl7-operational-pilot-checklist.md` (prepared template; operational pilot execution and named operator/reviewer sign-off remain pending; TRL 7 achieved is not claimed)
+- TRL7 Operational Evidence Bundle Design: `docs/trl7-operational-evidence-bundle-design.md` (docs-only preparation; operational evidence bundle generation remains pending; TRL 7 achieved is not claimed)
 - Final TRL6 Claim Review Decision Package: `reports/trl6/final-trl6-claim-review-decision.md` (conservative evidence review package; does not itself claim TRL 6 achieved)
 - Conservative TRL6 Claim Approval Record: `reports/trl6/conservative-trl6-claim-approval-record.md`
 - Limited TRL6 Demonstrated Wording Approval Record: `reports/trl6/limited-trl6-demonstrated-approval-record.md`

@@ -23,6 +23,9 @@ Reviewed artifacts:
 
 ## Current Evidence State
 
+Reference: `reports/trl6/relevant-environment-demo-execution-summary.md` (prepared pending execution summary for the relevant-environment demo).
+
+
 - TRL6 readiness validation package: **PASS**
 - Demo bundle integrity smoke: **PASS**
 - Operator review package: **prepared**

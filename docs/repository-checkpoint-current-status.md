@@ -238,6 +238,14 @@ TRL7 operational evidence bundle smoke status:
 - does not claim TRL 7 achieved
 - does not claim production readiness
 
+TRL7 operational dry-run review report status:
+- `reports/trl7/trl7-operational-dry-run-review-report.md` added as review artifact for dry-run/evidence-bundle rehearsal outcomes
+- dry-run/evidence-bundle rehearsal review: PASS
+- required_missing: 0
+- operational pilot/sign-off pending
+- TRL7 achieved not claimed
+- production readiness not claimed
+
 Service/unit tests:
 
 cd services/inventory-service && PYTHONPATH=. pytest -q

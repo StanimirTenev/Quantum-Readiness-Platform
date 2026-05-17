@@ -253,6 +253,13 @@ TRL7 external pilot package status:
 - TRL 7 achieved is not claimed
 - production readiness is not claimed
 
+TRL7 static external pilot export manifest status:
+- `reports/trl7/trl7-static-external-pilot-export-manifest.md` prepared as static external pilot export manifest artifact
+- static external pilot export manifest prepared
+- operational pilot/sign-off pending
+- TRL 7 achieved is not claimed
+- production readiness is not claimed
+
 Service/unit tests:
 
 cd services/inventory-service && PYTHONPATH=. pytest -q

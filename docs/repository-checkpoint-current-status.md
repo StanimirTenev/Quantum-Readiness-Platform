@@ -231,6 +231,7 @@ python -m pytest tools/graph_projection -q
 ## Next TRL6 Evidence Step
 
 - Operator Review / Demo Sign-off Package
+- Operator Review Execution Record: `reports/trl6/operator-review-execution-record.md` (prepared; pending named operator/reviewer sign-off)
   - `reports/trl6/operator-review-summary.md`
   - `reports/trl6/operator-demo-checklist.md`
   - `docs/trl6-operator-review-boundary.md`

@@ -167,6 +167,7 @@ Validation/status artifacts:
 - `docs/trl6-operator-review-boundary.md`
 - `reports/trl6/demo-bundle/trl6-demo-bundle-index.md`
 - `reports/trl6/demo-bundle/trl6-demo-bundle-smoke-report.md`
+- `reports/trl6/operator-review-execution-record.md`
 - `reports/external-review/partner-handoff-pack.md`
 
 ## Stage 2 documentation update (current code + fixtures)

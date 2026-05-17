@@ -170,6 +170,7 @@ Validation/status artifacts:
 - `reports/trl6/operator-review-execution-record.md`
 - `reports/trl6/relevant-environment-demo-evidence.md`
 - `reports/trl6/relevant-environment-demo-execution-summary.md`
+- `reports/trl6/trl6-claim-review-readiness-checklist.md`
 - `reports/external-review/partner-handoff-pack.md`
 
 ## Stage 2 documentation update (current code + fixtures)

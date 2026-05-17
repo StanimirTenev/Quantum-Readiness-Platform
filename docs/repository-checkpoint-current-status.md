@@ -232,6 +232,7 @@ python -m pytest tools/graph_projection -q
 
 - Operator Review / Demo Sign-off Package
 - Operator Review Execution Record: `reports/trl6/operator-review-execution-record.md` (prepared; pending named operator/reviewer sign-off)
+- Relevant-Environment Demo Evidence Record: `reports/trl6/relevant-environment-demo-evidence.md` (prepared template; pending real relevant-environment demo execution)
   - `reports/trl6/operator-review-summary.md`
   - `reports/trl6/operator-demo-checklist.md`
   - `docs/trl6-operator-review-boundary.md`

@@ -58,6 +58,15 @@ Prepared for operator sign-off — pending named reviewer approval.
 
 Claim review readiness checklist reference: `reports/trl6/trl6-claim-review-readiness-checklist.md`.
 
+
+## External Review Result
+
+- StravixLab / Dimitar Parashkevov
+- Decision: **ACCEPTED WITH LIMITATIONS**
+- Date: 2026-05-17
+- Reference: `reports/external-review/stravixlab-review-result.md`
+- TRL 6 achieved: not claimed
+
 ## Remaining Actions Before TRL 6 Achieved Wording
 
 - named operator/reviewer sign-off

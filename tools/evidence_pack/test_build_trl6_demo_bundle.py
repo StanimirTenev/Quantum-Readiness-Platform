@@ -10,8 +10,8 @@ def _write(path: Path, text: str) -> None:
 
 
 def test_build_index_handles_present_missing_and_stable_json_shape(tmp_path: Path) -> None:
-    _write(tmp_path / "reports/trl6/trl6-readiness-report.md", "PASS\n")
-    _write(tmp_path / "reports/trl6/operator-review-summary.md", "FAIL\n")
+    _write(tmp_path / "reports/trl6/trl6-readiness-report.md", "Overall Result: PASS\n")
+    _write(tmp_path / "reports/trl6/operator-review-summary.md", "Overall Result: FAIL\n")
 
     index = build_index(tmp_path)
 
@@ -21,9 +21,9 @@ def test_build_index_handles_present_missing_and_stable_json_shape(tmp_path: Pat
     assert index["summary"]["missing"] == 14
 
 
-def test_sha256_and_status_hint_detection(tmp_path: Path) -> None:
+def test_sha256_and_known_limitations_contextual_fail_word_is_unknown(tmp_path: Path) -> None:
     sample_path = tmp_path / "reports/trl6/known-limitations.md"
-    content = "Needs review FAIL only\n"
+    content = "Any required command failure results in FAIL in related reports.\n"
     _write(sample_path, content)
 
     index = build_index(tmp_path)
@@ -31,19 +31,28 @@ def test_sha256_and_status_hint_detection(tmp_path: Path) -> None:
 
     assert artifact["exists"] is True
     assert artifact["sha256"] == hashlib.sha256(content.encode("utf-8")).hexdigest()
-    assert artifact["status_hint"] == "FAIL"
+    assert artifact["status_hint"] == "UNKNOWN"
 
 
-def test_status_hint_unknown_and_pass_precedence(tmp_path: Path) -> None:
-    _write(tmp_path / "reports/trl6/operator-demo-checklist.md", "PASS and FAIL\n")
-    _write(tmp_path / "docs/trl6-readiness-plan.md", "neutral notes\n")
-
+def test_status_hint_explicit_fail_result_is_fail(tmp_path: Path) -> None:
+    _write(tmp_path / "reports/trl6/operator-demo-checklist.md", "Overall Result: FAIL\n")
     index = build_index(tmp_path)
     checklist = next(a for a in index["artifacts"] if a["artifact_id"] == "trl6_operator_checklist")
-    plan = next(a for a in index["artifacts"] if a["artifact_id"] == "trl6_readiness_plan")
+    assert checklist["status_hint"] == "FAIL"
 
-    assert checklist["status_hint"] == "PASS"
-    assert plan["status_hint"] == "UNKNOWN"
+
+def test_status_hint_explicit_pass_result_is_pass(tmp_path: Path) -> None:
+    _write(tmp_path / "docs/trl6-readiness-plan.md", "Overall Result: PASS\n")
+    index = build_index(tmp_path)
+    plan = next(a for a in index["artifacts"] if a["artifact_id"] == "trl6_readiness_plan")
+    assert plan["status_hint"] == "PASS"
+
+
+def test_status_hint_plain_checkpoint_doc_is_unknown(tmp_path: Path) -> None:
+    _write(tmp_path / "docs/repository-checkpoint-current-status.md", "checkpoint notes with no explicit result\n")
+    index = build_index(tmp_path)
+    checkpoint = next(a for a in index["artifacts"] if a["artifact_id"] == "repository_checkpoint_status")
+    assert checkpoint["status_hint"] == "UNKNOWN"
 
 
 def test_markdown_contains_required_boundary_statements(tmp_path: Path) -> None:
@@ -56,7 +65,7 @@ def test_markdown_contains_required_boundary_statements(tmp_path: Path) -> None:
 
 def test_input_files_not_modified(tmp_path: Path) -> None:
     source = tmp_path / "reports/evidence-pack/evidence-pack-index.md"
-    _write(source, "PASS\n")
+    _write(source, "Overall Result: PASS\n")
     before = source.read_bytes()
     build_index(tmp_path)
     after = source.read_bytes()

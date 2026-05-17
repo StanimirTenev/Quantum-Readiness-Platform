@@ -350,3 +350,20 @@ reports/copilot/offline-smoke-report.md
 bash scripts/run_trl6_readiness_validation.sh
 bash scripts/run_trl6_demo_bundle_smoke.sh
 ```
+
+## Local Validation Prerequisites
+
+For local validation and evidence-pack tooling:
+
+- Python 3 is required.
+- On Ubuntu 24.04, install `python-is-python3` (or run scripts explicitly with `python3` if `python` is not available).
+- `pytest` is required for Python tooling/tests used in validation flows.
+
+Suggested setup commands:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y python3 python3-pip python-is-python3
+python3 -m pip install pytest
+```
+

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+import re
 
 
 @dataclass(frozen=True)
@@ -48,10 +49,27 @@ def compute_sha256(path: Path) -> str:
 
 
 def detect_status_hint(text: str) -> str:
-    if "PASS" in text:
-        return "PASS"
-    if "FAIL" in text:
-        return "FAIL"
+    lines = text.splitlines()
+
+    fail_patterns = [
+        re.compile(r"\boverall\s+result\s*:\s*fail\b", re.IGNORECASE),
+        re.compile(r"\bresult\s*:\s*fail\b", re.IGNORECASE),
+        re.compile(r"\bstatus\s*:\s*fail\b", re.IGNORECASE),
+        re.compile(r"\bsmoke\b.*\bfail\b", re.IGNORECASE),
+    ]
+    pass_patterns = [
+        re.compile(r"\boverall\s+result\s*:\s*pass\b", re.IGNORECASE),
+        re.compile(r"\bresult\s*:\s*pass\b", re.IGNORECASE),
+        re.compile(r"\bstatus\s*:\s*pass\b", re.IGNORECASE),
+        re.compile(r"\bsmoke\b.*\bpass\b", re.IGNORECASE),
+    ]
+
+    for line in lines:
+        if any(p.search(line) for p in fail_patterns):
+            return "FAIL"
+    for line in lines:
+        if any(p.search(line) for p in pass_patterns):
+            return "PASS"
     return "UNKNOWN"
 
 

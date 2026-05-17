@@ -243,6 +243,15 @@ python -m pytest tools/graph_projection -q
 - This is an evidence review/sign-off step only.
 - TRL 6 achieved is not claimed in this checkpoint.
 
+
+## External Review Status (StravixLab)
+
+- External review completed by StravixLab (2026-05-17).
+- Decision: Accepted with limitations.
+- TRL 6 achieved: not claimed.
+- Production readiness: not claimed.
+- Follow-up action plan opened: `reports/external-review/stravixlab-follow-up-action-plan.md`.
+
 ## What Is Not Implemented Yet
 
 - production graph database

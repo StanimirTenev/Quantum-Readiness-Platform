@@ -173,6 +173,8 @@ Validation/status artifacts:
 - `reports/trl6/relevant-environment-demo-run-instructions.md`
 - `reports/trl6/trl6-claim-review-readiness-checklist.md`
 - `reports/external-review/partner-handoff-pack.md`
+- `reports/external-review/stravixlab-review-result.md`
+- `reports/external-review/stravixlab-follow-up-action-plan.md`
 
 ## Stage 2 documentation update (current code + fixtures)
 

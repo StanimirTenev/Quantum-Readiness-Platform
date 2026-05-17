@@ -53,6 +53,14 @@ This is a pending execution summary for the relevant-environment demo.
 | sign-off attached | PENDING | `reports/trl6/relevant-environment-demo-evidence.md` | named sign-off pending |
 | claim review completed | PENDING | `<separate claim review record>` | must occur after demo completion |
 
+
+## External Review Observation
+
+- Relevant-environment demo was observed by StravixLab.
+- External review decision: **ACCEPTED WITH LIMITATIONS**.
+- Reference: `reports/external-review/stravixlab-review-result.md`.
+- TRL 6 achieved: not claimed.
+
 ## Safe current outcome
 
 TRL6 readiness package PASS; relevant-environment demo execution pending; named operator sign-off pending; TRL 6 achieved is not claimed.

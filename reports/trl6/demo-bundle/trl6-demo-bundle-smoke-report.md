@@ -1,6 +1,6 @@
 # TRL6 Demo Bundle Integrity Smoke Report
 
-UTC timestamp: 2026-05-16T04:36:51Z
+UTC timestamp: 2026-05-17T05:42:30Z
 
 ## Checked Files
 - reports/trl6/demo-bundle/trl6-demo-bundle-index.json

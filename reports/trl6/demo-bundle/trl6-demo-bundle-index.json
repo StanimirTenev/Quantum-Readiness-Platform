@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-05-16T04:27:28.567462+00:00",
+  "generated_at_utc": "2026-05-17T05:42:24.392566+00:00",
   "purpose": "Deterministic TRL6 demo evidence bundle for operator review/export without regenerating source evidence.",
   "summary": {
     "total_artifacts": 16,
@@ -7,9 +7,9 @@
     "missing": 0,
     "required_present": 9,
     "required_missing": 0,
-    "pass_hint_count": 13,
-    "fail_hint_count": 1,
-    "unknown_hint_count": 2
+    "pass_hint_count": 4,
+    "fail_hint_count": 0,
+    "unknown_hint_count": 12
   },
   "artifacts": [
     {
@@ -19,11 +19,11 @@
       "category": "trl6_readiness",
       "exists": true,
       "required_for_review": true,
-      "status_hint": "PASS",
+      "status_hint": "UNKNOWN",
       "notes": "Primary TRL6 readiness validation report for operator review.",
       "size_bytes": 3409,
       "sha256": "fc9b33bedab9e72b514be4f62466b9d42c6494c54cca3e5268f9ab0e9e53fd99",
-      "modified_time_utc": "2026-05-16T04:03:57.575480+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "trl6_operator_summary",
@@ -32,11 +32,11 @@
       "category": "operator_review",
       "exists": true,
       "required_for_review": true,
-      "status_hint": "PASS",
+      "status_hint": "UNKNOWN",
       "notes": "Prepared operator summary and review context.",
-      "size_bytes": 1093,
-      "sha256": "77c20c279f0623a70c1398c1f3137fd215935f0f9a3ded42d6e6750310709773",
-      "modified_time_utc": "2026-05-16T04:25:48.768299+00:00"
+      "size_bytes": 1326,
+      "sha256": "89b6189ba9f95a94ae3caf09a1eb301938cdcb6fc9e5fd29682d57c888ae21aa",
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "trl6_operator_checklist",
@@ -49,7 +49,7 @@
       "notes": "Operator checklist/sign-off procedure input.",
       "size_bytes": 2982,
       "sha256": "138e52a6519e2e1fab60f83b8254fa97c564d35474ba1da61e4fe55742614b59",
-      "modified_time_utc": "2026-05-16T04:25:48.768299+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "trl6_known_limitations",
@@ -58,11 +58,11 @@
       "category": "limitations",
       "exists": true,
       "required_for_review": true,
-      "status_hint": "FAIL",
+      "status_hint": "UNKNOWN",
       "notes": "Current limitations that must be reviewed before sign-off.",
-      "size_bytes": 283,
-      "sha256": "0792cb83e53c671fc1ae037074485eb29607e07b460f968b9590645701738a8f",
-      "modified_time_utc": "2026-05-16T04:03:57.575480+00:00"
+      "size_bytes": 2184,
+      "sha256": "d5a58806c64d407792683fa38cb42a84c71e40fb00669d12d173cc746617e0cd",
+      "modified_time_utc": "2026-05-17T05:42:08.723772+00:00"
     },
     {
       "artifact_id": "trl6_readiness_plan",
@@ -71,11 +71,11 @@
       "category": "trl6_readiness",
       "exists": true,
       "required_for_review": false,
-      "status_hint": "PASS",
+      "status_hint": "UNKNOWN",
       "notes": "Planning reference for readiness scope.",
       "size_bytes": 4962,
       "sha256": "654518b87555c80f1fbec600ce18d518310c234c154d705ce831bcd8c60cc3b3",
-      "modified_time_utc": "2026-05-16T04:03:57.571480+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.958162+00:00"
     },
     {
       "artifact_id": "trl6_review_boundary",
@@ -84,11 +84,11 @@
       "category": "operator_review",
       "exists": true,
       "required_for_review": true,
-      "status_hint": "PASS",
+      "status_hint": "UNKNOWN",
       "notes": "Operator review boundary statements and restrictions.",
       "size_bytes": 2210,
       "sha256": "2917037effef1159cdcb4686f8b0250aa28f5fde44ca2f80435b0b0d6a9e7d14",
-      "modified_time_utc": "2026-05-16T04:25:48.768299+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.958162+00:00"
     },
     {
       "artifact_id": "evidence_pack_index_md",
@@ -101,7 +101,7 @@
       "notes": "Human-readable evidence pack index.",
       "size_bytes": 1996,
       "sha256": "ab12ab9baafd0783006d8c2e23b7024d8e808862af673b4a96eca6a2af4dfde0",
-      "modified_time_utc": "2026-05-16T04:03:57.571480+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "evidence_pack_index_json",
@@ -110,11 +110,11 @@
       "category": "evidence_index",
       "exists": true,
       "required_for_review": true,
-      "status_hint": "PASS",
+      "status_hint": "UNKNOWN",
       "notes": "Machine-readable evidence pack index.",
       "size_bytes": 5568,
       "sha256": "50630b402d6a3d134293563780c14ad51e627ade06690d9a090f3434a6354dd4",
-      "modified_time_utc": "2026-05-16T04:03:57.571480+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "graph_api_readonly_smoke",
@@ -125,9 +125,9 @@
       "required_for_review": false,
       "status_hint": "PASS",
       "notes": "Read-only graph API validation artifact.",
-      "size_bytes": 529,
-      "sha256": "062893f388821d2622def45400b8023183fbb76fc0edf92cc074e858e8d93b02",
-      "modified_time_utc": "2026-05-16T04:03:57.575480+00:00"
+      "size_bytes": 528,
+      "sha256": "d22d4b0b4662a024f8d586dcabf6948c6f7275b7da4e2883434df416cae5bc34",
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "graph_snapshot_loader_smoke",
@@ -140,7 +140,7 @@
       "notes": "Graph snapshot loader validation artifact.",
       "size_bytes": 494,
       "sha256": "dd16509937e00d388288ab7ce62b1c04e949c901d296ea6e7d6e638f6e635683",
-      "modified_time_utc": "2026-05-16T04:03:57.575480+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "copilot_safety_contract_smoke",
@@ -149,11 +149,11 @@
       "category": "copilot_validation",
       "exists": true,
       "required_for_review": false,
-      "status_hint": "PASS",
+      "status_hint": "UNKNOWN",
       "notes": "Copilot disabled-safe safety contract artifact.",
       "size_bytes": 767,
       "sha256": "776e97b6d56bd43125f7745a6ca0382a9c2ea8746eaa62f490bbd3db155295d8",
-      "modified_time_utc": "2026-05-16T04:03:57.571480+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "stage2_inventory_smoke",
@@ -162,11 +162,11 @@
       "category": "stage_validation",
       "exists": true,
       "required_for_review": false,
-      "status_hint": "PASS",
+      "status_hint": "UNKNOWN",
       "notes": "Stage 2 inventory validation artifact.",
       "size_bytes": 1076,
       "sha256": "5337f5cf86acdefa9fb4fd505e6f2f66c8033d253a4a746f94fb9433feec8204",
-      "modified_time_utc": "2026-05-16T04:03:57.575480+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "stage2_e2e_smoke",
@@ -175,11 +175,11 @@
       "category": "stage_validation",
       "exists": true,
       "required_for_review": false,
-      "status_hint": "PASS",
+      "status_hint": "UNKNOWN",
       "notes": "Stage 2 end-to-end validation artifact.",
       "size_bytes": 1480,
       "sha256": "3233d0d4108e32aa57023ad6ec27cd0607035dc045adcd7636d99e0447e071e1",
-      "modified_time_utc": "2026-05-16T04:03:57.575480+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "stage3_risk_planning_smoke",
@@ -188,11 +188,11 @@
       "category": "stage_validation",
       "exists": true,
       "required_for_review": false,
-      "status_hint": "PASS",
+      "status_hint": "UNKNOWN",
       "notes": "Stage 3 risk planning validation artifact.",
       "size_bytes": 2206,
       "sha256": "c5cf5b4ccb682c622eef1c4b3b991c89be3e9a895d62ebee8b3be9988c655cbd",
-      "modified_time_utc": "2026-05-16T04:03:57.575480+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "trl_validation_report",
@@ -205,7 +205,7 @@
       "notes": "Cross-stage TRL validation status artifact.",
       "size_bytes": 2397,
       "sha256": "d9f16a3607f47da87d8097c7e1087014bf612aae3d77330adff5bfc535d3b988",
-      "modified_time_utc": "2026-05-16T04:03:57.575480+00:00"
+      "modified_time_utc": "2026-05-17T04:27:26.962162+00:00"
     },
     {
       "artifact_id": "repository_checkpoint_status",
@@ -216,9 +216,9 @@
       "required_for_review": true,
       "status_hint": "UNKNOWN",
       "notes": "Current repository readiness/status context.",
-      "size_bytes": 9272,
-      "sha256": "ddadd0f57497749687f5e071e02198180c02861f8fdf747f3fce6bf1d1f6dbe6",
-      "modified_time_utc": "2026-05-16T04:27:22.335974+00:00"
+      "size_bytes": 12156,
+      "sha256": "744485cbb14f738878cf32ce5ec61758c9f4c3a43943ff68fa6a9163ee98c67e",
+      "modified_time_utc": "2026-05-17T05:41:04.706711+00:00"
     }
   ]
 }

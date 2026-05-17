@@ -10,6 +10,7 @@ This record approves only conservative/limited wording based on current evidence
 
 - `reports/trl6/trl6-readiness-report.md`
 - `reports/trl6/final-trl6-claim-review-decision.md`
+- `reports/trl6/limited-trl6-demonstrated-approval-record.md`
 - `reports/external-review/stravixlab-review-result.md`
 - `reports/external-review/stravixlab-follow-up-action-plan.md`
 - `reports/trl6/demo-bundle/trl6-demo-bundle-smoke-report.md`
@@ -47,7 +48,7 @@ This record approves only conservative/limited wording based on current evidence
 
 CONSERVATIVE_APPROVAL_GRANTED
 
-This approval grants only limited claim wording, not unconditional TRL 6 achieved wording.
+This approval grants only limited claim wording, not unconditional TRL 6 achieved wording. Limited demonstrated wording is separately approved only with required boundaries in `reports/trl6/limited-trl6-demonstrated-approval-record.md`.
 
 ## Remaining conditions before stronger TRL 6 wording
 

@@ -22,6 +22,7 @@ This document reviews whether QRP evidence is ready for a future TRL 6 claim dec
 - `reports/external-review/stravixlab-follow-up-action-plan.md`
 - `reports/repo-review/repo-review-after-trl6-cleanup.md`
 - `reports/trl6/conservative-trl6-claim-approval-record.md`
+- `reports/trl6/limited-trl6-demonstrated-approval-record.md`
 
 ## Confirmed evidence state
 
@@ -55,7 +56,7 @@ Allowed claim decision states:
 
 Recommended current state: **READY_FOR_REVIEW_WITH_LIMITATIONS**
 
-Conservative limited wording approval state: **CONSERVATIVE_APPROVAL_GRANTED**
+Current approval state: **LIMITED_TRL6_DEMONSTRATED_APPROVAL_GRANTED**
 
 Rationale:
 - readiness validation and demo bundle smoke pass
@@ -72,7 +73,9 @@ Use:
 
 Conservative limited wording is approved via `reports/trl6/conservative-trl6-claim-approval-record.md`.
 
-Do not use unconditional “TRL 6 achieved” wording unless a future separate stronger explicit claim approval document is added.
+Limited demonstrated wording is separately approved via `reports/trl6/limited-trl6-demonstrated-approval-record.md` and is accepted with limitations; production readiness is not claimed.
+
+Do not use unconditional “TRL 6 achieved” wording.
 
 ## Forbidden wording
 
@@ -93,4 +96,4 @@ D. keep production readiness unclaimed
 
 ## Boundary statement
 
-This final claim review package does not claim production readiness and does not itself authorize unconditional TRL 6 achieved wording.
+This final claim review package reflects accepted-with-limitations evidence and does not claim production readiness or authorize unconditional TRL 6 achieved wording.

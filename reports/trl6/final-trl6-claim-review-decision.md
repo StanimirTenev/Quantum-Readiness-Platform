@@ -21,6 +21,7 @@ This document reviews whether QRP evidence is ready for a future TRL 6 claim dec
 - `reports/external-review/stravixlab-review-result.md`
 - `reports/external-review/stravixlab-follow-up-action-plan.md`
 - `reports/repo-review/repo-review-after-trl6-cleanup.md`
+- `reports/trl6/conservative-trl6-claim-approval-record.md`
 
 ## Confirmed evidence state
 
@@ -54,6 +55,8 @@ Allowed claim decision states:
 
 Recommended current state: **READY_FOR_REVIEW_WITH_LIMITATIONS**
 
+Conservative limited wording approval state: **CONSERVATIVE_APPROVAL_GRANTED**
+
 Rationale:
 - readiness validation and demo bundle smoke pass
 - external review completed
@@ -67,7 +70,9 @@ Use:
 
 “QRP has a passing TRL6 readiness validation package and an external review accepted with limitations. Final TRL 6 achieved wording remains subject to explicit claim approval.”
 
-Do not use “TRL 6 achieved” unless a future explicit claim approval document is added.
+Conservative limited wording is approved via `reports/trl6/conservative-trl6-claim-approval-record.md`.
+
+Do not use unconditional “TRL 6 achieved” wording unless a future separate stronger explicit claim approval document is added.
 
 ## Forbidden wording
 

@@ -16,6 +16,7 @@ This report packages operator-facing readiness evidence for review and sign-off 
 - Evidence pack path: `reports/evidence-pack/evidence-pack-index.md`
 - Known limitations path: `reports/trl6/known-limitations.md`
 - Operator checklist path: `reports/trl6/operator-demo-checklist.md`
+- Operator review execution record: `reports/trl6/operator-review-execution-record.md`
 
 ## Review Decision
 

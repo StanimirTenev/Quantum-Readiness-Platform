@@ -20,6 +20,7 @@ Reviewed artifacts:
 - `reports/trl6/demo-bundle/trl6-demo-bundle-smoke-report.md`
 - `reports/external-review/partner-handoff-pack.md`
 - `reports/repo-review/repo-review-after-trl6-cleanup.md`
+- `reports/trl6/trl6-claim-review-readiness-checklist.md`
 
 ## Current Evidence State
 
@@ -54,6 +55,8 @@ Reference: `reports/trl6/relevant-environment-demo-execution-summary.md` (prepar
 ## Operator/Reviewer Decision
 
 Prepared for operator sign-off — pending named reviewer approval.
+
+Claim review readiness checklist reference: `reports/trl6/trl6-claim-review-readiness-checklist.md`.
 
 ## Remaining Actions Before TRL 6 Achieved Wording
 

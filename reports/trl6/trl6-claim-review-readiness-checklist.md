@@ -59,7 +59,11 @@ This checklist prepares for a future TRL 6 claim review and does not itself clai
 
 Current claim decision state: **READY_FOR_REVIEW_WITH_LIMITATIONS**
 
+Approval state: **CONSERVATIVE_APPROVAL_GRANTED**
+
 Reason: Readiness validation and demo bundle smoke are PASS, external review is ACCEPTED WITH LIMITATIONS, and SRX-001..SRX-005 are addressed. This is not a TRL 6 achieved claim; explicit claim approval/sign-off is still required before any TRL 6 achieved wording may be used externally.
+Note: “TRL 6 achieved” and “TRL 6 demonstrated in a relevant environment” are not yet approved unless a separate stronger approval record is added.
+
 
 ## Safe wording before claim review
 

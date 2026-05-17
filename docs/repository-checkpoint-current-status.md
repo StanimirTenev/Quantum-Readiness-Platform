@@ -237,6 +237,11 @@ python -m pytest tools/graph_projection -q
 - Relevant-Environment Demo Run Instructions: `reports/trl6/relevant-environment-demo-run-instructions.md` (prepared instruction sheet; demo execution remains pending)
 - TRL6 Claim Review Readiness Checklist: `reports/trl6/trl6-claim-review-readiness-checklist.md` (updated; current claim decision state: READY_FOR_REVIEW_WITH_LIMITATIONS)
 - Final TRL6 Claim Review Decision Package: `reports/trl6/final-trl6-claim-review-decision.md` (conservative evidence review package; does not itself claim TRL 6 achieved)
+- Conservative TRL6 Claim Approval Record: `reports/trl6/conservative-trl6-claim-approval-record.md`
+- Limited claim state: CONSERVATIVE_APPROVAL_GRANTED
+- Limited readiness/claim-review wording is approved.
+- Unconditional TRL 6 achieved wording is not approved.
+- Production readiness is not claimed.
   - `reports/trl6/operator-review-summary.md`
   - `reports/trl6/operator-demo-checklist.md`
   - `docs/trl6-operator-review-boundary.md`

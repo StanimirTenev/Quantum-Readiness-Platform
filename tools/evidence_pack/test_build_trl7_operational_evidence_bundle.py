@@ -1,0 +1,34 @@
+import hashlib
+from pathlib import Path
+
+from tools.evidence_pack.build_trl7_operational_evidence_bundle import build_index, build_markdown
+
+
+def _write(path: Path, text: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
+
+def test_build_index_shape_and_missing_counts(tmp_path: Path) -> None:
+    _write(tmp_path / "reports/trl7/trl7-operational-readiness-report.md", "Overall Result: PASS\n")
+    index = build_index(tmp_path)
+    assert set(index.keys()) == {"generated_at_utc", "purpose", "summary", "artifacts"}
+    assert index["summary"]["total_artifacts"] == 6
+    assert index["summary"]["present"] == 1
+    assert index["summary"]["required_missing"] == 4
+
+
+def test_required_dry_run_report_status_and_hash(tmp_path: Path) -> None:
+    content = "Overall Result: PASS\n"
+    _write(tmp_path / "reports/trl7/trl7-operational-dry-run-report.md", content)
+    index = build_index(tmp_path)
+    artifact = next(a for a in index["artifacts"] if a["artifact_id"] == "trl7_operational_dry_run_report")
+    assert artifact["exists"] is True
+    assert artifact["status_hint"] == "PASS"
+    assert artifact["sha256"] == hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+
+def test_markdown_contains_boundary_statements(tmp_path: Path) -> None:
+    md = build_markdown(build_index(tmp_path))
+    assert "TRL 7 achieved is not claimed by this bundle." in md
+    assert "Production readiness is not claimed by this bundle." in md

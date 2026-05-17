@@ -1,0 +1,94 @@
+{
+  "generated_at_utc": "2026-05-17T06:52:17.984749+00:00",
+  "purpose": "Deterministic TRL7 operational evidence bundle indexing/preparation from local dry-run and pilot-preparation artifacts.",
+  "summary": {
+    "total_artifacts": 6,
+    "present": 6,
+    "missing": 0,
+    "required_present": 5,
+    "required_missing": 0,
+    "pass_hint_count": 0,
+    "fail_hint_count": 0,
+    "unknown_hint_count": 6
+  },
+  "artifacts": [
+    {
+      "artifact_id": "trl7_operational_dry_run_report",
+      "title": "TRL7 Operational Dry-Run Report",
+      "path": "reports/trl7/trl7-operational-dry-run-report.md",
+      "category": "operational_dry_run",
+      "exists": true,
+      "required_for_review": true,
+      "status_hint": "UNKNOWN",
+      "notes": "Deterministic dry-run command/report orchestration artifact.",
+      "size_bytes": 2775,
+      "sha256": "f3f2e5ac905a748b81294a1b3e7d6b5c0baa6f5e61e295e79b3296cbbbb0e349",
+      "modified_time_utc": "2026-05-17T06:52:12.681766+00:00"
+    },
+    {
+      "artifact_id": "trl7_operational_readiness_report",
+      "title": "TRL7 Operational Readiness Report",
+      "path": "reports/trl7/trl7-operational-readiness-report.md",
+      "category": "operational_readiness",
+      "exists": true,
+      "required_for_review": true,
+      "status_hint": "UNKNOWN",
+      "notes": "Operational readiness framing and constraints report.",
+      "size_bytes": 4458,
+      "sha256": "0bd72d9eb80d13a7ac66391efbc5cf72b01898ae5807585d5c9b4e9c72310c69",
+      "modified_time_utc": "2026-05-17T06:49:31.564545+00:00"
+    },
+    {
+      "artifact_id": "trl7_operational_pilot_checklist",
+      "title": "TRL7 Operational Pilot Checklist",
+      "path": "reports/trl7/trl7-operational-pilot-checklist.md",
+      "category": "operator_review",
+      "exists": true,
+      "required_for_review": true,
+      "status_hint": "UNKNOWN",
+      "notes": "Operator/reviewer checklist and sign-off preparation.",
+      "size_bytes": 3593,
+      "sha256": "d94a192f54b82f4dff8ecb1035dad3b891ee5dc5f40eb35385da1ccf6f9286a1",
+      "modified_time_utc": "2026-05-17T06:49:31.564545+00:00"
+    },
+    {
+      "artifact_id": "trl7_operational_known_limitations",
+      "title": "TRL7 Operational Dry-Run Known Limitations",
+      "path": "reports/trl7/trl7-operational-dry-run-known-limitations.md",
+      "category": "limitations",
+      "exists": true,
+      "required_for_review": true,
+      "status_hint": "UNKNOWN",
+      "notes": "Known dry-run/pilot limitations to review before any claim language.",
+      "size_bytes": 538,
+      "sha256": "d738d0ed385be579e3e2b8df38fa6d81c5b4ed2f6fe9b1f9417e818fb31a2c95",
+      "modified_time_utc": "2026-05-17T06:49:31.564545+00:00"
+    },
+    {
+      "artifact_id": "repository_checkpoint_status",
+      "title": "Repository Checkpoint Current Status",
+      "path": "docs/repository-checkpoint-current-status.md",
+      "category": "repository_status",
+      "exists": true,
+      "required_for_review": true,
+      "status_hint": "UNKNOWN",
+      "notes": "Current checkpoint status and review boundaries.",
+      "size_bytes": 14956,
+      "sha256": "b9d2d1b0b7ee7616ae33bc78cc552630a659fe008647ace89dd7885aef5a49e9",
+      "modified_time_utc": "2026-05-17T06:51:03.337239+00:00"
+    },
+    {
+      "artifact_id": "trl7_bundle_design",
+      "title": "TRL7 Operational Evidence Bundle Design",
+      "path": "docs/trl7-operational-evidence-bundle-design.md",
+      "category": "design_reference",
+      "exists": true,
+      "required_for_review": false,
+      "status_hint": "UNKNOWN",
+      "notes": "Design reference for deterministic indexing scope.",
+      "size_bytes": 5081,
+      "sha256": "6cf0f77426d8632caaebf8bda001668bbc9b566b501e882478be8702d35f940f",
+      "modified_time_utc": "2026-05-17T06:49:31.560545+00:00"
+    }
+  ]
+}

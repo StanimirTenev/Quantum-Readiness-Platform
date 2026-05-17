@@ -1,7 +1,7 @@
 # TRL Validation Report
 
 ## Validation Date
-2026-05-16T03:59:54.699382+00:00
+2026-05-17T06:51:33.652748+00:00
 
 ## Validation Scope
 - inventory ingest
@@ -21,9 +21,9 @@
 | api-gateway | http://127.0.0.1:8000/health | UP |
 
 ## Evidence Ingest Result
-- scan_id: 26b8f837-ade9-4afd-a17a-097ae1f5dd68
+- scan_id: 4fdfb618-051c-4260-aab6-1cbe3c4c25b8
 - created assets: 1
-- asset_ids: fd139177-2868-48f5-bcab-14c9cdf20070
+- asset_ids: 54e69345-8c0a-44e8-a020-7cb68af66287
 
 ## Risk Result
 - total risk records: 2

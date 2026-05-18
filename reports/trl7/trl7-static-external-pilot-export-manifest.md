@@ -26,6 +26,7 @@ Provide a static export manifest for external pilot preparation and handoff pack
 - reports/trl7/operational-evidence-safety-scan-report.md
 - reports/trl7/operational-evidence-safety-scan-report.json
 - reports/trl7/operational-evidence-safety-scan-review.md
+- reports/trl7/operational-evidence-safety-low-findings-triage.md
 
 ## Reviewer instruction (safety scan)
 

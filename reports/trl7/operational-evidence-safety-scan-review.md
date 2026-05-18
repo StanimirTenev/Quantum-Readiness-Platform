@@ -23,6 +23,7 @@ This document reviews the latest local safety scan of evidence/report artifacts 
 
 - reports/trl7/operational-evidence-safety-scan-report.md
 - reports/trl7/operational-evidence-safety-scan-report.json
+- reports/trl7/operational-evidence-safety-low-findings-triage.md
 - reports/trl7/operational-evidence/trl7-operational-evidence-bundle-index.md
 - reports/trl7/trl7-static-external-pilot-export-manifest.md
 - reports/trl7/trl7-external-pilot-package.md

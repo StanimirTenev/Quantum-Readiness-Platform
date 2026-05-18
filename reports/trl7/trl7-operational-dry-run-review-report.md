@@ -32,6 +32,7 @@ It does not claim TRL7 achieved or production readiness.
 - docs/trl7-operational-evidence-bundle-design.md
 - reports/trl7/trl7-operational-pilot-checklist.md
 - reports/trl7/trl7-operational-readiness-report.md
+- reports/external-review/stravixlab-trl7-review-result.md
 
 ## Dry-Run Command Coverage
 

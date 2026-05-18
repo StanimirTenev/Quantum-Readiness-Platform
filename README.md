@@ -82,6 +82,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - TRL7 Operational Dry-Run Review Report: `reports/trl7/trl7-operational-dry-run-review-report.md`
 - TRL7 External Pilot Package: `reports/trl7/trl7-external-pilot-package.md`
 - TRL7 Static External Pilot Export Manifest: `reports/trl7/trl7-static-external-pilot-export-manifest.md`
+- Operational Evidence Safety Scan Review: `reports/trl7/operational-evidence-safety-scan-review.md`
 - Cross-Platform Agent Design: `docs/cross-platform-agent-design.md`
 - Windows Evidence Fixture Contract: `docs/windows-evidence-fixture-contract.md`
 - Inventory Windows Evidence Acceptance Design: `docs/inventory-windows-evidence-acceptance-design.md`

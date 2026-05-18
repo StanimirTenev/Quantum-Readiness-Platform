@@ -13,11 +13,13 @@ This external pilot package does not claim TRL 7 achieved
 
 - reports/trl7/operational-evidence-safety-scan-report.md
 - reports/trl7/operational-evidence-safety-scan-report.json
+- reports/trl7/operational-evidence-safety-scan-review.md
 
 ## Reviewer verification checklist
 
 - [ ] Safety scan result is PASS or findings have explicit review disposition.
-- [ ] If HIGH or MEDIUM findings exist, sharing is blocked until review is complete.
+- [ ] reviewer should inspect operational-evidence-safety-scan-review.md
+- [ ] If HIGH or MEDIUM findings exist, stop external sharing/pilot handoff until reviewed.
 
 ## Stop rules
 

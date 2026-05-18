@@ -194,5 +194,6 @@ Required evidence category addition:
 Minimum required artifacts addition:
 - reports/trl7/operational-evidence-safety-scan-report.md
 - reports/trl7/operational-evidence-safety-scan-report.json
+- reports/trl7/operational-evidence-safety-scan-review.md
 
 Operational evidence should be safety-scanned before external pilot export packaging.

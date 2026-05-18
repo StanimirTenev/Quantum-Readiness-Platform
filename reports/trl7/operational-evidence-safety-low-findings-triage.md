@@ -29,10 +29,10 @@ This triage reviews LOW findings from the current safety scan and determines whe
 
 | finding_id | severity | source_path | indicator | triage_classification | blocking | reviewer_action |
 | --- | --- | --- | --- | --- | --- | --- |
-| LOW-001 | LOW | reports/trl7/operational-evidence-safety-scan-report.json | secret | REVIEWER_AWARENESS_REQUIRED | no | inspect source excerpt before external sharing |
-| LOW-002 | LOW | reports/trl7/operational-evidence-safety-scan-report.json | secret | REVIEWER_AWARENESS_REQUIRED | no | inspect source excerpt before external sharing |
-| LOW-003 | LOW | reports/trl7/operational-evidence-safety-scan-report.md | secret | REVIEWER_AWARENESS_REQUIRED | no | inspect source excerpt before external sharing |
-| LOW-004 | LOW | reports/trl7/operational-evidence-safety-scan-report.md | secret | REVIEWER_AWARENESS_REQUIRED | no | inspect source excerpt before external sharing |
+| LOW-001 | LOW | reports/trl7/operational-evidence-safety-low-findings-triage.md | token | REVIEWER_AWARENESS_REQUIRED | no | inspect source excerpt before external sharing |
+| LOW-002 | LOW | reports/trl7/operational-evidence-safety-low-findings-triage.md | password | REVIEWER_AWARENESS_REQUIRED | no | inspect source excerpt before external sharing |
+| LOW-003 | LOW | reports/trl7/operational-evidence-safety-scan-review.md | token | REVIEWER_AWARENESS_REQUIRED | no | inspect source excerpt before external sharing |
+| LOW-004 | LOW | reports/trl7/operational-evidence-safety-scan-review.md | secret | REVIEWER_AWARENESS_REQUIRED | no | inspect source excerpt before external sharing |
 
 ## Triage interpretation
 

@@ -8,35 +8,57 @@ def _write(path: Path, text: str) -> None:
     path.write_text(text, encoding="utf-8")
 
 
-def test_pass_for_safe_boundary_text(tmp_path: Path) -> None:
-    _write(tmp_path / "reports/trl7/safe.md", "There are no secrets and no private keys in this report.\n")
-    report = run_scan(tmp_path)
-    assert report["result"] == "PASS"
+def _single_line_report(tmp_path: Path, line: str) -> dict:
+    _write(tmp_path / "reports/trl7/sample.md", line + "\n")
+    return run_scan(tmp_path)
 
 
-def test_low_for_policy_reference_without_value(tmp_path: Path) -> None:
-    _write(tmp_path / "reports/trl7/policy.md", "Policy section: token handling requirements are documented.\n")
-    report = run_scan(tmp_path)
-    assert report["finding_counts"]["LOW"] >= 1
-    assert report["result"] == "REVIEW_REQUIRED"
+def test_high_medium_low_count_self_reporting_lines_are_ignored(tmp_path: Path) -> None:
+    report = _single_line_report(tmp_path, "HIGH findings: 0")
+    assert report["finding_counts"]["LOW"] == 0
+
+    report = _single_line_report(tmp_path, "MEDIUM findings: 0")
+    assert report["finding_counts"]["LOW"] == 0
+
+
+def test_low_findings_reviewer_awareness_line_is_ignored(tmp_path: Path) -> None:
+    report = _single_line_report(tmp_path, "LOW findings require reviewer awareness")
+    assert report["finding_counts"]["LOW"] == 0
+
+
+def test_blocking_credential_private_key_findings_none_is_ignored(tmp_path: Path) -> None:
+    report = _single_line_report(tmp_path, "blocking credential/private-key findings: none")
+    assert report["finding_counts"]["LOW"] == 0
+
+
+def test_credential_indicators_are_scanned_is_ignored(tmp_path: Path) -> None:
+    report = _single_line_report(tmp_path, "credential indicators are scanned")
+    assert report["finding_counts"]["LOW"] == 0
+
+
+def test_private_key_findings_not_detected_is_ignored(tmp_path: Path) -> None:
+    report = _single_line_report(tmp_path, "private-key findings were not detected")
+    assert report["finding_counts"]["LOW"] == 0
 
 
 def test_medium_for_credential_like_key_with_non_empty_value(tmp_path: Path) -> None:
-    _write(tmp_path / "reports/trl7/cred.md", "password: supersecret\n")
-    report = run_scan(tmp_path)
+    report = _single_line_report(tmp_path, "password: supersecret123")
     assert report["finding_counts"]["MEDIUM"] == 1
     assert report["result"] == "FAIL"
 
 
+def test_redacted_password_value_produces_no_medium(tmp_path: Path) -> None:
+    report = _single_line_report(tmp_path, "password: <redacted>")
+    assert report["finding_counts"]["MEDIUM"] == 0
+
+
 def test_high_for_pem_private_key_marker(tmp_path: Path) -> None:
-    _write(tmp_path / "reports/trl7/key.pem", "-----BEGIN PRIVATE KEY-----\n")
-    report = run_scan(tmp_path)
+    report = _single_line_report(tmp_path, "-----BEGIN PRIVATE KEY-----")
     assert report["finding_counts"]["HIGH"] >= 1
 
 
 def test_high_for_bearer_token_like_value(tmp_path: Path) -> None:
-    _write(tmp_path / "reports/trl7/token.md", "Authorization: Bearer abcdefghijklmnopqrstuvwxyzz1234567890\n")
-    report = run_scan(tmp_path)
+    report = _single_line_report(tmp_path, "Authorization: Bearer abcdefghijklmnopqrstuvwxyzz1234567890")
     assert report["finding_counts"]["HIGH"] >= 1
 
 

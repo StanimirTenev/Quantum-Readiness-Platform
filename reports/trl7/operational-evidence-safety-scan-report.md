@@ -1,6 +1,6 @@
 # Operational Evidence Safety Scan Report
 
-UTC timestamp: 2026-05-18T04:44:49.075104+00:00
+UTC timestamp: 2026-05-18T05:51:38.000043+00:00
 
 ## Purpose
 Deterministic local scan for obvious secret/private-key/credential indicators in generated evidence/report artifacts before sharing or pilot review.
@@ -13,7 +13,7 @@ Deterministic local scan for obvious secret/private-key/credential indicators in
 - `reports/external-review/`
 
 ## Scan Totals
-- files scanned: 45
+- files scanned: 47
 - files skipped: 0
 - result: **REVIEW_REQUIRED**
 
@@ -26,10 +26,10 @@ Deterministic local scan for obvious secret/private-key/credential indicators in
 
 | path | line | severity | indicator | redacted_excerpt | reason |
 |---|---:|---|---|---|---|
-| `reports/trl7/operational-evidence-safety-scan-report.json` | 23 | LOW | secret | `      "indicator": "secret",` | Credential-like term appears in likely policy/reference context. |
-| `reports/trl7/operational-evidence-safety-scan-report.json` | 24 | LOW | secret | `      "reda…": "Dete\u2026 local scan for obvious secret/priv\u2026/credential indicators in generated evidence/report artifacts before sharing or pilot review.",` | Credential-like term appears in likely policy/reference context. |
-| `reports/trl7/operational-evidence-safety-scan-report.md` | 6 | LOW | secret | `Dete… local scan for obvious secret/priv…/credential indicators in generated evidence/report artifacts before sharing or pilot review.` | Credential-like term appears in likely policy/reference context. |
-| `reports/trl7/operational-evidence-safety-scan-report.md` | 29 | LOW | secret | `| \`reports/trl7/oper….md\` | 6 | LOW | secret | \`Dete… local scan for obvious secret/priv…/credential indicators in generated evidence/report artifacts before sharing or pilot review.\` | Cred… term appears in likely polic` | Credential-like term appears in likely policy/reference context. |
+| `reports/trl7/operational-evidence-safety-low-findings-triage.md` | 48 | LOW | token | `- token value` | Credential-like term appears outside policy/reporting context. |
+| `reports/trl7/operational-evidence-safety-low-findings-triage.md` | 50 | LOW | password | `- password/secret material` | Credential-like term appears outside policy/reporting context. |
+| `reports/trl7/operational-evidence-safety-scan-review.md` | 44 | LOW | token | `- token value` | Credential-like term appears outside policy/reporting context. |
+| `reports/trl7/operational-evidence-safety-scan-review.md` | 46 | LOW | secret | `- secr… production file` | Credential-like term appears outside policy/reporting context. |
 
 ## Boundary Statements
 - This scan checks local evidence/report artifacts only.

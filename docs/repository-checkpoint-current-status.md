@@ -416,3 +416,5 @@ Do not start the following until explicitly chosen:
 - See: `docs/trl7-operational-readiness-plan.md`
 
 - Production readiness remains not claimed.
+
+- Operational Evidence Safety Scanner added as local artifact safety tooling for generated evidence/report pre-share checks; this is tooling/reporting only and does not claim TRL 7 achieved or production readiness.

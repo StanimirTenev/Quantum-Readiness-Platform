@@ -245,6 +245,13 @@ TRL7 operational evidence bundle smoke status:
 - does not claim TRL 7 achieved
 - does not claim production readiness
 
+TRL7 evidence bundle consistency validator status:
+- `scripts/run_trl7_evidence_bundle_consistency_check.sh` added as deterministic local artifact validation tooling
+- validates bundle index presence/structure, required_missing state, path/size/hash consistency, smoke PASS status, safety scan inclusion, and claim-boundary wording
+- writes JSON/Markdown consistency reports under `reports/trl7/operational-evidence/`
+- does not claim TRL 7 achieved
+- does not claim production readiness
+
 
 StravixLab TRL7 external review status:
 - StravixLab TRL7 review completed

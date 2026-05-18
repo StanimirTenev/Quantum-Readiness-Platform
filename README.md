@@ -182,6 +182,7 @@ Run:
 
 ```bash
 bash scripts/run_trl7_operational_evidence_bundle_smoke.sh
+bash scripts/run_trl7_evidence_bundle_consistency_check.sh
 ```
 
 ## TRL 6 Operator Review / Demo Sign-off Package

@@ -1,0 +1,74 @@
+{
+  "generated_at_utc": "2026-05-18T06:31:25.176286+00:00",
+  "result": "FAIL",
+  "checks": [
+    {
+      "check_id": "A",
+      "description": "Bundle index files exist",
+      "status": "PASS",
+      "detail": "Both index JSON/Markdown files were found."
+    },
+    {
+      "check_id": "B",
+      "description": "JSON index has required root keys",
+      "status": "PASS",
+      "detail": "All required root keys are present."
+    },
+    {
+      "check_id": "C",
+      "description": "Summary contains required fields",
+      "status": "PASS",
+      "detail": "All required summary fields are present."
+    },
+    {
+      "check_id": "D",
+      "description": "required_missing equals zero",
+      "status": "PASS",
+      "detail": "required_missing=0"
+    },
+    {
+      "check_id": "E",
+      "description": "Present artifacts exist with matching metadata/hash",
+      "status": "FAIL",
+      "detail": "Size mismatch for docs/repository-checkpoint-current-status.md: expected 17097, actual 18239; SHA256 mismatch for docs/repository-checkpoint-current-status.md; Size mismatch for reports/trl7/operational-evidence-safety-scan-report.md: expected 2026, actual 1546; SHA256 mismatch for reports/trl7/operational-evidence-safety-scan-report.md; Size mismatch for reports/trl7/operational-evidence-safety-scan-report.json: expected 2087, actual 1583; SHA256 mismatch for reports/trl7/operational-evidence-safety-scan-report.json; Size mismatch for docs/trl7-operational-evidence-bundle-design.md: expected 5427, actual 5485; SHA256 mismatch for docs/trl7-operational-evidence-bundle-design.md"
+    },
+    {
+      "check_id": "F",
+      "description": "Required-for-review artifacts are marked present",
+      "status": "PASS",
+      "detail": "All required artifacts are marked present."
+    },
+    {
+      "check_id": "G",
+      "description": "Safety scan artifacts are indexed",
+      "status": "PASS",
+      "detail": "Safety scan artifacts are indexed."
+    },
+    {
+      "check_id": "H",
+      "description": "Smoke report exists and contains PASS",
+      "status": "PASS",
+      "detail": "Smoke report contains PASS."
+    },
+    {
+      "check_id": "I",
+      "description": "Boundary statements appear in bundle Markdown",
+      "status": "PASS",
+      "detail": "Required boundary statements present."
+    },
+    {
+      "check_id": "J",
+      "description": "Forbidden claim wording is not used as a claim",
+      "status": "PASS",
+      "detail": "No forbidden claim wording used as a claim was detected."
+    }
+  ],
+  "summary": {
+    "failed_checks": 1,
+    "warnings": 0,
+    "artifacts_checked": 8,
+    "required_missing": 0,
+    "hash_mismatches": 4,
+    "missing_required_artifacts": []
+  }
+}

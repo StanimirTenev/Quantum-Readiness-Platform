@@ -39,12 +39,78 @@ CREDENTIAL_KEYS = [
     "kerberos_ticket",
     "credential_blob",
 ]
-SAFE_BOUNDARY_TERMS = ["no secrets", "no private keys"]
+SAFE_BOUNDARY_TERMS = ["no secrets", "no private keys", "do not include secrets", "stop if secrets are collected"]
 
 AWS_KEY_RE = re.compile(r"AKIA[0-9A-Z]{16}")
 BEARER_RE = re.compile(r"\bbearer\s+([A-Za-z0-9_\-\.=+/]{20,})", re.IGNORECASE)
 PEM_LINE_RE = re.compile(r"-----BEGIN [A-Z0-9 ]+-----")
 KEY_WITH_VALUE_RE = re.compile(r"(?P<key>[A-Za-z0-9_\-]+)\s*[:=]\s*(?P<value>.+)$")
+
+
+def is_self_reporting_scan_context(line: str) -> bool:
+    lowered = line.lower()
+    if re.search(r"\b(high|medium|low)\s+findings\b", lowered):
+        return True
+    reporting_terms = [
+        "finding summary",
+        "scan totals",
+        "result:",
+        "review_required",
+        "credential indicators",
+        "private-key findings",
+        "blocking credential/private-key findings",
+        "were not detected",
+        "require reviewer awareness",
+        '"indicator":',
+        '"redacted_excerpt":',
+    ]
+    return any(term in lowered for term in reporting_terms)
+
+
+def is_policy_or_boundary_context(line: str) -> bool:
+    lowered = line.lower()
+    if any(term in lowered for term in SAFE_BOUNDARY_TERMS):
+        return True
+    policy_terms = [
+        "policy",
+        "boundary",
+        "do not",
+        "must not",
+        "should not",
+        "scanner",
+        "scan",
+        "report",
+        "review",
+        "triage",
+        "indicators",
+        "blocking",
+        "escalate",
+        "external sharing",
+        "rationale",
+        "allowed wording",
+    ]
+    return any(term in lowered for term in policy_terms)
+
+
+def is_placeholder_or_redacted_value(value: str) -> bool:
+    normalized = value.strip().strip("`\"'").lower()
+    placeholder_tokens = {"", "none", "null", "n/a", "redacted", "[redacted]", "<redacted>", "masked", "(redacted)"}
+    if normalized in placeholder_tokens:
+        return True
+    return bool(re.fullmatch(r"[*x•-]{3,}", normalized))
+
+
+def classify_credential_like_line(line: str) -> dict[str, str] | None:
+    m = KEY_WITH_VALUE_RE.search(line)
+    if not m:
+        return None
+    key = m.group("key").strip().lower()
+    value = m.group("value").strip()
+    if key not in CREDENTIAL_KEYS:
+        return None
+    if is_placeholder_or_redacted_value(value):
+        return None
+    return {"severity": "MEDIUM", "indicator": key, "reason": "Credential-like key with non-empty value."}
 
 
 def redact_excerpt(line: str) -> str:
@@ -58,8 +124,9 @@ def classify_line(line: str) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
     lowered = line.lower()
 
-    if any(term in lowered for term in SAFE_BOUNDARY_TERMS):
-        return findings
+    if is_policy_or_boundary_context(line) or is_self_reporting_scan_context(line):
+        # Preserve strict HIGH/MEDIUM detectors even in policy/reporting context.
+        pass
 
     for marker in PEM_MARKERS:
         if marker.lower() in lowered:
@@ -74,21 +141,20 @@ def classify_line(line: str) -> list[dict[str, str]]:
     if BEARER_RE.search(line):
         findings.append({"severity": "HIGH", "indicator": "Bearer token-like value", "reason": "Bearer token-like value detected."})
 
-    m = KEY_WITH_VALUE_RE.search(line)
-    if m:
-        key = m.group("key").strip().lower()
-        value = m.group("value").strip()
-        if key in CREDENTIAL_KEYS:
-            if value and value.lower() not in {"none", "null", "n/a", "redacted", "[redacted]", "<redacted>", ""}:
-                findings.append({"severity": "MEDIUM", "indicator": key, "reason": "Credential-like key with non-empty value."})
-            else:
-                findings.append({"severity": "LOW", "indicator": key, "reason": "Credential-like key mention without risky value."})
+    credential_finding = classify_credential_like_line(line)
+    if credential_finding:
+        findings.append(credential_finding)
 
-    if not findings:
-        for key in CREDENTIAL_KEYS:
-            if re.search(rf"\b{re.escape(key)}\b", lowered):
-                findings.append({"severity": "LOW", "indicator": key, "reason": "Credential-like term appears in likely policy/reference context."})
-                break
+    if findings:
+        return findings
+
+    if is_policy_or_boundary_context(line) or is_self_reporting_scan_context(line):
+        return findings
+
+    for key in CREDENTIAL_KEYS:
+        if re.search(rf"\b{re.escape(key)}\b", lowered):
+            findings.append({"severity": "LOW", "indicator": key, "reason": "Credential-like term appears outside policy/reporting context."})
+            break
 
     return findings
 

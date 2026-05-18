@@ -19,6 +19,7 @@ This external pilot package does not claim TRL 7 achieved
 
 - [ ] Safety scan result is PASS or findings have explicit review disposition.
 - [ ] reviewer should inspect operational-evidence-safety-scan-review.md
+- [ ] reviewer should inspect operational-evidence-safety-low-findings-triage.md before external sharing/pilot handoff.
 - [ ] If HIGH or MEDIUM findings exist, stop external sharing/pilot handoff until reviewed.
 
 ## Stop rules

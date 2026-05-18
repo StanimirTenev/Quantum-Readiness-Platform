@@ -16,3 +16,7 @@ Provide a static export manifest for external pilot preparation and handoff pack
 - operational pilot/sign-off pending
 - TRL 7 achieved is not claimed
 - production readiness is not claimed
+
+## External Review Traceability
+
+- reports/external-review/stravixlab-trl7-review-result.md

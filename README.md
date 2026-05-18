@@ -200,6 +200,8 @@ Validation/status artifacts:
 - `reports/external-review/partner-handoff-pack.md`
 - `reports/external-review/stravixlab-review-result.md`
 - `reports/external-review/stravixlab-follow-up-action-plan.md`
+- `reports/external-review/stravixlab-trl7-review-result.md`
+- `reports/external-review/stravixlab-trl7-follow-up-action-plan.md`
 
 ## Stage 2 documentation update (current code + fixtures)
 

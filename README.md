@@ -174,6 +174,8 @@ Run:
 bash scripts/run_trl7_operational_dry_run.sh
 ```
 
+This dry-run now includes deterministic preflight checks and records preflight results in the generated TRL7 dry-run report.
+
 ## TRL7 Operational Evidence Bundle Smoke
 
 Run:

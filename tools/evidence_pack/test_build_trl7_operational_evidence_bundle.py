@@ -13,9 +13,9 @@ def test_build_index_shape_and_missing_counts(tmp_path: Path) -> None:
     _write(tmp_path / "reports/trl7/trl7-operational-readiness-report.md", "Overall Result: PASS\n")
     index = build_index(tmp_path)
     assert set(index.keys()) == {"generated_at_utc", "purpose", "summary", "artifacts"}
-    assert index["summary"]["total_artifacts"] == 6
+    assert index["summary"]["total_artifacts"] == 8
     assert index["summary"]["present"] == 1
-    assert index["summary"]["required_missing"] == 4
+    assert index["summary"]["required_missing"] == 6
     assert "review_required_count" in index["summary"]
 
 
@@ -36,3 +36,18 @@ def test_markdown_contains_boundary_statements(tmp_path: Path) -> None:
     assert "Production readiness is not claimed by this bundle." in md
     assert "This bundle supports TRL7 operational pilot preparation only." in md
     assert "This bundle does not run tests, start services, regenerate evidence, or perform remediation." in md
+
+
+def test_safety_scan_artifacts_configured_and_status_pass(tmp_path: Path) -> None:
+    _write(tmp_path / "reports/trl7/operational-evidence-safety-scan-report.md", "Result: PASS\nHIGH=0 MEDIUM=0 LOW=0\n")
+    _write(tmp_path / "reports/trl7/operational-evidence-safety-scan-report.json", "{\n  \"result\": \"PASS\"\n}\n")
+    index = build_index(tmp_path)
+    md_artifact = next(a for a in index["artifacts"] if a["artifact_id"] == "operational_evidence_safety_scan_report_md")
+    json_artifact = next(a for a in index["artifacts"] if a["artifact_id"] == "operational_evidence_safety_scan_report_json")
+    assert md_artifact["category"] == "safety_scan"
+    assert json_artifact["category"] == "safety_scan"
+    assert md_artifact["required_for_trl7_review"] is True
+    assert md_artifact["contains_secrets_expected"] is False
+    assert md_artifact["reviewed_by_operator"] is False
+    assert md_artifact["status_hint"] == "PASS"
+    assert index["summary"]["review_required_count"] >= 0

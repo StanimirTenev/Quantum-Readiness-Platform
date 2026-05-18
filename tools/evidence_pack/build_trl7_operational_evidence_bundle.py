@@ -26,6 +26,8 @@ ARTIFACT_SPECS: list[ArtifactSpec] = [
     ArtifactSpec("trl7_operational_pilot_checklist", "TRL7 Operational Pilot Checklist", "reports/trl7/trl7-operational-pilot-checklist.md", "operator_review", True, "Operator/reviewer checklist and sign-off preparation."),
     ArtifactSpec("trl7_operational_known_limitations", "TRL7 Operational Dry-Run Known Limitations", "reports/trl7/trl7-operational-dry-run-known-limitations.md", "limitations", True, "Known dry-run/pilot limitations to review before any claim language."),
     ArtifactSpec("repository_checkpoint_status", "Repository Checkpoint Current Status", "docs/repository-checkpoint-current-status.md", "repository_status", True, "Current checkpoint status and review boundaries."),
+    ArtifactSpec("operational_evidence_safety_scan_report_md", "Operational Evidence Safety Scan Report (Markdown)", "reports/trl7/operational-evidence-safety-scan-report.md", "safety_scan", True, "Operational evidence safety scan summary; review before external sharing."),
+    ArtifactSpec("operational_evidence_safety_scan_report_json", "Operational Evidence Safety Scan Report (JSON)", "reports/trl7/operational-evidence-safety-scan-report.json", "safety_scan", True, "Operational evidence safety scan structured findings for export/review."),
     ArtifactSpec("trl7_bundle_design", "TRL7 Operational Evidence Bundle Design", "docs/trl7-operational-evidence-bundle-design.md", "design_reference", False, "Design reference for deterministic indexing scope."),
 ]
 
@@ -40,14 +42,19 @@ def compute_sha256(path: Path) -> str:
 
 def detect_status_hint(text: str) -> str:
     lines = text.splitlines()
+    normalized_lines = [line.replace("**", "") for line in lines]
     fail_patterns = [re.compile(r"\boverall\s+result\s*:\s*fail\b", re.IGNORECASE), re.compile(r"\bresult\s*:\s*fail\b", re.IGNORECASE), re.compile(r"\bstatus\s*:\s*fail\b", re.IGNORECASE)]
     pass_patterns = [re.compile(r"\boverall\s+result\s*:\s*pass\b", re.IGNORECASE), re.compile(r"\bresult\s*:\s*pass\b", re.IGNORECASE), re.compile(r"\bstatus\s*:\s*pass\b", re.IGNORECASE)]
-    for line in lines:
+    review_required_patterns = [re.compile(r"\boverall\s+result\s*:\s*review_required\b", re.IGNORECASE), re.compile(r"\bresult\s*:\s*review_required\b", re.IGNORECASE), re.compile(r"\bstatus\s*:\s*review_required\b", re.IGNORECASE)]
+    for line in normalized_lines:
         if any(p.search(line) for p in fail_patterns):
             return "FAIL"
-    for line in lines:
+    for line in normalized_lines:
         if any(p.search(line) for p in pass_patterns):
             return "PASS"
+    for line in normalized_lines:
+        if any(p.search(line) for p in review_required_patterns):
+            return "REVIEW_REQUIRED"
     return "UNKNOWN"
 
 
@@ -61,6 +68,9 @@ def scan_artifact(repo_root: Path, spec: ArtifactSpec) -> dict[str, Any]:
         "exists": artifact_path.exists(),
         "present": artifact_path.exists(),
         "required_for_review": spec.required_for_review,
+        "required_for_trl7_review": spec.required_for_review,
+        "contains_secrets_expected": False,
+        "reviewed_by_operator": False,
         "status_hint": "UNKNOWN",
         "notes": spec.notes,
     }

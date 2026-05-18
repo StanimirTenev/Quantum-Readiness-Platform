@@ -227,6 +227,7 @@ TRL 6 readiness validation script status:
 TRL7 operational dry-run script status:
 - `scripts/run_trl7_operational_dry_run.sh` added as deterministic orchestration/reporting preparation for operational pilot rehearsal
 - writes TRL7 dry-run command logs and report artifacts under `reports/trl7/`
+- includes deterministic preflight checks and preflight result reporting in the TRL7 dry-run report
 - does not claim TRL 7 achieved
 - does not claim production readiness
 

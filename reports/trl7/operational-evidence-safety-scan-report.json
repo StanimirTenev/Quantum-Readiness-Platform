@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-05-18T04:24:42.899320+00:00",
+  "generated_at_utc": "2026-05-18T04:44:49.075104+00:00",
   "scanned_roots": [
     "reports/trl7/",
     "reports/trl6/",
@@ -7,13 +7,46 @@
     "reports/evidence-pack/",
     "reports/external-review/"
   ],
-  "files_scanned": 43,
+  "files_scanned": 45,
   "files_skipped": 0,
   "finding_counts": {
     "HIGH": 0,
     "MEDIUM": 0,
-    "LOW": 0
+    "LOW": 4
   },
-  "result": "PASS",
-  "findings": []
+  "result": "REVIEW_REQUIRED",
+  "findings": [
+    {
+      "path": "reports/trl7/operational-evidence-safety-scan-report.json",
+      "line_number": 23,
+      "severity": "LOW",
+      "indicator": "secret",
+      "redacted_excerpt": "      \"indicator\": \"secret\",",
+      "reason": "Credential-like term appears in likely policy/reference context."
+    },
+    {
+      "path": "reports/trl7/operational-evidence-safety-scan-report.json",
+      "line_number": 24,
+      "severity": "LOW",
+      "indicator": "secret",
+      "redacted_excerpt": "      \"reda\u2026\": \"Dete\\u2026 local scan for obvious secret/priv\\u2026/credential indicators in generated evidence/report artifacts before sharing or pilot review.\",",
+      "reason": "Credential-like term appears in likely policy/reference context."
+    },
+    {
+      "path": "reports/trl7/operational-evidence-safety-scan-report.md",
+      "line_number": 6,
+      "severity": "LOW",
+      "indicator": "secret",
+      "redacted_excerpt": "Dete\u2026 local scan for obvious secret/priv\u2026/credential indicators in generated evidence/report artifacts before sharing or pilot review.",
+      "reason": "Credential-like term appears in likely policy/reference context."
+    },
+    {
+      "path": "reports/trl7/operational-evidence-safety-scan-report.md",
+      "line_number": 29,
+      "severity": "LOW",
+      "indicator": "secret",
+      "redacted_excerpt": "| `reports/trl7/oper\u2026.md` | 6 | LOW | secret | `Dete\u2026 local scan for obvious secret/priv\u2026/credential indicators in generated evidence/report artifacts before sharing or pilot review.` | Cred\u2026 term appears in likely polic",
+      "reason": "Credential-like term appears in likely policy/reference context."
+    }
+  ]
 }

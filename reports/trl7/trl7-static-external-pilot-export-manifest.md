@@ -20,3 +20,13 @@ Provide a static export manifest for external pilot preparation and handoff pack
 ## External Review Traceability
 
 - reports/external-review/stravixlab-trl7-review-result.md
+
+## Recommended export folder contents (safety scan additions)
+
+- reports/trl7/operational-evidence-safety-scan-report.md
+- reports/trl7/operational-evidence-safety-scan-report.json
+
+## Reviewer instruction (safety scan)
+
+- Confirm safety scan result is PASS, or review findings before sharing.
+- If HIGH or MEDIUM findings exist, do not proceed to external sharing until reviewed.

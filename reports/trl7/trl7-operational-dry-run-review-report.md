@@ -56,6 +56,7 @@ This was a dry-run/rehearsal and not a real operational pilot.
 | dry-run command logs | Dry-run command logs are present in TRL7 report/evidence references. | PASS | reports/trl7/trl7-operational-dry-run-report.md | Logs support command coverage review. |
 | evidence bundle index | Operational evidence bundle index generated in JSON/Markdown forms. | PASS | reports/trl7/operational-evidence/trl7-operational-evidence-bundle-index.json | Indexed artifacts available for review. |
 | bundle smoke | Evidence bundle smoke validation reports PASS. | PASS | reports/trl7/operational-evidence/trl7-operational-evidence-bundle-smoke-report.md | Integrity/report validation passed. |
+| operational evidence safety scan | Operational evidence safety scan reports PASS with HIGH=0, MEDIUM=0, LOW=0. | PASS | reports/trl7/operational-evidence-safety-scan-report.md | Review safety scan report if counts drift or cannot be confirmed. |
 | required artifact coverage | required_missing is 0; missing required artifacts are none. | PASS | reports/trl7/operational-evidence/trl7-operational-evidence-bundle-index.json | Required artifact coverage complete for rehearsal scope. |
 | boundary statements | Boundary wording preserves non-claim posture for TRL7/production. | PASS | reports/trl7/trl7-operational-dry-run-known-limitations.md | Claim boundaries remain explicit. |
 | known limitations | Known limitations are documented and acknowledged. | PASS | reports/trl7/trl7-operational-dry-run-known-limitations.md | Limitations retained for pilot planning. |

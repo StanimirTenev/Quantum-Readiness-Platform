@@ -2,6 +2,12 @@
 
 ## Purpose
 
+
+## TRL7 evidence flow integration update
+
+- Operational Evidence Safety Scanner is integrated into TRL7 bundle/export review flow.
+- TRL7 achieved is not claimed.
+- Production readiness is not claimed.
 This document is a checkpoint to prevent scope drift before starting the next major direction.
 
 - This is a status checkpoint.

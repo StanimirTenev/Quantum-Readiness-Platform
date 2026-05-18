@@ -185,3 +185,14 @@ Recommended default:
 ## Boundary statement
 
 This design does not implement the TRL7 evidence bundle, does not execute an operational pilot, and does not claim TRL 7 achieved or production readiness.
+
+## Safety scan integration for TRL7 review/export
+
+Required evidence category addition:
+- safety_scan
+
+Minimum required artifacts addition:
+- reports/trl7/operational-evidence-safety-scan-report.md
+- reports/trl7/operational-evidence-safety-scan-report.json
+
+Operational evidence should be safety-scanned before external pilot export packaging.

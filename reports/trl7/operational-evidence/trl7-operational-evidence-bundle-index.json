@@ -1,16 +1,16 @@
 {
-  "generated_at_utc": "2026-05-17T06:59:33.177574+00:00",
+  "generated_at_utc": "2026-05-18T04:44:50.794630+00:00",
   "purpose": "Deterministic TRL7 operational evidence bundle indexing/preparation from local dry-run and pilot-preparation artifacts.",
   "summary": {
-    "total_artifacts": 6,
-    "present": 6,
+    "total_artifacts": 8,
+    "present": 8,
     "missing": 0,
-    "required_present": 5,
+    "required_present": 7,
     "required_missing": 0,
     "pass_hint_count": 0,
     "fail_hint_count": 0,
-    "unknown_hint_count": 6,
-    "review_required_count": 5
+    "unknown_hint_count": 7,
+    "review_required_count": 7
   },
   "artifacts": [
     {
@@ -21,11 +21,14 @@
       "exists": true,
       "present": true,
       "required_for_review": true,
+      "required_for_trl7_review": true,
+      "contains_secrets_expected": false,
+      "reviewed_by_operator": false,
       "status_hint": "UNKNOWN",
       "notes": "Deterministic dry-run command/report orchestration artifact.",
       "size_bytes": 2775,
       "sha256": "f3f2e5ac905a748b81294a1b3e7d6b5c0baa6f5e61e295e79b3296cbbbb0e349",
-      "modified_time_utc": "2026-05-17T06:57:38.921838+00:00"
+      "modified_time_utc": "2026-05-18T04:22:16.905406+00:00"
     },
     {
       "artifact_id": "trl7_operational_readiness_report",
@@ -35,11 +38,14 @@
       "exists": true,
       "present": true,
       "required_for_review": true,
+      "required_for_trl7_review": true,
+      "contains_secrets_expected": false,
+      "reviewed_by_operator": false,
       "status_hint": "UNKNOWN",
       "notes": "Operational readiness framing and constraints report.",
       "size_bytes": 4458,
       "sha256": "0bd72d9eb80d13a7ac66391efbc5cf72b01898ae5807585d5c9b4e9c72310c69",
-      "modified_time_utc": "2026-05-17T06:57:38.921838+00:00"
+      "modified_time_utc": "2026-05-18T04:22:16.905406+00:00"
     },
     {
       "artifact_id": "trl7_operational_pilot_checklist",
@@ -49,11 +55,14 @@
       "exists": true,
       "present": true,
       "required_for_review": true,
+      "required_for_trl7_review": true,
+      "contains_secrets_expected": false,
+      "reviewed_by_operator": false,
       "status_hint": "UNKNOWN",
       "notes": "Operator/reviewer checklist and sign-off preparation.",
       "size_bytes": 3593,
       "sha256": "d94a192f54b82f4dff8ecb1035dad3b891ee5dc5f40eb35385da1ccf6f9286a1",
-      "modified_time_utc": "2026-05-17T06:57:38.921838+00:00"
+      "modified_time_utc": "2026-05-18T04:22:16.905406+00:00"
     },
     {
       "artifact_id": "trl7_operational_known_limitations",
@@ -63,11 +72,14 @@
       "exists": true,
       "present": true,
       "required_for_review": true,
+      "required_for_trl7_review": true,
+      "contains_secrets_expected": false,
+      "reviewed_by_operator": false,
       "status_hint": "UNKNOWN",
       "notes": "Known dry-run/pilot limitations to review before any claim language.",
       "size_bytes": 538,
       "sha256": "d738d0ed385be579e3e2b8df38fa6d81c5b4ed2f6fe9b1f9417e818fb31a2c95",
-      "modified_time_utc": "2026-05-17T06:57:38.921838+00:00"
+      "modified_time_utc": "2026-05-18T04:22:16.905406+00:00"
     },
     {
       "artifact_id": "repository_checkpoint_status",
@@ -77,11 +89,48 @@
       "exists": true,
       "present": true,
       "required_for_review": true,
+      "required_for_trl7_review": true,
+      "contains_secrets_expected": false,
+      "reviewed_by_operator": false,
       "status_hint": "UNKNOWN",
       "notes": "Current checkpoint status and review boundaries.",
-      "size_bytes": 15386,
-      "sha256": "7ed778307c000abd43ab2b674c1c345d91c60d27c8f7ad6fc2b439d1a780de11",
-      "modified_time_utc": "2026-05-17T06:58:37.125805+00:00"
+      "size_bytes": 17097,
+      "sha256": "1e22a7a943c96e6cce1b84291125e2248cf64491e8cf924bdc7c57f927c53aff",
+      "modified_time_utc": "2026-05-18T04:44:01.149180+00:00"
+    },
+    {
+      "artifact_id": "operational_evidence_safety_scan_report_md",
+      "title": "Operational Evidence Safety Scan Report (Markdown)",
+      "path": "reports/trl7/operational-evidence-safety-scan-report.md",
+      "category": "safety_scan",
+      "exists": true,
+      "present": true,
+      "required_for_review": true,
+      "required_for_trl7_review": true,
+      "contains_secrets_expected": false,
+      "reviewed_by_operator": false,
+      "status_hint": "REVIEW_REQUIRED",
+      "notes": "Operational evidence safety scan summary; review before external sharing.",
+      "size_bytes": 2026,
+      "sha256": "661441fe49ed2d6b178a51a11d4b3f73ec2099ad474af843c0adffb3c223f9ee",
+      "modified_time_utc": "2026-05-18T04:44:49.072403+00:00"
+    },
+    {
+      "artifact_id": "operational_evidence_safety_scan_report_json",
+      "title": "Operational Evidence Safety Scan Report (JSON)",
+      "path": "reports/trl7/operational-evidence-safety-scan-report.json",
+      "category": "safety_scan",
+      "exists": true,
+      "present": true,
+      "required_for_review": true,
+      "required_for_trl7_review": true,
+      "contains_secrets_expected": false,
+      "reviewed_by_operator": false,
+      "status_hint": "UNKNOWN",
+      "notes": "Operational evidence safety scan structured findings for export/review.",
+      "size_bytes": 2087,
+      "sha256": "1bb4bdf2293c48ff626a37ab38d23f07765afd2644fc15eae3c8b780e4739cdb",
+      "modified_time_utc": "2026-05-18T04:44:49.072403+00:00"
     },
     {
       "artifact_id": "trl7_bundle_design",
@@ -91,11 +140,14 @@
       "exists": true,
       "present": true,
       "required_for_review": false,
+      "required_for_trl7_review": false,
+      "contains_secrets_expected": false,
+      "reviewed_by_operator": false,
       "status_hint": "UNKNOWN",
       "notes": "Design reference for deterministic indexing scope.",
-      "size_bytes": 5081,
-      "sha256": "6cf0f77426d8632caaebf8bda001668bbc9b566b501e882478be8702d35f940f",
-      "modified_time_utc": "2026-05-17T06:57:38.917838+00:00"
+      "size_bytes": 5427,
+      "sha256": "d30f23709115db9a18bd538f609a41acc72854b12fe8997979916205b71127e3",
+      "modified_time_utc": "2026-05-18T04:44:01.149180+00:00"
     }
   ]
 }

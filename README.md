@@ -394,3 +394,7 @@ sudo apt-get update
 sudo apt-get install -y python3 python3-pip python-is-python3
 python3 -m pip install pytest
 ```
+
+## Operational evidence safety scan
+
+- bash scripts/run_operational_evidence_safety_scan.sh

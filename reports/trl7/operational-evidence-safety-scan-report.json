@@ -1,0 +1,19 @@
+{
+  "generated_at_utc": "2026-05-18T04:24:42.899320+00:00",
+  "scanned_roots": [
+    "reports/trl7/",
+    "reports/trl6/",
+    "reports/evidence/",
+    "reports/evidence-pack/",
+    "reports/external-review/"
+  ],
+  "files_scanned": 43,
+  "files_skipped": 0,
+  "finding_counts": {
+    "HIGH": 0,
+    "MEDIUM": 0,
+    "LOW": 0
+  },
+  "result": "PASS",
+  "findings": []
+}

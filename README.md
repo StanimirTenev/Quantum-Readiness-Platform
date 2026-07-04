@@ -37,13 +37,30 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 | copilot-service | ✅ Working prototype | ✅ Unit/API tests |
 | retrieval-service | ✅ Working prototype | ✅ Unit + API tests |
 | evidence-normalizer | 🔲 Placeholder | — |
-| crypto-fingerprint-service | 🔲 Placeholder | — |
+| crypto-fingerprint-service | ✅ Working prototype | ✅ Unit + API tests |
 | policy-engine | 🔲 Placeholder | — |
 | scenario-engine | 🟨 Partially implemented | — |
 | repo-ci-scanner | 🔲 Placeholder | — |
 | integration-service | 🔲 Placeholder | — |
 | dashboard-ui | ✅ Working prototype | — |
 | web-ui | 🔲 Skeleton | — |
+
+## Crypto Fingerprint Service
+
+Deterministic classification of cryptographic algorithms for quantum
+vulnerability (classical Shor-vulnerable vs post-quantum), with
+harvest-now-decrypt-later (HNDL) detection and weak-key/deprecated-primitive
+flags. See `services/crypto-fingerprint-service/README.md`.
+
+Run:
+
+```bash
+cd services/crypto-fingerprint-service
+PYTHONPATH=. pytest -q
+PYTHONPATH=. uvicorn app.main:app --port 8003
+```
+
+Endpoints: `GET /health`, `GET /algorithms`, `POST /fingerprint`.
 
 ## First implementation targets
 1. Inventory service

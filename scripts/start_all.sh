@@ -61,7 +61,8 @@ start_service "risk-engine" "$ROOT/services/risk-engine" "8002" "app.main:app"
 start_service "planner-service" "$ROOT/services/planner-service" "8004" "app.main:app"
 start_service "workflow-service" "$ROOT/services/workflow-service" "8005" "app.main:app"
 start_service "policy-engine" "$ROOT/services/policy-engine" "8007" "app.main:app"
-start_service "api-gateway" "$ROOT/services/api-gateway" "8000" "main:app" "INVENTORY_SERVICE_URL=http://127.0.0.1:8001 RISK_ENGINE_URL=http://127.0.0.1:8002 POLICY_ENGINE_URL=http://127.0.0.1:8007 PLANNER_SERVICE_URL=http://127.0.0.1:8004 WORKFLOW_SERVICE_URL=http://127.0.0.1:8005 SCENARIO_ENGINE_URL=http://127.0.0.1:8006 COPILOT_SERVICE_URL=http://127.0.0.1:8008"
+start_service "crypto-fingerprint-service" "$ROOT/services/crypto-fingerprint-service" "8003" "app.main:app"
+start_service "api-gateway" "$ROOT/services/api-gateway" "8000" "main:app" "INVENTORY_SERVICE_URL=http://127.0.0.1:8001 RISK_ENGINE_URL=http://127.0.0.1:8002 POLICY_ENGINE_URL=http://127.0.0.1:8007 PLANNER_SERVICE_URL=http://127.0.0.1:8004 WORKFLOW_SERVICE_URL=http://127.0.0.1:8005 SCENARIO_ENGINE_URL=http://127.0.0.1:8006 COPILOT_SERVICE_URL=http://127.0.0.1:8008 CRYPTO_FINGERPRINT_URL=http://127.0.0.1:8003"
 
 echo
 echo "Required services started. Logs: $LOG_DIR"

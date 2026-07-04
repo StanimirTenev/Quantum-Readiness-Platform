@@ -38,6 +38,7 @@ stop_service() {
 }
 
 stop_service "api-gateway"
+stop_service "crypto-fingerprint-service"
 stop_service "policy-engine"
 stop_service "workflow-service"
 stop_service "planner-service"

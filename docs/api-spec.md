@@ -15,3 +15,7 @@
 - POST /api/copilot/query
 - POST /api/copilot/explain-risk
 - POST /api/copilot/generate-wave-plan
+
+## Crypto Fingerprint
+- GET /api/algorithms
+- POST /api/fingerprint

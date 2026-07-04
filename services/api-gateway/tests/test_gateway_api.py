@@ -117,6 +117,50 @@ def test_post_api_policies_evaluate_forwards_payload_and_returns_upstream(monkey
     }
 
 
+def test_post_api_fingerprint_forwards_payload_to_crypto_service(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["payload"] = payload
+        return {
+            "contract_version": "cfp-v1",
+            "asset_name": "api.example.internal:443",
+            "findings": [],
+            "summary": {"pqc_readiness": "classical_only"},
+        }
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    payload = {"asset_name": "api.example.internal:443", "algorithms": ["RSA"]}
+    response = client.post("/api/fingerprint", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["summary"]["pqc_readiness"] == "classical_only"
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/fingerprint")
+    assert captured["payload"] == payload
+
+
+def test_get_api_algorithms_forwards_to_crypto_service(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        return {"algorithms": [{"family": "RSA", "classification": "classical_vulnerable"}]}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/algorithms")
+
+    assert response.status_code == 200
+    assert response.json()["algorithms"][0]["family"] == "RSA"
+    assert captured["method"] == "GET"
+    assert captured["url"].endswith("/algorithms")
+
+
 def test_get_graph_summary_returns_expected_shape(monkeypatch) -> None:
     snapshot = {
         "graph_schema_version": "v1",

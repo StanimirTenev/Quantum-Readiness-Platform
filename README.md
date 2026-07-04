@@ -60,7 +60,10 @@ PYTHONPATH=. pytest -q
 PYTHONPATH=. uvicorn app.main:app --port 8003
 ```
 
-Endpoints: `GET /health`, `GET /algorithms`, `POST /fingerprint`.
+Endpoints: `GET /health`, `GET /algorithms`, `POST /fingerprint` (default port 8003).
+
+Wired into the flow: `start_all.sh` starts it and the API Gateway exposes it as
+`GET /api/algorithms` and `POST /api/fingerprint` (via `CRYPTO_FINGERPRINT_URL`).
 
 ## First implementation targets
 1. Inventory service

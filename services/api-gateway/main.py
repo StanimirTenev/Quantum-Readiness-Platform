@@ -26,6 +26,7 @@ RISK_BASE_URL = os.getenv("RISK_ENGINE_URL", "http://risk-engine:8000")
 COPILOT_BASE_URL = os.getenv("COPILOT_SERVICE_URL", "http://copilot-service:8000")
 SCENARIO_ENGINE_BASE_URL = os.getenv("SCENARIO_ENGINE_URL", "http://scenario-engine:8000")
 POLICY_ENGINE_BASE_URL = os.getenv("POLICY_ENGINE_URL", "http://policy-engine:8000")
+CRYPTO_FINGERPRINT_BASE_URL = os.getenv("CRYPTO_FINGERPRINT_URL", "http://crypto-fingerprint-service:8000")
 GRAPH_SNAPSHOT_DEFAULT_PATH = "reports/graph/latest/graph-snapshot.json"
 
 
@@ -121,6 +122,16 @@ def get_graph_warnings() -> dict[str, Any]:
 @app.post("/api/policies/evaluate")
 def evaluate_policy(payload: dict[str, Any]) -> dict[str, Any]:
     return _request_json("POST", f"{POLICY_ENGINE_BASE_URL}/evaluate", payload=payload)
+
+
+@app.get("/api/algorithms")
+def list_algorithms() -> dict[str, Any]:
+    return _request_json("GET", f"{CRYPTO_FINGERPRINT_BASE_URL}/algorithms")
+
+
+@app.post("/api/fingerprint")
+def fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
+    return _request_json("POST", f"{CRYPTO_FINGERPRINT_BASE_URL}/fingerprint", payload=payload)
 
 @app.post("/api/copilot/query")
 def copilot_query(payload: dict[str, Any]) -> dict[str, Any]:

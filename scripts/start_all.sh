@@ -64,7 +64,8 @@ start_service "policy-engine" "$ROOT/services/policy-engine" "8007" "app.main:ap
 start_service "crypto-fingerprint-service" "$ROOT/services/crypto-fingerprint-service" "8003" "app.main:app"
 start_service "evidence-normalizer" "$ROOT/services/evidence-normalizer" "8009" "app.main:app"
 start_service "scenario-engine" "$ROOT/services/scenario-engine" "8006" "app.main:app"
-start_service "api-gateway" "$ROOT/services/api-gateway" "8000" "main:app" "INVENTORY_SERVICE_URL=http://127.0.0.1:8001 RISK_ENGINE_URL=http://127.0.0.1:8002 POLICY_ENGINE_URL=http://127.0.0.1:8007 PLANNER_SERVICE_URL=http://127.0.0.1:8004 WORKFLOW_SERVICE_URL=http://127.0.0.1:8005 SCENARIO_ENGINE_URL=http://127.0.0.1:8006 COPILOT_SERVICE_URL=http://127.0.0.1:8008 CRYPTO_FINGERPRINT_URL=http://127.0.0.1:8003 EVIDENCE_NORMALIZER_URL=http://127.0.0.1:8009"
+start_service "integration-service" "$ROOT/services/integration-service" "8011" "app.main:app"
+start_service "api-gateway" "$ROOT/services/api-gateway" "8000" "main:app" "INVENTORY_SERVICE_URL=http://127.0.0.1:8001 RISK_ENGINE_URL=http://127.0.0.1:8002 POLICY_ENGINE_URL=http://127.0.0.1:8007 PLANNER_SERVICE_URL=http://127.0.0.1:8004 WORKFLOW_SERVICE_URL=http://127.0.0.1:8005 SCENARIO_ENGINE_URL=http://127.0.0.1:8006 COPILOT_SERVICE_URL=http://127.0.0.1:8008 CRYPTO_FINGERPRINT_URL=http://127.0.0.1:8003 EVIDENCE_NORMALIZER_URL=http://127.0.0.1:8009 INTEGRATION_SERVICE_URL=http://127.0.0.1:8011"
 
 echo
 echo "Required services started. Logs: $LOG_DIR"

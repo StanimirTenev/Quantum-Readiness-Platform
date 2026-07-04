@@ -28,6 +28,7 @@ SCENARIO_ENGINE_BASE_URL = os.getenv("SCENARIO_ENGINE_URL", "http://scenario-eng
 POLICY_ENGINE_BASE_URL = os.getenv("POLICY_ENGINE_URL", "http://policy-engine:8000")
 CRYPTO_FINGERPRINT_BASE_URL = os.getenv("CRYPTO_FINGERPRINT_URL", "http://crypto-fingerprint-service:8000")
 EVIDENCE_NORMALIZER_BASE_URL = os.getenv("EVIDENCE_NORMALIZER_URL", "http://evidence-normalizer:8000")
+INTEGRATION_SERVICE_BASE_URL = os.getenv("INTEGRATION_SERVICE_URL", "http://integration-service:8000")
 GRAPH_SNAPSHOT_DEFAULT_PATH = "reports/graph/latest/graph-snapshot.json"
 
 
@@ -138,6 +139,16 @@ def fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
 @app.post("/api/normalize")
 def normalize_evidence(payload: dict[str, Any]) -> dict[str, Any]:
     return _request_json("POST", f"{EVIDENCE_NORMALIZER_BASE_URL}/normalize", payload=payload)
+
+
+@app.get("/api/integrations")
+def list_integrations() -> dict[str, Any]:
+    return _request_json("GET", f"{INTEGRATION_SERVICE_BASE_URL}/integrations")
+
+
+@app.post("/api/integrations/dry-run")
+def integrations_dry_run(payload: dict[str, Any]) -> dict[str, Any]:
+    return _request_json("POST", f"{INTEGRATION_SERVICE_BASE_URL}/dry-run", payload=payload)
 
 @app.post("/api/copilot/query")
 def copilot_query(payload: dict[str, Any]) -> dict[str, Any]:

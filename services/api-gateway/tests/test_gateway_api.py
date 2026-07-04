@@ -117,6 +117,27 @@ def test_post_api_policies_evaluate_forwards_payload_and_returns_upstream(monkey
     }
 
 
+def test_post_api_integrations_dry_run_forwards_payload(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"mode": "dry_run_disabled", "executed": False, "would_execute_if_enabled": False}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    payload = {"action": "rotate_certificate", "target_type": "ca", "asset_name": "a"}
+    response = client.post("/api/integrations/dry-run", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["executed"] is False
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/dry-run")
+    assert captured["payload"] == payload
+
+
 def test_post_api_scenarios_run_forwards_payload_to_scenario_engine(monkeypatch) -> None:
     captured: dict = {}
 

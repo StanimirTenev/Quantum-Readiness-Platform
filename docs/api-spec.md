@@ -22,3 +22,7 @@
 
 ## Evidence Normalizer
 - POST /api/normalize
+
+## Integrations (dry-run only, disabled)
+- GET /api/integrations
+- POST /api/integrations/dry-run

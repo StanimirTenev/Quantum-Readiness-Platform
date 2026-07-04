@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Quantum Readiness Console</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">QRP</span>
+        <div>
+          <h1>Quantum Readiness Console</h1>
+          <p class="subtitle">Local-first crypto readiness &middot; deterministic core</p>
+        </div>
+      </div>
+      <div class="gateway">
+        <label for="gateway-url">API Gateway</label>
+        <input id="gateway-url" type="text" value="http://127.0.0.1:8000" spellcheck="false" />
+        <button id="check-conn" type="button">Check</button>
+        <span id="conn-status" class="pill pill-muted">unknown</span>
+      </div>
+    </header>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab active" data-tab="fingerprint">Fingerprint</button>
+      <button class="tab" data-tab="scenarios">Scenarios</button>
+      <button class="tab" data-tab="integrations">Integrations</button>
+      <button class="tab" data-tab="algorithms">Algorithms</button>
+    </nav>
+
+    <main>
+      <!-- Fingerprint -->
+      <section id="fingerprint" class="panel active">
+        <h2>Crypto Fingerprint</h2>
+        <p class="hint">Classify algorithms for quantum vulnerability. Enter algorithm names
+          (comma or newline separated) and/or a TLS certificate.</p>
+        <div class="grid">
+          <label class="field">
+            <span>Asset name</span>
+            <input id="fp-asset" type="text" value="demo-asset" />
+          </label>
+          <label class="field">
+            <span>Algorithms</span>
+            <input id="fp-algos" type="text" value="RSA, ECDSA, ML-KEM-768" />
+          </label>
+          <label class="field">
+            <span>Cert signature</span>
+            <input id="fp-sig" type="text" placeholder="e.g. RSA-PSS-SHA256" />
+          </label>
+          <label class="field">
+            <span>Cert public key</span>
+            <input id="fp-pub" type="text" placeholder="e.g. RSA" />
+          </label>
+          <label class="field">
+            <span>Public key size (bits)</span>
+            <input id="fp-bits" type="number" placeholder="e.g. 2048" />
+          </label>
+        </div>
+        <button id="fp-run" class="primary" type="button">Fingerprint</button>
+        <div id="fp-summary" class="summary"></div>
+        <div id="fp-result" class="result"></div>
+      </section>
+
+      <!-- Scenarios -->
+      <section id="scenarios" class="panel">
+        <h2>Scenario Re-scoring</h2>
+        <p class="hint">Re-project asset base scores (0&ndash;5) under a quantum-risk scenario.</p>
+        <div class="grid">
+          <label class="field">
+            <span>Scenario</span>
+            <select id="sc-scenario"></select>
+          </label>
+          <label class="field field-wide">
+            <span>Assets (name = base_score, one per line)</span>
+            <textarea id="sc-assets" rows="4">payments-api = 3.2
+backup-store = 2.1
+dev-box = 1.0</textarea>
+          </label>
+        </div>
+        <button id="sc-run" class="primary" type="button">Run scenario</button>
+        <div id="sc-summary" class="summary"></div>
+        <div id="sc-result" class="result"></div>
+      </section>
+
+      <!-- Integrations -->
+      <section id="integrations" class="panel">
+        <h2>Integration Dry-run</h2>
+        <p class="banner-warn">Disabled / dry-run only &mdash; never executes a production change.</p>
+        <div class="grid">
+          <label class="field">
+            <span>Action</span>
+            <select id="in-action"></select>
+          </label>
+          <label class="field">
+            <span>Target type</span>
+            <select id="in-target">
+              <option>ca</option><option>kms</option><option>hsm</option>
+              <option>ci_signing</option><option>vpn</option><option>ticketing</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Asset name</span>
+            <input id="in-asset" type="text" value="payments-api" />
+          </label>
+          <label class="field">
+            <span>Approvals (comma separated)</span>
+            <input id="in-approvals" type="text" value="security_review, change_approval" />
+          </label>
+          <label class="field field-check">
+            <input id="in-approved" type="checkbox" checked />
+            <span>Approved</span>
+          </label>
+        </div>
+        <button id="in-run" class="primary" type="button">Dry-run</button>
+        <div id="in-result" class="result"></div>
+      </section>
+
+      <!-- Algorithms -->
+      <section id="algorithms" class="panel">
+        <h2>Algorithm Reference</h2>
+        <p class="hint">The deterministic knowledge base used for classification.</p>
+        <button id="al-load" class="primary" type="button">Load algorithms</button>
+        <div id="al-result" class="result"></div>
+      </section>
+    </main>
+
+    <footer><span id="msg" class="msg"></span></footer>
+
+    <script src="app.js"></script>
+  </body>
+</html>

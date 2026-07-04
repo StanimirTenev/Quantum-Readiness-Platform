@@ -8,6 +8,7 @@ from typing import Any
 from urllib import error, parse, request
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -20,6 +21,16 @@ from tools.graph_projection.graph_snapshot_loader import (
 )
 
 app = FastAPI(title="API Gateway", version="0.2.0")
+
+# Allow the local web-ui (a browser frontend) to call the gateway. Configurable
+# via CORS_ALLOW_ORIGINS (comma-separated); defaults to permissive for local dev.
+_cors_origins = [o.strip() for o in os.getenv("CORS_ALLOW_ORIGINS", "*").split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins or ["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 INVENTORY_BASE_URL = os.getenv("INVENTORY_SERVICE_URL", "http://inventory-service:8000")
 RISK_BASE_URL = os.getenv("RISK_ENGINE_URL", "http://risk-engine:8000")

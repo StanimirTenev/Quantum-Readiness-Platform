@@ -117,6 +117,12 @@ def test_post_api_policies_evaluate_forwards_payload_and_returns_upstream(monkey
     }
 
 
+def test_cors_headers_present_for_browser_origin() -> None:
+    response = client.get("/health", headers={"Origin": "http://127.0.0.1:5173"})
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") in ("*", "http://127.0.0.1:5173")
+
+
 def test_post_api_integrations_dry_run_forwards_payload(monkeypatch) -> None:
     captured: dict = {}
 

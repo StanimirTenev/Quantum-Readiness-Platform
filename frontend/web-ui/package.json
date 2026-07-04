@@ -2,8 +2,9 @@
   "name": "qrp-web-ui",
   "private": true,
   "version": "0.1.0",
+  "description": "Buildless static frontend for the QRP API Gateway.",
   "scripts": {
-    "dev": "echo frontend placeholder",
-    "build": "echo build placeholder"
+    "dev": "python -m http.server 5173 --directory public",
+    "build": "node scripts/build.js"
   }
 }

@@ -117,6 +117,27 @@ def test_post_api_policies_evaluate_forwards_payload_and_returns_upstream(monkey
     }
 
 
+def test_post_api_scenarios_run_forwards_payload_to_scenario_engine(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"scenario": "hidden_capability", "scenario_multiplier": 1.35, "asset_count": 1, "highest_rating": "high", "results": []}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    payload = {"scenario": "hidden_capability", "assets": [{"asset_name": "a", "base_score": 3.0}]}
+    response = client.post("/api/scenarios/run", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["scenario_multiplier"] == 1.35
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/run")
+    assert captured["payload"] == payload
+
+
 def test_post_api_fingerprint_forwards_payload_to_crypto_service(monkeypatch) -> None:
     captured: dict = {}
 

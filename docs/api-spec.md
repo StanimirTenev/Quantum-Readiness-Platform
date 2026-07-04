@@ -9,7 +9,7 @@
 
 ## Risk
 - GET /api/assets/{id}/risk
-- POST /api/scenarios/run
+- POST /api/scenarios/run  (scenario-engine POST /run)
 
 ## Copilot
 - POST /api/copilot/query

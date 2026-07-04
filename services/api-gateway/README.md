@@ -13,6 +13,7 @@
 - `POST /api/scenarios/run`, `POST /api/copilot/{query|explain-risk|generate-wave-plan}`
 - `POST /api/policies/evaluate`
 - `GET /api/algorithms`, `POST /api/fingerprint` (crypto-fingerprint-service, `CRYPTO_FINGERPRINT_URL`, default port 8003)
+- `POST /api/normalize` (evidence-normalizer, `EVIDENCE_NORMALIZER_URL`, default port 8009)
 - `GET /graph/{snapshot|summary|nodes|edges|warnings}` (read-only snapshot)
 
 ## Inputs / outputs

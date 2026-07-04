@@ -161,6 +161,27 @@ def test_get_api_algorithms_forwards_to_crypto_service(monkeypatch) -> None:
     assert captured["url"].endswith("/algorithms")
 
 
+def test_post_api_normalize_forwards_payload_to_evidence_normalizer(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"contract_version": "evn-v1", "source": "network", "assets": [], "warnings": []}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    payload = {"source": "network", "assets": [], "tls_metadata": {"collected": True}}
+    response = client.post("/api/normalize", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["contract_version"] == "evn-v1"
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/normalize")
+    assert captured["payload"] == payload
+
+
 def test_get_graph_summary_returns_expected_shape(monkeypatch) -> None:
     snapshot = {
         "graph_schema_version": "v1",

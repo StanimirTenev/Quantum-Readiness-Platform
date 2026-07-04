@@ -19,3 +19,6 @@
 ## Crypto Fingerprint
 - GET /api/algorithms
 - POST /api/fingerprint
+
+## Evidence Normalizer
+- POST /api/normalize

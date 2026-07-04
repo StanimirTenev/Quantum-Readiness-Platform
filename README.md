@@ -45,6 +45,22 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 | dashboard-ui | ✅ Working prototype | — |
 | web-ui | ✅ Working prototype (buildless) | ✅ Build + JS syntax check |
 
+## Full smoke test (Windows / PowerShell)
+
+An end-to-end smoke test that starts the working-prototype services
+(crypto-fingerprint-service, evidence-normalizer, scenario-engine,
+integration-service) plus the API Gateway, exercises every new gateway route,
+asserts the results, writes `reports/new-services-smoke-report.md`, and stops
+the services:
+
+```powershell
+pwsh scripts/run_full_smoke.ps1
+```
+
+Exits non-zero on any failed check. Use `-KeepRunning` to leave the stack up,
+`-Python <path>` to pick the interpreter. (The `scripts/*.sh` smoke scripts
+remain the Linux-first path.)
+
 ## Crypto Fingerprint Service
 
 Deterministic classification of cryptographic algorithms for quantum

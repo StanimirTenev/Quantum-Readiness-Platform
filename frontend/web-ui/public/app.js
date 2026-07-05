@@ -82,13 +82,40 @@ $("fp-run").addEventListener("click", async () => {
     if (Number.isFinite(bits)) cert.key = { size_bits: bits };
     payload.tls_metadata = { certificate: cert };
   }
-  setMsg("Fingerprinting...");
+  payload.vendor_blocked = $("fp-vendor").checked;
+  payload.hybrid_supported = $("fp-hybrid").checked;
+  setMsg("Assessing...");
   try {
-    const data = await api("POST", "/api/fingerprint", payload);
-    renderFingerprint(data);
-    setMsg("Done.");
+    const data = await api("POST", "/api/assess", payload);
+    renderReadiness(data.pqc_readiness);
+    renderFingerprint(data.fingerprint);
+    setMsg("Done. Pipeline: " + (data.pipeline || []).join(" → "));
   } catch (err) { setMsg(err.message, true); }
 });
+
+function readinessKind(state) {
+  return {
+    classical_only: "high",
+    hybrid_capable: "medium",
+    pqc_ready: "pqc",
+    vendor_blocked: "critical",
+    unknown: "minimal",
+  }[state] || "minimal";
+}
+
+function renderReadiness(r) {
+  if (!r) { $("fp-readiness").innerHTML = ""; return; }
+  const reasons = (r.reasons || []).map((x) => `<li>${esc(x)}</li>`).join("");
+  $("fp-readiness").innerHTML =
+    `<div class="readiness">
+      <div class="readiness-head">
+        <span class="k">PQC readiness</span>
+        ${pill(String(r.readiness || "unknown").replace(/_/g, " "), readinessKind(r.readiness))}
+        <span class="conf">confidence: ${esc(r.confidence || "-")}</span>
+      </div>
+      ${reasons ? `<ul class="readiness-reasons">${reasons}</ul>` : ""}
+    </div>`;
+}
 
 function renderFingerprint(data) {
   const s = data.summary || {};

@@ -34,8 +34,9 @@
     <main>
       <!-- Fingerprint -->
       <section id="fingerprint" class="panel active">
-        <h2>Crypto Fingerprint</h2>
-        <p class="hint">Classify algorithms for quantum vulnerability. Enter algorithm names
+        <h2>Crypto Assessment</h2>
+        <p class="hint">Fingerprint algorithms and get the PQC migration readiness in one call
+          (fingerprint → pqc-readiness pipeline). Enter algorithm names
           (comma or newline separated) and/or a TLS certificate.</p>
         <div class="grid">
           <label class="field">
@@ -58,8 +59,17 @@
             <span>Public key size (bits)</span>
             <input id="fp-bits" type="number" placeholder="e.g. 2048" />
           </label>
+          <label class="field field-check">
+            <input id="fp-vendor" type="checkbox" />
+            <span>Vendor blocked</span>
+          </label>
+          <label class="field field-check">
+            <input id="fp-hybrid" type="checkbox" />
+            <span>Hybrid supported</span>
+          </label>
         </div>
-        <button id="fp-run" class="primary" type="button">Fingerprint</button>
+        <button id="fp-run" class="primary" type="button">Assess</button>
+        <div id="fp-readiness"></div>
         <div id="fp-summary" class="summary"></div>
         <div id="fp-result" class="result"></div>
       </section>

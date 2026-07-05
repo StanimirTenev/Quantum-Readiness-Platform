@@ -27,6 +27,9 @@
 - GET /api/readiness-states
 - POST /api/pqc-readiness
 
+## Assessment pipeline
+- POST /api/assess  (chains crypto-fingerprint -> pqc-readiness -> optional risk-engine)
+
 ## Graph traversal (in-memory over JSON snapshot)
 - GET /api/graph/queries
 - POST /api/graph/blast-radius

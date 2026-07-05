@@ -117,6 +117,74 @@ def test_post_api_policies_evaluate_forwards_payload_and_returns_upstream(monkey
     }
 
 
+def test_post_api_assess_chains_fingerprint_readiness_and_risk(monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        calls.append(url)
+        if url.endswith("/fingerprint"):
+            return {
+                "summary": {"pqc_readiness": "hybrid_partial"},
+                "findings": [
+                    {"classification": "classical_vulnerable"},
+                    {"classification": "pqc_ready"},
+                ],
+            }
+        if url.endswith("/classify"):
+            # findings from fingerprint must be forwarded to pqc-readiness
+            assert len(payload["findings"]) == 2
+            return {"readiness": "hybrid_capable", "confidence": "medium"}
+        if url.endswith("/score"):
+            assert payload["asset_name"] == "payments-api"
+            assert payload["criticality"] == 5
+            return {"normalized_score_100": 72.0, "rating": "high"}
+        raise AssertionError(f"unexpected url {url}")
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    payload = {
+        "asset_name": "payments-api",
+        "algorithms": ["RSA", "ML-KEM-768"],
+        "risk_factors": {
+            "criticality": 5,
+            "confidentiality_lifetime": 4,
+            "quantum_exposure": 3,
+            "blast_radius": 4,
+            "vendor_lock_in": 3,
+            "migration_difficulty": 3,
+        },
+    }
+    response = client.post("/api/assess", json=payload)
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["fingerprint"]["summary"]["pqc_readiness"] == "hybrid_partial"
+    assert data["pqc_readiness"]["readiness"] == "hybrid_capable"
+    assert data["risk"]["rating"] == "high"
+    assert data["pipeline"] == ["crypto-fingerprint-service", "pqc-readiness-service", "risk-engine"]
+    assert any(u.endswith("/fingerprint") for u in calls)
+    assert any(u.endswith("/classify") for u in calls)
+    assert any(u.endswith("/score") for u in calls)
+
+
+def test_post_api_assess_without_risk_factors_skips_risk(monkeypatch) -> None:
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        if url.endswith("/fingerprint"):
+            return {"summary": {"pqc_readiness": "classical_only"}, "findings": [{"classification": "classical_vulnerable"}]}
+        if url.endswith("/classify"):
+            return {"readiness": "classical_only"}
+        raise AssertionError(f"unexpected url {url}")
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.post("/api/assess", json={"asset_name": "a", "algorithms": ["RSA"]})
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["risk"] is None
+    assert data["pipeline"] == ["crypto-fingerprint-service", "pqc-readiness-service"]
+
+
 def test_post_api_graph_blast_radius_forwards(monkeypatch) -> None:
     captured: dict = {}
 

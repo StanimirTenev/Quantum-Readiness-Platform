@@ -164,6 +164,52 @@ def pqc_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     return _request_json("POST", f"{PQC_READINESS_BASE_URL}/classify", payload=payload)
 
 
+@app.post("/api/assess")
+def assess(payload: dict[str, Any]) -> dict[str, Any]:
+    """Chain the deterministic analysis pipeline for one asset:
+    crypto-fingerprint -> pqc-readiness -> (optional) risk-engine."""
+    asset_name = payload.get("asset_name") or "asset"
+
+    fingerprint_request: dict[str, Any] = {"asset_name": asset_name}
+    for key in ("algorithms", "tls_metadata", "crypto_evidence"):
+        if key in payload:
+            fingerprint_request[key] = payload[key]
+    fingerprint = _request_json(
+        "POST", f"{CRYPTO_FINGERPRINT_BASE_URL}/fingerprint", payload=fingerprint_request
+    )
+
+    readiness = _request_json(
+        "POST",
+        f"{PQC_READINESS_BASE_URL}/classify",
+        payload={
+            "asset_name": asset_name,
+            "findings": fingerprint.get("findings", []),
+            "vendor_blocked": payload.get("vendor_blocked", False),
+            "hybrid_supported": payload.get("hybrid_supported", False),
+        },
+    )
+
+    result: dict[str, Any] = {
+        "asset_name": asset_name,
+        "fingerprint": {"summary": fingerprint.get("summary"), "findings": fingerprint.get("findings", [])},
+        "pqc_readiness": readiness,
+        "risk": None,
+        "pipeline": ["crypto-fingerprint-service", "pqc-readiness-service"],
+    }
+
+    risk_factors = payload.get("risk_factors")
+    if isinstance(risk_factors, dict) and risk_factors:
+        risk_request: dict[str, Any] = {"asset_name": asset_name, "vendor_blocked": payload.get("vendor_blocked", False)}
+        risk_request.update(risk_factors)
+        for key in ("tls_metadata", "crypto_evidence", "scenario", "dependency_count", "environment"):
+            if key in payload:
+                risk_request[key] = payload[key]
+        result["risk"] = _request_json("POST", f"{RISK_BASE_URL}/score", payload=risk_request)
+        result["pipeline"].append("risk-engine")
+
+    return result
+
+
 @app.get("/api/graph/queries")
 def graph_queries() -> dict[str, Any]:
     return _request_json("GET", f"{GRAPH_SERVICE_BASE_URL}/queries")

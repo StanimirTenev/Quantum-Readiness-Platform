@@ -36,6 +36,7 @@ $FixtureDir = Join-Path $Root "services/inventory-service/tests/fixtures/stage2_
 
 # name -> @{ dir; port; target }
 $Services = [ordered]@{
+    "risk-engine"                = @{ dir = "services/risk-engine";                port = 8002 }
     "crypto-fingerprint-service" = @{ dir = "services/crypto-fingerprint-service"; port = 8003 }
     "evidence-normalizer"        = @{ dir = "services/evidence-normalizer";        port = 8009 }
     "scenario-engine"            = @{ dir = "services/scenario-engine";            port = 8006 }
@@ -92,6 +93,7 @@ try {
     $env:INTEGRATION_SERVICE_URL = "http://127.0.0.1:8011"
     $env:PQC_READINESS_URL = "http://127.0.0.1:8012"
     $env:GRAPH_SERVICE_URL = "http://127.0.0.1:8013"
+    $env:RISK_ENGINE_URL = "http://127.0.0.1:8002"
 
     foreach ($name in $Services.Keys) {
         $svc = $Services[$name]
@@ -166,6 +168,25 @@ try {
         Assert ($r.scenario_multiplier -eq 1.35) "mult=$($r.scenario_multiplier)"
         Assert ($r.results[0].asset_name -eq "high") "top=$($r.results[0].asset_name)"
         Assert ($r.highest_rating -eq "critical") "highest=$($r.highest_rating)"
+    }
+
+    Check "POST /api/assess chains fingerprint -> pqc-readiness" {
+        $r = Post "/api/assess" @{ asset_name = "smoke"; algorithms = @("RSA", "ML-KEM-768") }
+        Assert ($r.fingerprint.summary.pqc_readiness -eq "hybrid_partial") "fp=$($r.fingerprint.summary.pqc_readiness)"
+        Assert ($r.pqc_readiness.readiness -eq "hybrid_capable") "readiness=$($r.pqc_readiness.readiness)"
+        Assert ($null -eq $r.risk) "expected no risk without risk_factors"
+        Assert ($r.pipeline.Count -eq 2) "pipeline=$($r.pipeline -join ',')"
+    }
+
+    Check "POST /api/assess includes risk when risk_factors given" {
+        $body = @{
+            asset_name = "smoke"; algorithms = @("RSA")
+            risk_factors = @{ criticality = 5; confidentiality_lifetime = 4; quantum_exposure = 3; blast_radius = 4; vendor_lock_in = 3; migration_difficulty = 3 }
+        }
+        $r = Post "/api/assess" $body
+        Assert ($null -ne $r.risk) "expected risk block"
+        Assert ($null -ne $r.risk.rating) "expected risk.rating"
+        Assert ($r.pipeline -contains "risk-engine") "risk-engine not in pipeline"
     }
 
     Check "GET /api/readiness-states lists five states" {

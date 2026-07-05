@@ -41,6 +41,7 @@ $Services = [ordered]@{
     "scenario-engine"            = @{ dir = "services/scenario-engine";            port = 8006 }
     "integration-service"        = @{ dir = "services/integration-service";        port = 8011 }
     "pqc-readiness-service"      = @{ dir = "services/pqc-readiness-service";      port = 8012 }
+    "graph-service"              = @{ dir = "services/graph-service";              port = 8013 }
     "api-gateway"                = @{ dir = "services/api-gateway";                port = 8000; target = "main:app" }
 }
 
@@ -90,6 +91,7 @@ try {
     $env:SCENARIO_ENGINE_URL = "http://127.0.0.1:8006"
     $env:INTEGRATION_SERVICE_URL = "http://127.0.0.1:8011"
     $env:PQC_READINESS_URL = "http://127.0.0.1:8012"
+    $env:GRAPH_SERVICE_URL = "http://127.0.0.1:8013"
 
     foreach ($name in $Services.Keys) {
         $svc = $Services[$name]
@@ -184,6 +186,42 @@ try {
         Assert ($hybrid.readiness -eq "hybrid_capable") "hybrid=$($hybrid.readiness)"
         $blocked = Post "/api/pqc-readiness" @{ asset_name = "smoke"; findings = @(@{ classification = "pqc_ready" }); vendor_blocked = $true }
         Assert ($blocked.readiness -eq "vendor_blocked") "blocked=$($blocked.readiness)"
+    }
+
+    $graphSnap = @{
+        graph_schema_version = "0.1"
+        nodes = @(
+            @{ id = "asset:a"; type = "Asset"; label = "asset-a" },
+            @{ id = "service:s"; type = "Service"; label = "svc" },
+            @{ id = "cert:leaf"; type = "Certificate"; label = "leaf" },
+            @{ id = "cert:root"; type = "Certificate"; label = "root-ca" }
+        )
+        edges = @(
+            @{ from = "asset:a"; to = "service:s"; type = "RUNS" },
+            @{ from = "service:s"; to = "cert:leaf"; type = "USES_CERTIFICATE" },
+            @{ from = "cert:leaf"; to = "cert:root"; type = "SIGNED_BY" }
+        )
+        warnings = @()
+    }
+
+    Check "GET /api/graph/queries lists traversal queries" {
+        $r = Get-Json "/api/graph/queries"
+        $names = $r.queries | ForEach-Object { $_.name }
+        foreach ($n in @("blast-radius", "trust-chain", "neighbors")) {
+            Assert ($names -contains $n) "missing graph query $n"
+        }
+    }
+
+    Check "POST /api/graph/blast-radius reaches the dependent asset" {
+        $r = Post "/api/graph/blast-radius" @{ node_id = "cert:root"; snapshot = $graphSnap }
+        Assert ($r.affected_count -eq 3) "affected=$($r.affected_count)"
+        Assert ($r.affected_node_ids -contains "asset:a") "asset not in blast radius"
+    }
+
+    Check "POST /api/graph/trust-chain follows SIGNED_BY to root" {
+        $r = Post "/api/graph/trust-chain" @{ node_id = "cert:leaf"; snapshot = $graphSnap }
+        Assert ($r.root -eq "cert:root") "root=$($r.root)"
+        Assert ($r.length -eq 2) "length=$($r.length)"
     }
 
     Check "GET /api/integrations reports everything disabled" {

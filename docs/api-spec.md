@@ -27,6 +27,12 @@
 - GET /api/readiness-states
 - POST /api/pqc-readiness
 
+## Graph traversal (in-memory over JSON snapshot)
+- GET /api/graph/queries
+- POST /api/graph/blast-radius
+- POST /api/graph/trust-chain
+- POST /api/graph/neighbors
+
 ## Integrations (dry-run only, disabled)
 - GET /api/integrations
 - POST /api/integrations/dry-run

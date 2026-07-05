@@ -41,6 +41,7 @@ CRYPTO_FINGERPRINT_BASE_URL = os.getenv("CRYPTO_FINGERPRINT_URL", "http://crypto
 EVIDENCE_NORMALIZER_BASE_URL = os.getenv("EVIDENCE_NORMALIZER_URL", "http://evidence-normalizer:8000")
 INTEGRATION_SERVICE_BASE_URL = os.getenv("INTEGRATION_SERVICE_URL", "http://integration-service:8000")
 PQC_READINESS_BASE_URL = os.getenv("PQC_READINESS_URL", "http://pqc-readiness-service:8000")
+GRAPH_SERVICE_BASE_URL = os.getenv("GRAPH_SERVICE_URL", "http://graph-service:8000")
 GRAPH_SNAPSHOT_DEFAULT_PATH = "reports/graph/latest/graph-snapshot.json"
 
 
@@ -161,6 +162,26 @@ def readiness_states() -> dict[str, Any]:
 @app.post("/api/pqc-readiness")
 def pqc_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     return _request_json("POST", f"{PQC_READINESS_BASE_URL}/classify", payload=payload)
+
+
+@app.get("/api/graph/queries")
+def graph_queries() -> dict[str, Any]:
+    return _request_json("GET", f"{GRAPH_SERVICE_BASE_URL}/queries")
+
+
+@app.post("/api/graph/blast-radius")
+def graph_blast_radius(payload: dict[str, Any]) -> dict[str, Any]:
+    return _request_json("POST", f"{GRAPH_SERVICE_BASE_URL}/blast-radius", payload=payload)
+
+
+@app.post("/api/graph/trust-chain")
+def graph_trust_chain(payload: dict[str, Any]) -> dict[str, Any]:
+    return _request_json("POST", f"{GRAPH_SERVICE_BASE_URL}/trust-chain", payload=payload)
+
+
+@app.post("/api/graph/neighbors")
+def graph_neighbors(payload: dict[str, Any]) -> dict[str, Any]:
+    return _request_json("POST", f"{GRAPH_SERVICE_BASE_URL}/neighbors", payload=payload)
 
 
 @app.get("/api/integrations")

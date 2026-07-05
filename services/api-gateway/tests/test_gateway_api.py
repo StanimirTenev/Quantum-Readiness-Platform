@@ -117,6 +117,27 @@ def test_post_api_policies_evaluate_forwards_payload_and_returns_upstream(monkey
     }
 
 
+def test_post_api_graph_blast_radius_forwards(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"contract_version": "graph-query-v1", "affected_count": 3, "affected_node_ids": ["a", "b", "c"]}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    payload = {"node_id": "cert:root"}
+    response = client.post("/api/graph/blast-radius", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["affected_count"] == 3
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/blast-radius")
+    assert captured["payload"] == payload
+
+
 def test_post_api_pqc_readiness_forwards_to_classify(monkeypatch) -> None:
     captured: dict = {}
 

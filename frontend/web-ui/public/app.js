@@ -242,7 +242,86 @@ function grNode() {
   return $("gr-node").value;
 }
 
-$("gr-reload").addEventListener("click", loadGraphNodes);
+// --- Graph diagram (inline SVG, no library) ---
+const GTYPE_ORDER = ["Asset", "Service", "Certificate", "Package", "ConfigFile", "CryptoFinding", "MigrationTask", "Owner"];
+const GTYPE_COLOR = {
+  Asset: "#5b8cff", Service: "#4fd1c5", Certificate: "#ff9f45", Package: "#7bd88f",
+  ConfigFile: "#9aa3b2", CryptoFinding: "#ff5c72", MigrationTask: "#ffd452", Owner: "#c58cff",
+};
+let graphData = { nodes: [], edges: [] };
+
+async function loadGraphData() {
+  try {
+    const [nodesRes, edgesRes] = await Promise.all([
+      api("GET", "/graph/nodes"),
+      api("GET", "/graph/edges"),
+    ]);
+    graphData = { nodes: nodesRes.nodes || [], edges: edgesRes.edges || [] };
+    renderGraphSvg([]);
+  } catch (err) {
+    setMsg("Could not load graph diagram: " + err.message, true);
+  }
+}
+
+function truncate(text, n) {
+  const s = String(text || "");
+  return s.length > n ? s.slice(0, n - 1) + "…" : s;
+}
+
+function renderGraphSvg(highlightIds) {
+  const highlight = new Set(highlightIds || []);
+  const nodes = graphData.nodes;
+  if (!nodes.length) { $("gr-graph").innerHTML = ""; return; }
+
+  const colW = 210, rowH = 66, nodeW = 172, nodeH = 40, mX = 22, mY = 26;
+  const byType = {};
+  nodes.forEach((n) => { (byType[n.type] = byType[n.type] || []).push(n); });
+  const types = [
+    ...GTYPE_ORDER.filter((t) => byType[t]),
+    ...Object.keys(byType).filter((t) => !GTYPE_ORDER.includes(t)),
+  ];
+
+  const pos = {};
+  types.forEach((t, ci) => {
+    byType[t].forEach((n, ri) => { pos[n.id] = { x: mX + ci * colW, y: mY + ri * rowH }; });
+  });
+  const width = mX * 2 + types.length * colW;
+  const maxRows = Math.max(1, ...types.map((t) => byType[t].length));
+  const height = mY * 2 + maxRows * rowH;
+  const active = highlight.size > 0;
+  const center = (id) => ({ x: pos[id].x + nodeW / 2, y: pos[id].y + nodeH / 2 });
+
+  const edgeSvg = graphData.edges.map((e) => {
+    if (!pos[e.from] || !pos[e.to]) return "";
+    const a = center(e.from), b = center(e.to);
+    const on = highlight.has(e.from) && highlight.has(e.to);
+    const cls = "gedge" + (on ? " hl" : (active ? " dim" : ""));
+    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    return `<line class="${cls}" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" marker-end="url(#garrow)"><title>${esc(e.type)}</title></line>`
+      + `<text class="gedge-label${on ? "" : (active ? " dim" : "")}" x="${mx}" y="${my - 3}" text-anchor="middle">${esc(e.type)}</text>`;
+  }).join("");
+
+  const nodeSvg = nodes.map((n) => {
+    const p = pos[n.id];
+    const color = GTYPE_COLOR[n.type] || "#9aa3b2";
+    const on = highlight.has(n.id);
+    const cls = "gnode" + (on ? " hl" : (active ? " dim" : ""));
+    return `<g class="${cls}"><title>${esc(n.id)}</title>`
+      + `<rect x="${p.x}" y="${p.y}" width="${nodeW}" height="${nodeH}" rx="8" fill="${color}22" stroke="${color}"></rect>`
+      + `<text class="gtype" x="${p.x + 10}" y="${p.y + 15}">${esc(n.type)}</text>`
+      + `<text x="${p.x + 10}" y="${p.y + 30}">${esc(truncate(n.label || n.id, 24))}</text>`
+      + `</g>`;
+  }).join("");
+
+  $("gr-graph").innerHTML =
+    `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">`
+    + `<defs><marker id="garrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">`
+    + `<path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"></path></marker></defs>`
+    + edgeSvg + nodeSvg + `</svg>`;
+}
+
+$("gr-diagram").addEventListener("click", () => renderGraphSvg([]));
+$("gr-reload").addEventListener("click", () => { loadGraphNodes(); loadGraphData(); });
 
 $("gr-blast").addEventListener("click", async () => {
   const node_id = grNode();
@@ -261,6 +340,7 @@ $("gr-blast").addEventListener("click", async () => {
       ? `<div class="table-scroll"><table>
           <tr><th>Depth</th><th>Node</th><th>Type</th><th>Label</th></tr>${rows}</table></div>`
       : '<p class="hint">Nothing depends on this node (blast radius is empty).</p>';
+    renderGraphSvg([data.node_id, ...(data.affected_node_ids || [])]);
     setMsg("Done.");
   } catch (err) { setMsg(err.message, true); }
 });
@@ -282,6 +362,7 @@ $("gr-chain").addEventListener("click", async () => {
     $("gr-result").innerHTML = data.length > 1
       ? `<div class="chain">${parts}</div>`
       : '<p class="hint">No SIGNED_BY chain from this node.</p>';
+    renderGraphSvg((data.chain && data.chain.length) ? data.chain : [node_id]);
     setMsg("Done.");
   } catch (err) { setMsg(err.message, true); }
 });
@@ -300,6 +381,7 @@ $("gr-neighbors").addEventListener("click", async () => {
       ? `<div class="table-scroll"><table>
           <tr><th>Direction</th><th>Edge</th><th>Node</th><th>Type</th></tr>${rows}</table></div>`
       : '<p class="hint">No neighbours.</p>';
+    renderGraphSvg([node_id, ...(data.neighbors || []).map((n) => n.node_id)]);
     setMsg("Done.");
   } catch (err) { setMsg(err.message, true); }
 });
@@ -307,7 +389,7 @@ $("gr-neighbors").addEventListener("click", async () => {
 // Load graph nodes the first time the Graph tab is opened.
 let graphNodesLoaded = false;
 document.querySelector('.tab[data-tab="graph"]').addEventListener("click", () => {
-  if (!graphNodesLoaded) { graphNodesLoaded = true; loadGraphNodes(); }
+  if (!graphNodesLoaded) { graphNodesLoaded = true; loadGraphNodes(); loadGraphData(); }
 });
 
 // --- Init ---

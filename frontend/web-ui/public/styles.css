@@ -81,6 +81,17 @@ button.primary:hover { filter: brightness(1.08); }
 .btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .chain { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .chain .arrow { color: var(--muted); }
+.graphview { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); margin: 12px 0; }
+.graphview:empty { display: none; }
+.graphview svg { display: block; }
+.gnode rect { stroke-width: 1.5; }
+.gnode text { fill: var(--text); font-size: 11px; }
+.gnode .gtype { fill: var(--muted); font-size: 9px; }
+.gedge { stroke: var(--muted); stroke-width: 1.5; opacity: 0.55; }
+.gedge-label { fill: var(--muted); font-size: 9px; }
+.dim { opacity: 0.2; }
+.hl rect { stroke: var(--accent); stroke-width: 3; }
+.gedge.hl { stroke: var(--accent); opacity: 1; stroke-width: 2.5; }
 
 .banner-warn {
   background: rgba(255, 159, 69, 0.12); border: 1px solid var(--high);

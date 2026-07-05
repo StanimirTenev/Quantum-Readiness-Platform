@@ -22,6 +22,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Integration Service
 - Graph Service
 - Linux Host Agent
+- Windows Host Agent (evidence collector)
 - Network Scanner
 - Frontend Web UI
 

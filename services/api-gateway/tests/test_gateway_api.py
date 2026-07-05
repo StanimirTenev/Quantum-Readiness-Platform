@@ -134,6 +134,9 @@ def test_post_api_assess_chains_fingerprint_readiness_and_risk(monkeypatch) -> N
             # findings from fingerprint must be forwarded to pqc-readiness
             assert len(payload["findings"]) == 2
             return {"readiness": "hybrid_capable", "confidence": "medium"}
+        if url.endswith("/attribute"):
+            assert len(payload["findings"]) == 2
+            return {"contract_version": "attr-v1", "attributed_findings": [], "summary": {"total": 2}}
         if url.endswith("/score"):
             assert payload["asset_name"] == "payments-api"
             assert payload["criticality"] == 5
@@ -160,10 +163,14 @@ def test_post_api_assess_chains_fingerprint_readiness_and_risk(monkeypatch) -> N
     data = response.json()
     assert data["fingerprint"]["summary"]["pqc_readiness"] == "hybrid_partial"
     assert data["pqc_readiness"]["readiness"] == "hybrid_capable"
+    assert data["attribution"]["contract_version"] == "attr-v1"
     assert data["risk"]["rating"] == "high"
-    assert data["pipeline"] == ["crypto-fingerprint-service", "pqc-readiness-service", "risk-engine"]
+    assert data["pipeline"] == [
+        "crypto-fingerprint-service", "pqc-readiness-service", "finding-attribution-service", "risk-engine"
+    ]
     assert any(u.endswith("/fingerprint") for u in calls)
     assert any(u.endswith("/classify") for u in calls)
+    assert any(u.endswith("/attribute") for u in calls)
     assert any(u.endswith("/score") for u in calls)
 
 
@@ -173,6 +180,8 @@ def test_post_api_assess_without_risk_factors_skips_risk(monkeypatch) -> None:
             return {"summary": {"pqc_readiness": "classical_only"}, "findings": [{"classification": "classical_vulnerable"}]}
         if url.endswith("/classify"):
             return {"readiness": "classical_only"}
+        if url.endswith("/attribute"):
+            return {"contract_version": "attr-v1", "attributed_findings": []}
         raise AssertionError(f"unexpected url {url}")
 
     monkeypatch.setattr(main, "_request_json", fake_request_json)
@@ -182,7 +191,28 @@ def test_post_api_assess_without_risk_factors_skips_risk(monkeypatch) -> None:
     assert response.status_code == 200
     data = response.json()
     assert data["risk"] is None
-    assert data["pipeline"] == ["crypto-fingerprint-service", "pqc-readiness-service"]
+    assert data["pipeline"] == [
+        "crypto-fingerprint-service", "pqc-readiness-service", "finding-attribution-service"
+    ]
+
+
+def test_post_api_attribute_forwards_to_attribution_service(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"contract_version": "attr-v1", "attributed_findings": []}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    payload = {"asset_name": "a", "findings": [{"source": "tls_certificate"}]}
+    response = client.post("/api/attribute", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["contract_version"] == "attr-v1"
+    assert captured["url"].endswith("/attribute")
+    assert captured["payload"] == payload
 
 
 def test_post_api_graph_blast_radius_forwards(monkeypatch) -> None:

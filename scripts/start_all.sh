@@ -67,7 +67,8 @@ start_service "scenario-engine" "$ROOT/services/scenario-engine" "8006" "app.mai
 start_service "integration-service" "$ROOT/services/integration-service" "8011" "app.main:app"
 start_service "pqc-readiness-service" "$ROOT/services/pqc-readiness-service" "8012" "app.main:app"
 start_service "graph-service" "$ROOT/services/graph-service" "8013" "app.main:app"
-start_service "api-gateway" "$ROOT/services/api-gateway" "8000" "main:app" "INVENTORY_SERVICE_URL=http://127.0.0.1:8001 RISK_ENGINE_URL=http://127.0.0.1:8002 POLICY_ENGINE_URL=http://127.0.0.1:8007 PLANNER_SERVICE_URL=http://127.0.0.1:8004 WORKFLOW_SERVICE_URL=http://127.0.0.1:8005 SCENARIO_ENGINE_URL=http://127.0.0.1:8006 COPILOT_SERVICE_URL=http://127.0.0.1:8008 CRYPTO_FINGERPRINT_URL=http://127.0.0.1:8003 EVIDENCE_NORMALIZER_URL=http://127.0.0.1:8009 INTEGRATION_SERVICE_URL=http://127.0.0.1:8011 PQC_READINESS_URL=http://127.0.0.1:8012 GRAPH_SERVICE_URL=http://127.0.0.1:8013 GRAPH_SNAPSHOT_PATH=$ROOT/reports/graph/latest/graph-snapshot.json"
+start_service "finding-attribution-service" "$ROOT/services/finding-attribution-service" "8014" "app.main:app"
+start_service "api-gateway" "$ROOT/services/api-gateway" "8000" "main:app" "INVENTORY_SERVICE_URL=http://127.0.0.1:8001 RISK_ENGINE_URL=http://127.0.0.1:8002 POLICY_ENGINE_URL=http://127.0.0.1:8007 PLANNER_SERVICE_URL=http://127.0.0.1:8004 WORKFLOW_SERVICE_URL=http://127.0.0.1:8005 SCENARIO_ENGINE_URL=http://127.0.0.1:8006 COPILOT_SERVICE_URL=http://127.0.0.1:8008 CRYPTO_FINGERPRINT_URL=http://127.0.0.1:8003 EVIDENCE_NORMALIZER_URL=http://127.0.0.1:8009 INTEGRATION_SERVICE_URL=http://127.0.0.1:8011 PQC_READINESS_URL=http://127.0.0.1:8012 GRAPH_SERVICE_URL=http://127.0.0.1:8013 FINDING_ATTRIBUTION_URL=http://127.0.0.1:8014 GRAPH_SNAPSHOT_PATH=$ROOT/reports/graph/latest/graph-snapshot.json"
 
 echo
 echo "Required services started. Logs: $LOG_DIR"

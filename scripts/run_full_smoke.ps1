@@ -43,6 +43,7 @@ $Services = [ordered]@{
     "integration-service"        = @{ dir = "services/integration-service";        port = 8011 }
     "pqc-readiness-service"      = @{ dir = "services/pqc-readiness-service";      port = 8012 }
     "graph-service"              = @{ dir = "services/graph-service";              port = 8013 }
+    "finding-attribution-service" = @{ dir = "services/finding-attribution-service"; port = 8014 }
     "api-gateway"                = @{ dir = "services/api-gateway";                port = 8000; target = "main:app" }
 }
 
@@ -93,6 +94,7 @@ try {
     $env:INTEGRATION_SERVICE_URL = "http://127.0.0.1:8011"
     $env:PQC_READINESS_URL = "http://127.0.0.1:8012"
     $env:GRAPH_SERVICE_URL = "http://127.0.0.1:8013"
+    $env:FINDING_ATTRIBUTION_URL = "http://127.0.0.1:8014"
     $env:RISK_ENGINE_URL = "http://127.0.0.1:8002"
 
     foreach ($name in $Services.Keys) {
@@ -175,7 +177,7 @@ try {
         Assert ($r.fingerprint.summary.pqc_readiness -eq "hybrid_partial") "fp=$($r.fingerprint.summary.pqc_readiness)"
         Assert ($r.pqc_readiness.readiness -eq "hybrid_capable") "readiness=$($r.pqc_readiness.readiness)"
         Assert ($null -eq $r.risk) "expected no risk without risk_factors"
-        Assert ($r.pipeline.Count -eq 2) "pipeline=$($r.pipeline -join ',')"
+        Assert ($r.pipeline.Count -eq 3) "pipeline=$($r.pipeline -join ',')"
     }
 
     Check "POST /api/assess includes risk when risk_factors given" {
@@ -187,6 +189,26 @@ try {
         Assert ($null -ne $r.risk) "expected risk block"
         Assert ($null -ne $r.risk.rating) "expected risk.rating"
         Assert ($r.pipeline -contains "risk-engine") "risk-engine not in pipeline"
+    }
+
+    Check "POST /api/attribute builds the vuln->location->service->asset->cert chain" {
+        $body = @{
+            asset_name = "payments-api"; application = "payments"
+            findings = @(@{ source = "tls_certificate"; location = "tls_metadata.certificate.public_key"; algorithm_family = "RSA"; classification = "classical_vulnerable"; severity = "high"; quantum_vulnerable = $true; raw_value = "RSA" })
+            network_evidence = @{ target = "api.example.internal"; port = 443; certificate = @{ subject = "CN=api.example.internal"; fingerprint_sha256 = "abc123" } }
+        }
+        $r = Post "/api/attribute" $body
+        $f = $r.attributed_findings[0]
+        Assert ($f.location.value -eq "api.example.internal:443") "location=$($f.location.value)"
+        Assert ($f.attribution.crypto_object.kind -eq "certificate") "crypto_object=$($f.attribution.crypto_object.kind)"
+        Assert ($f.chain[3] -eq "asset:payments-api") "chain asset=$($f.chain[3])"
+        Assert ($f.chain[-1] -eq "certificate:CN=api.example.internal") "chain tail=$($f.chain[-1])"
+    }
+
+    Check "POST /api/assess includes finding attribution" {
+        $r = Post "/api/assess" @{ asset_name = "demo"; algorithms = @("RSA") }
+        Assert ($null -ne $r.attribution) "expected attribution block"
+        Assert ($r.pipeline -contains "finding-attribution-service") "attribution not in pipeline"
     }
 
     Check "GET /api/readiness-states lists five states" {

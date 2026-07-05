@@ -38,6 +38,7 @@ stop_service() {
 }
 
 stop_service "api-gateway"
+stop_service "finding-attribution-service"
 stop_service "graph-service"
 stop_service "pqc-readiness-service"
 stop_service "integration-service"

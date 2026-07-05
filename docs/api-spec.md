@@ -28,7 +28,10 @@
 - POST /api/pqc-readiness
 
 ## Assessment pipeline
-- POST /api/assess  (chains crypto-fingerprint -> pqc-readiness -> optional risk-engine)
+- POST /api/assess  (chains crypto-fingerprint -> pqc-readiness -> finding-attribution -> optional risk-engine)
+
+## Finding attribution
+- POST /api/attribute  (location + service/application attribution; vulnerability -> location -> service/app -> asset -> certificate/library/pipeline)
 
 ## Graph traversal (in-memory over JSON snapshot)
 - GET /api/graph/queries

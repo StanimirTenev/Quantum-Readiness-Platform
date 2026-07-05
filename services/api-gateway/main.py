@@ -42,6 +42,7 @@ EVIDENCE_NORMALIZER_BASE_URL = os.getenv("EVIDENCE_NORMALIZER_URL", "http://evid
 INTEGRATION_SERVICE_BASE_URL = os.getenv("INTEGRATION_SERVICE_URL", "http://integration-service:8000")
 PQC_READINESS_BASE_URL = os.getenv("PQC_READINESS_URL", "http://pqc-readiness-service:8000")
 GRAPH_SERVICE_BASE_URL = os.getenv("GRAPH_SERVICE_URL", "http://graph-service:8000")
+FINDING_ATTRIBUTION_BASE_URL = os.getenv("FINDING_ATTRIBUTION_URL", "http://finding-attribution-service:8000")
 GRAPH_SNAPSHOT_DEFAULT_PATH = "reports/graph/latest/graph-snapshot.json"
 
 
@@ -197,6 +198,20 @@ def assess(payload: dict[str, Any]) -> dict[str, Any]:
         "pipeline": ["crypto-fingerprint-service", "pqc-readiness-service"],
     }
 
+    attribution_request: dict[str, Any] = {
+        "asset_name": asset_name,
+        "application": payload.get("application"),
+        "findings": fingerprint.get("findings", []),
+    }
+    for key in ("tls_metadata", "crypto_evidence", "network_evidence", "host_evidence"):
+        if key in payload:
+            attribution_request[key] = payload[key]
+    attribution = _request_json(
+        "POST", f"{FINDING_ATTRIBUTION_BASE_URL}/attribute", payload=attribution_request
+    )
+    result["attribution"] = attribution
+    result["pipeline"].append("finding-attribution-service")
+
     risk_factors = payload.get("risk_factors")
     if isinstance(risk_factors, dict) and risk_factors:
         risk_request: dict[str, Any] = {"asset_name": asset_name, "vendor_blocked": payload.get("vendor_blocked", False)}
@@ -208,6 +223,11 @@ def assess(payload: dict[str, Any]) -> dict[str, Any]:
         result["pipeline"].append("risk-engine")
 
     return result
+
+
+@app.post("/api/attribute")
+def attribute_findings(payload: dict[str, Any]) -> dict[str, Any]:
+    return _request_json("POST", f"{FINDING_ATTRIBUTION_BASE_URL}/attribute", payload=payload)
 
 
 @app.get("/api/graph/queries")

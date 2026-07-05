@@ -1,6 +1,6 @@
 # New Services Smoke Report
 
-Generated: 2026-07-05 08:15:52Z
+Generated: 2026-07-05 11:46:32Z
 
 Scope: crypto-fingerprint-service, evidence-normalizer, scenario-engine,
 integration-service (dry-run), web-ui gateway routes -- exercised through api-gateway.
@@ -16,6 +16,8 @@ integration-service (dry-run), web-ui gateway routes -- exercised through api-ga
 | POST /api/scenarios/run applies multiplier and ranks | PASS |
 | POST /api/assess chains fingerprint -> pqc-readiness | PASS |
 | POST /api/assess includes risk when risk_factors given | PASS |
+| POST /api/attribute builds the vuln->location->service->asset->cert chain | PASS |
+| POST /api/assess includes finding attribution | PASS |
 | GET /api/readiness-states lists five states | PASS |
 | POST /api/pqc-readiness classifies classical-only | PASS |
 | POST /api/pqc-readiness classifies hybrid and vendor_blocked | PASS |

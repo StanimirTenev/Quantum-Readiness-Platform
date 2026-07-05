@@ -431,6 +431,25 @@ $("gr-neighbors").addEventListener("click", async () => {
   } catch (err) { setMsg(err.message, true); }
 });
 
+$("gr-evidence").addEventListener("click", async () => {
+  const node_id = grNode();
+  if (!node_id) return setMsg("Pick a node first.", true);
+  setMsg("Building evidence path...");
+  try {
+    const data = await api("POST", "/api/graph/evidence-path", { node_id });
+    $("gr-summary").innerHTML = stat("Chain length", data.length ?? 0);
+    const chain = data.chain || [];
+    const parts = chain.map((c) =>
+      `<span class="pill pill-info" title="${esc(c.node_id)}">${esc(c.role)}: ${esc(c.label || c.node_id)}</span>`
+    ).join(' <span class="arrow">→</span> ');
+    $("gr-result").innerHTML = chain.length
+      ? `<div class="chain">${parts}</div>`
+      : '<p class="hint">No attribution chain from this node.</p>';
+    renderGraphSvg(chain.map((c) => c.node_id));
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
 // Load graph nodes the first time the Graph tab is opened.
 let graphNodesLoaded = false;
 document.querySelector('.tab[data-tab="graph"]').addEventListener("click", () => {

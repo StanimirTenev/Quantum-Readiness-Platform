@@ -42,7 +42,7 @@ def test_queries_lists_supported_queries() -> None:
     response = client.get("/queries")
     assert response.status_code == 200
     names = {q["name"] for q in response.json()["queries"]}
-    assert names == {"blast-radius", "trust-chain", "neighbors"}
+    assert names == {"blast-radius", "trust-chain", "neighbors", "evidence-path"}
 
 
 def test_blast_radius_of_root_ca_reaches_asset() -> None:
@@ -100,6 +100,48 @@ def test_neighbors_out_only() -> None:
     assert response.status_code == 200
     ids = {n["node_id"] for n in response.json()["neighbors"]}
     assert ids == {"service:s", "pkg:x"}
+
+
+EVIDENCE_SNAPSHOT = {
+    "graph_schema_version": "0.1",
+    "nodes": [
+        {"id": "asset:a", "type": "Asset", "label": "host-a"},
+        {"id": "service:s", "type": "Service", "label": "api.example.internal:443"},
+        {"id": "cert:leaf", "type": "Certificate", "label": "CN=api.example.internal"},
+        {"id": "finding:v", "type": "CryptoFinding", "label": "quantum-vulnerable public key (RSA)"},
+    ],
+    "edges": [
+        {"from": "asset:a", "to": "service:s", "type": "RUNS"},
+        {"from": "service:s", "to": "cert:leaf", "type": "USES_CERTIFICATE"},
+        {"from": "service:s", "to": "finding:v", "type": "SERVICE_HAS_FINDING"},
+    ],
+    "warnings": [],
+}
+
+
+def test_evidence_path_from_finding_builds_full_chain() -> None:
+    response = client.post("/evidence-path", json={"node_id": "finding:v", "snapshot": EVIDENCE_SNAPSHOT})
+    assert response.status_code == 200
+    data = response.json()
+    roles = [c["role"] for c in data["chain"]]
+    assert roles == ["vulnerability", "service", "asset", "crypto_object"]
+    ids = [c["node_id"] for c in data["chain"]]
+    assert ids == ["finding:v", "service:s", "asset:a", "cert:leaf"]
+    # service step carries the location (endpoint)
+    service_step = next(c for c in data["chain"] if c["role"] == "service")
+    assert service_step["location"] == "api.example.internal:443"
+
+
+def test_evidence_path_from_certificate_resolves_service_and_asset() -> None:
+    response = client.post("/evidence-path", json={"node_id": "cert:leaf", "snapshot": EVIDENCE_SNAPSHOT})
+    assert response.status_code == 200
+    roles = [c["role"] for c in response.json()["chain"]]
+    assert "asset" in roles and "service" in roles and "crypto_object" in roles
+
+
+def test_evidence_path_unknown_node_returns_404() -> None:
+    response = client.post("/evidence-path", json={"node_id": "nope", "snapshot": EVIDENCE_SNAPSHOT})
+    assert response.status_code == 404
 
 
 def test_unknown_node_returns_404() -> None:

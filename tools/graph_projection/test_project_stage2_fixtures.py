@@ -121,6 +121,19 @@ def test_runs_edge_links_network_asset_to_service():
         assert nodes_by_id[e["to"]]["type"] == "Service"
 
 
+def test_quantum_vulnerable_public_key_creates_finding():
+    snapshot = _build_snapshot()
+    findings = [n for n in snapshot["nodes"] if n["type"] == "CryptoFinding"]
+    vuln = [f for f in findings if f["properties"].get("indicator") == "quantum_vulnerable_public_key"]
+    assert vuln, "expected a quantum_vulnerable_public_key CryptoFinding"
+    assert vuln[0]["properties"]["classification"] == "classical_vulnerable"
+    # attached to a service via SERVICE_HAS_FINDING
+    edges = [e for e in snapshot["edges"] if e["type"] == "SERVICE_HAS_FINDING" and e["to"] == vuln[0]["id"]]
+    assert edges
+    nodes_by_id = {n["id"]: n for n in snapshot["nodes"]}
+    assert nodes_by_id[edges[0]["from"]]["type"] == "Service"
+
+
 def test_weak_public_key_creates_service_finding():
     payload = {
         "assets": [{"name": "weak-endpoint", "asset_type": "endpoint"}],

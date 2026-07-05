@@ -267,6 +267,28 @@ try {
         Assert ($r.length -eq 2) "length=$($r.length)"
     }
 
+    Check "POST /api/graph/evidence-path builds vuln->service->asset->cert chain" {
+        $evSnap = @{
+            graph_schema_version = "0.1"
+            nodes = @(
+                @{ id = "asset:a"; type = "Asset"; label = "host-a" },
+                @{ id = "service:s"; type = "Service"; label = "api:443" },
+                @{ id = "cert:leaf"; type = "Certificate"; label = "CN=api" },
+                @{ id = "finding:v"; type = "CryptoFinding"; label = "quantum-vulnerable public key (RSA)" }
+            )
+            edges = @(
+                @{ from = "asset:a"; to = "service:s"; type = "RUNS" },
+                @{ from = "service:s"; to = "cert:leaf"; type = "USES_CERTIFICATE" },
+                @{ from = "service:s"; to = "finding:v"; type = "SERVICE_HAS_FINDING" }
+            )
+            warnings = @()
+        }
+        $r = Post "/api/graph/evidence-path" @{ node_id = "finding:v"; snapshot = $evSnap }
+        $roles = $r.chain | ForEach-Object { $_.role }
+        Assert (($roles -join ',') -eq "vulnerability,service,asset,crypto_object") "roles=$($roles -join ',')"
+        Assert ($r.chain[-1].node_id -eq "cert:leaf") "tail=$($r.chain[-1].node_id)"
+    }
+
     Check "GET /api/integrations reports everything disabled" {
         $r = Get-Json "/api/integrations"
         Assert ($r.mode -eq "dry_run_disabled") "mode=$($r.mode)"

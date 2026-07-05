@@ -1,7 +1,7 @@
 # Graph Projection Smoke Report
 
 ## Validation Date
-2026-07-05T07:38:01Z
+2026-07-05T11:52:06Z
 
 ## Scope
 - JSON snapshot projection
@@ -18,12 +18,12 @@
 
 ## Snapshot Summary
 
-- graph_snapshot_id: 65db944a2260420d
+- graph_snapshot_id: d6bdb5c0a7c184d4
 - graph_schema_version: 0.1
-- projection_version: 0.2.0
+- projection_version: 0.3.0
 - source: stage2_fixture_projection_smoke
-- node count: 8
-- edge count: 6
+- node count: 9
+- edge count: 7
 - warning count: 3
 
 ## Node Types
@@ -33,6 +33,7 @@
 | Asset | 2 |
 | Certificate | 2 |
 | ConfigFile | 2 |
+| CryptoFinding | 1 |
 | Package | 1 |
 | Service | 1 |
 
@@ -43,6 +44,7 @@
 | HAS_CONFIG | 2 |
 | HAS_PACKAGE | 1 |
 | RUNS | 1 |
+| SERVICE_HAS_FINDING | 1 |
 | SIGNED_BY | 1 |
 | USES_CERTIFICATE | 1 |
 
@@ -62,6 +64,7 @@
 | Host config indicators | ConfigFile + HAS_CONFIG | PASS |
 | Network TLS service | Service | PASS |
 | Asset runs service | RUNS | PASS |
+| Service vulnerability finding | CryptoFinding + SERVICE_HAS_FINDING | PASS |
 | TLS certificate | Certificate + USES_CERTIFICATE | PASS |
 | Certificate chain | Certificate + SIGNED_BY | PASS |
 

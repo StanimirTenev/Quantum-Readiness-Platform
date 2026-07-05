@@ -250,6 +250,11 @@ def graph_neighbors(payload: dict[str, Any]) -> dict[str, Any]:
     return _request_json("POST", f"{GRAPH_SERVICE_BASE_URL}/neighbors", payload=payload)
 
 
+@app.post("/api/graph/evidence-path")
+def graph_evidence_path(payload: dict[str, Any]) -> dict[str, Any]:
+    return _request_json("POST", f"{GRAPH_SERVICE_BASE_URL}/evidence-path", payload=payload)
+
+
 @app.get("/api/integrations")
 def list_integrations() -> dict[str, Any]:
     return _request_json("GET", f"{INTEGRATION_SERVICE_BASE_URL}/integrations")

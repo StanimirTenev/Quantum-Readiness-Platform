@@ -159,6 +159,23 @@ def project_network(payload, nodes, edges, warnings):
     })
     e = edge(service_id, "USES_CERTIFICATE", cert_id, "stage2_network_fixture")
     edges[e["id"]] = e
+
+    # Quantum-vulnerable public key becomes a service-scoped CryptoFinding so the
+    # graph carries the vulnerability node for evidence-path attribution.
+    public_key_alg = cert.get("algorithms", {}).get("public_key") or cert.get("public_key_algorithm")
+    if public_key_alg:
+        up = str(public_key_alg).upper()
+        if any(token in up for token in ("RSA", "ECDSA", "ECDH", "DSA", "DH", "ED25519", "EC")):
+            vf_id = f"finding:{service_id}:quantum_vulnerable_public_key"
+            nodes[vf_id] = node(vf_id, "CryptoFinding", f"quantum-vulnerable public key ({public_key_alg})", "stage2_network_fixture", {
+                "indicator": "quantum_vulnerable_public_key",
+                "algorithm": public_key_alg,
+                "classification": "classical_vulnerable",
+                "severity": "high",
+            }, confidence=0.9)
+            vf_edge = edge(service_id, "SERVICE_HAS_FINDING", vf_id, "stage2_network_fixture", confidence=0.9)
+            edges[vf_edge["id"]] = vf_edge
+
     if isinstance(key_size, int) and key_size < 2048:
         warnings.append(warning("weak_public_key", "warning", f"RSA public key size {key_size} is below 2048.", [cert_id]))
         # Weak key becomes a service-scoped CryptoFinding (section 5.3).
@@ -236,7 +253,7 @@ def main():
     snapshot_material = "|".join(fixture_refs + sorted(nodes) + sorted(edges))
     snapshot = {
         "graph_schema_version": "0.1",
-        "projection_version": "0.2.0",
+        "projection_version": "0.3.0",
         "graph_snapshot_id": hashlib.sha256(snapshot_material.encode()).hexdigest()[:16],
         "generated_at": iso_now(),
         "source": "stage2_fixture_projection_smoke",
@@ -285,6 +302,11 @@ def main():
             "Asset runs service",
             "RUNS",
             any(e["type"] == "RUNS" for e in snapshot["edges"]),
+        ),
+        (
+            "Service vulnerability finding",
+            "CryptoFinding + SERVICE_HAS_FINDING",
+            any(n["type"] == "CryptoFinding" for n in snapshot["nodes"]) and any(e["type"] == "SERVICE_HAS_FINDING" for e in snapshot["edges"]),
         ),
         (
             "TLS certificate",

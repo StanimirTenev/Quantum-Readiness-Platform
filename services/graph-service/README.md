@@ -19,6 +19,9 @@ nodes/edges but cannot traverse. This service adds the actual analytical queries
   `SIGNED_BY` edges.
 - **neighbors** &mdash; direct neighbours of a node, filtered by direction
   (`in` / `out` / `both`) and edge type.
+- **evidence-path** &mdash; the attribution chain around a node:
+  `vulnerability &rarr; service/location &rarr; asset &rarr; certificate/library/pipeline`.
+  Works best from a `CryptoFinding`, also from a Service / Asset / Certificate.
 
 ## Main endpoints
 - `GET /health`

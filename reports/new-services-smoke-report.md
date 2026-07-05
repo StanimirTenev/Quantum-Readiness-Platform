@@ -1,6 +1,6 @@
 # New Services Smoke Report
 
-Generated: 2026-07-05 11:46:32Z
+Generated: 2026-07-05 11:54:27Z
 
 Scope: crypto-fingerprint-service, evidence-normalizer, scenario-engine,
 integration-service (dry-run), web-ui gateway routes -- exercised through api-gateway.
@@ -24,6 +24,7 @@ integration-service (dry-run), web-ui gateway routes -- exercised through api-ga
 | GET /api/graph/queries lists traversal queries | PASS |
 | POST /api/graph/blast-radius reaches the dependent asset | PASS |
 | POST /api/graph/trust-chain follows SIGNED_BY to root | PASS |
+| POST /api/graph/evidence-path builds vuln->service->asset->cert chain | PASS |
 | GET /api/integrations reports everything disabled | PASS |
 | POST /api/integrations/dry-run never executes when approved | PASS |
 | POST /api/integrations/dry-run rejects secret material | PASS |

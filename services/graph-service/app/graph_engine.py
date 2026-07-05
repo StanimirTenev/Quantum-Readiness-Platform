@@ -117,6 +117,81 @@ def blast_radius(
     return affected, nodes
 
 
+def evidence_path(
+    snapshot: dict[str, Any],
+    node_id: str,
+) -> tuple[list[dict[str, Any]], dict[str, dict]]:
+    """Resolve the attribution chain around a node:
+
+        vulnerability -> location/service -> asset -> certificate/library/pipeline
+
+    Returns an ordered list of {role, node_id, type, label, location} plus the
+    node index. Works best starting from a CryptoFinding, but also from a
+    Service / Asset / Certificate / Package.
+    """
+    nodes, outgoing, incoming = build_index(snapshot)
+    if node_id not in nodes:
+        return [], nodes
+
+    def preds(nid: str, etype: str) -> list[str]:
+        return [e["from"] for e in incoming.get(nid, []) if e.get("type") == etype]
+
+    def succs(nid: str, etype: str) -> list[str]:
+        return [e["to"] for e in outgoing.get(nid, []) if e.get("type") == etype]
+
+    def first(items: list[str]) -> str | None:
+        return items[0] if items else None
+
+    finding = service = asset = crypto = None
+    start_type = nodes[node_id].get("type")
+
+    if start_type == "CryptoFinding":
+        finding = node_id
+        service = first(preds(node_id, "SERVICE_HAS_FINDING"))
+        asset = first(preds(node_id, "HAS_FINDING"))
+    elif start_type == "Service":
+        service = node_id
+    elif start_type == "Asset":
+        asset = node_id
+    elif start_type == "Certificate":
+        crypto = node_id
+        service = first(preds(node_id, "USES_CERTIFICATE"))
+    elif start_type in ("Package", "Library"):
+        crypto = node_id
+        asset = first(preds(node_id, "HAS_PACKAGE"))
+    elif start_type == "Pipeline":
+        crypto = node_id
+
+    if service and not asset:
+        asset = first(preds(service, "RUNS"))
+    if asset and not service:
+        service = first(succs(asset, "RUNS"))
+    if service and not crypto:
+        crypto = first(succs(service, "USES_CERTIFICATE"))
+    if asset and not crypto:
+        crypto = first(succs(asset, "HAS_PACKAGE"))
+
+    location = None
+    if service and service in nodes:
+        location = nodes[service].get("label")
+    elif crypto and crypto in nodes:
+        location = nodes[crypto].get("label")
+
+    ordered = [("vulnerability", finding), ("service", service), ("asset", asset), ("crypto_object", crypto)]
+    chain: list[dict[str, Any]] = []
+    for role, nid in ordered:
+        if nid and nid in nodes:
+            n = nodes[nid]
+            chain.append({
+                "role": role,
+                "node_id": nid,
+                "type": n.get("type"),
+                "label": n.get("label"),
+                "location": location if role == "service" else None,
+            })
+    return chain, nodes
+
+
 def trust_chain(
     snapshot: dict[str, Any],
     node_id: str,

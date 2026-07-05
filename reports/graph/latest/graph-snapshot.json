@@ -1,8 +1,8 @@
 {
   "graph_schema_version": "0.1",
-  "projection_version": "0.2.0",
-  "graph_snapshot_id": "65db944a2260420d",
-  "generated_at": "2026-07-05T07:38:01Z",
+  "projection_version": "0.3.0",
+  "graph_snapshot_id": "d6bdb5c0a7c184d4",
+  "generated_at": "2026-07-05T11:52:06Z",
   "source": "stage2_fixture_projection_smoke",
   "inputs": {
     "fixtures": [
@@ -128,6 +128,22 @@
       }
     },
     {
+      "id": "finding:service:asset:api.example.internal:443:tls:443:api.example.internal:quantum_vulnerable_public_key",
+      "type": "CryptoFinding",
+      "label": "quantum-vulnerable public key (RSA)",
+      "source": "stage2_network_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 0.9,
+      "observed_at": null,
+      "properties": {
+        "indicator": "quantum_vulnerable_public_key",
+        "algorithm": "RSA",
+        "classification": "classical_vulnerable",
+        "severity": "high"
+      }
+    },
+    {
       "id": "certificate:11aa22bb33cc44dd55ee66ff77889900aabbccddeeff00112233445566778899",
       "type": "Certificate",
       "label": "CN=api.example.internal,O=Example Internal",
@@ -201,6 +217,18 @@
       "scan_id": null,
       "evidence_ref": null,
       "confidence": 1.0,
+      "observed_at": null,
+      "properties": {}
+    },
+    {
+      "id": "edge:service:asset:api.example.internal:443:tls:443:api.example.internal:SERVICE_HAS_FINDING:finding:service:asset:api.example.internal:443:tls:443:api.example.internal:quantum_vulnerable_public_key",
+      "type": "SERVICE_HAS_FINDING",
+      "from": "service:asset:api.example.internal:443:tls:443:api.example.internal",
+      "to": "finding:service:asset:api.example.internal:443:tls:443:api.example.internal:quantum_vulnerable_public_key",
+      "source": "stage2_network_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 0.9,
       "observed_at": null,
       "properties": {}
     },

@@ -236,6 +236,22 @@ def test_post_api_graph_blast_radius_forwards(monkeypatch) -> None:
     assert captured["payload"] == payload
 
 
+def test_post_api_graph_evidence_path_forwards(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["url"] = url
+        return {"contract_version": "graph-query-v1", "chain": [{"role": "vulnerability"}]}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.post("/api/graph/evidence-path", json={"node_id": "finding:v"})
+
+    assert response.status_code == 200
+    assert response.json()["chain"][0]["role"] == "vulnerability"
+    assert captured["url"].endswith("/evidence-path")
+
+
 def test_post_api_pqc_readiness_forwards_to_classify(monkeypatch) -> None:
     captured: dict = {}
 

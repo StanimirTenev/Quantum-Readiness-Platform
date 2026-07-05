@@ -38,6 +38,7 @@
 - POST /api/graph/blast-radius
 - POST /api/graph/trust-chain
 - POST /api/graph/neighbors
+- POST /api/graph/evidence-path  (vulnerability -> service/location -> asset -> certificate/library/pipeline)
 
 ## Integrations (dry-run only, disabled)
 - GET /api/integrations

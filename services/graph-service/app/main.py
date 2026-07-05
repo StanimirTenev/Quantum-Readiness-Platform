@@ -62,6 +62,11 @@ class NeighborsRequest(BaseModel):
     snapshot: dict[str, Any] | None = None
 
 
+class EvidencePathRequest(BaseModel):
+    node_id: str = Field(..., min_length=1)
+    snapshot: dict[str, Any] | None = None
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok", "service": "graph-service"}
@@ -78,6 +83,8 @@ def queries() -> dict[str, Any]:
              "description": "Certificate chain to root, following SIGNED_BY edges."},
             {"name": "neighbors", "method": "POST", "path": "/neighbors",
              "description": "Direct neighbours of a node, filtered by direction and edge type."},
+            {"name": "evidence-path", "method": "POST", "path": "/evidence-path",
+             "description": "Attribution chain: vulnerability -> service/location -> asset -> certificate/library/pipeline."},
         ],
     }
 
@@ -111,6 +118,20 @@ def trust_chain(request: TrustChainRequest) -> dict[str, Any]:
         "length": len(chain),
         "root": chain[-1] if chain else None,
         "chain_nodes": [nodes.get(cid) for cid in chain],
+    }
+
+
+@app.post("/evidence-path")
+def evidence_path(request: EvidencePathRequest) -> dict[str, Any]:
+    snapshot = load_snapshot(request.snapshot)
+    _require_node(snapshot, request.node_id)
+    chain, _nodes = graph_engine.evidence_path(snapshot, request.node_id)
+    return {
+        "contract_version": CONTRACT_VERSION,
+        "node_id": request.node_id,
+        "length": len(chain),
+        "chain": chain,
+        "chain_labels": [f"{c['role']}: {c['label']}" for c in chain],
     }
 
 

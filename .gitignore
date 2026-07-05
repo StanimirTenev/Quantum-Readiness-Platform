@@ -44,3 +44,4 @@ node_modules/
 
 # Diagnostic snapshots (point-in-time; regenerate with scripts/check_repo_health.ps1)
 reports/repo-health-report.md
+reports/flow-run-report.md

@@ -50,6 +50,20 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 | dashboard-ui | ✅ Working prototype | — |
 | web-ui | ✅ Working prototype (buildless) | ✅ Build + JS syntax check |
 
+## Run the whole flow locally (Windows / PowerShell)
+
+One command starts the analysis stack + API Gateway and drives real evidence
+through the entire pipeline, printing a readable narrative and writing
+`reports/flow-run-report.md`:
+
+```powershell
+pwsh scripts/run_flow.ps1        # -KeepRunning to leave the stack up
+```
+
+Steps: discovery → graph projection → evidence normalization → assessment
+(fingerprint → pqc-readiness → attribution → risk) → scenario re-scoring →
+graph traversal (evidence-path + blast-radius) → integration dry-run.
+
 ## Repository health check (Windows / PowerShell)
 
 A fast diagnostic that catches the recurring failure classes — wrong branch /

@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-05-18T05:51:38.000043+00:00",
+  "generated_at_utc": "2026-07-05T08:43:29.113047+00:00",
   "scanned_roots": [
     "reports/trl7/",
     "reports/trl6/",
@@ -7,7 +7,7 @@
     "reports/evidence-pack/",
     "reports/external-review/"
   ],
-  "files_scanned": 47,
+  "files_scanned": 49,
   "files_skipped": 0,
   "finding_counts": {
     "HIGH": 0,
@@ -17,7 +17,7 @@
   "result": "REVIEW_REQUIRED",
   "findings": [
     {
-      "path": "reports/trl7/operational-evidence-safety-low-findings-triage.md",
+      "path": "reports\\trl7\\operational-evidence-safety-low-findings-triage.md",
       "line_number": 48,
       "severity": "LOW",
       "indicator": "token",
@@ -25,7 +25,7 @@
       "reason": "Credential-like term appears outside policy/reporting context."
     },
     {
-      "path": "reports/trl7/operational-evidence-safety-low-findings-triage.md",
+      "path": "reports\\trl7\\operational-evidence-safety-low-findings-triage.md",
       "line_number": 50,
       "severity": "LOW",
       "indicator": "password",
@@ -33,7 +33,7 @@
       "reason": "Credential-like term appears outside policy/reporting context."
     },
     {
-      "path": "reports/trl7/operational-evidence-safety-scan-review.md",
+      "path": "reports\\trl7\\operational-evidence-safety-scan-review.md",
       "line_number": 44,
       "severity": "LOW",
       "indicator": "token",
@@ -41,7 +41,7 @@
       "reason": "Credential-like term appears outside policy/reporting context."
     },
     {
-      "path": "reports/trl7/operational-evidence-safety-scan-review.md",
+      "path": "reports\\trl7\\operational-evidence-safety-scan-review.md",
       "line_number": 46,
       "severity": "LOW",
       "indicator": "secret",

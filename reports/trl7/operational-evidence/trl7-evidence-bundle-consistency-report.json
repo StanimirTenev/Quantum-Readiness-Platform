@@ -1,6 +1,6 @@
 {
-  "generated_at_utc": "2026-05-18T06:31:25.176286+00:00",
-  "result": "FAIL",
+  "generated_at_utc": "2026-07-05T08:43:29.534605+00:00",
+  "result": "PASS",
   "checks": [
     {
       "check_id": "A",
@@ -29,8 +29,8 @@
     {
       "check_id": "E",
       "description": "Present artifacts exist with matching metadata/hash",
-      "status": "FAIL",
-      "detail": "Size mismatch for docs/repository-checkpoint-current-status.md: expected 17097, actual 18239; SHA256 mismatch for docs/repository-checkpoint-current-status.md; Size mismatch for reports/trl7/operational-evidence-safety-scan-report.md: expected 2026, actual 1546; SHA256 mismatch for reports/trl7/operational-evidence-safety-scan-report.md; Size mismatch for reports/trl7/operational-evidence-safety-scan-report.json: expected 2087, actual 1583; SHA256 mismatch for reports/trl7/operational-evidence-safety-scan-report.json; Size mismatch for docs/trl7-operational-evidence-bundle-design.md: expected 5427, actual 5485; SHA256 mismatch for docs/trl7-operational-evidence-bundle-design.md"
+      "status": "PASS",
+      "detail": "All present artifacts verified."
     },
     {
       "check_id": "F",
@@ -64,11 +64,11 @@
     }
   ],
   "summary": {
-    "failed_checks": 1,
+    "failed_checks": 0,
     "warnings": 0,
     "artifacts_checked": 8,
     "required_missing": 0,
-    "hash_mismatches": 4,
+    "hash_mismatches": 0,
     "missing_required_artifacts": []
   }
 }

@@ -1,6 +1,6 @@
 # TRL7 Operational Evidence Bundle Index
 
-UTC timestamp: 2026-05-18T04:44:50.794630+00:00
+UTC timestamp: 2026-07-05T08:43:29.332893+00:00
 
 ## Purpose
 Deterministic TRL7 operational evidence bundle indexing/preparation from local dry-run and pilot-preparation artifacts.
@@ -19,10 +19,10 @@ Deterministic TRL7 operational evidence bundle indexing/preparation from local d
 | operational_readiness | trl7_operational_readiness_report | `reports/trl7/trl7-operational-readiness-report.md` | True | True | UNKNOWN | `0bd72d9eb80d` |
 | operator_review | trl7_operational_pilot_checklist | `reports/trl7/trl7-operational-pilot-checklist.md` | True | True | UNKNOWN | `d94a192f54b8` |
 | limitations | trl7_operational_known_limitations | `reports/trl7/trl7-operational-dry-run-known-limitations.md` | True | True | UNKNOWN | `d738d0ed385b` |
-| repository_status | repository_checkpoint_status | `docs/repository-checkpoint-current-status.md` | True | True | UNKNOWN | `1e22a7a943c9` |
-| safety_scan | operational_evidence_safety_scan_report_md | `reports/trl7/operational-evidence-safety-scan-report.md` | True | True | REVIEW_REQUIRED | `661441fe49ed` |
-| safety_scan | operational_evidence_safety_scan_report_json | `reports/trl7/operational-evidence-safety-scan-report.json` | True | True | UNKNOWN | `1bb4bdf2293c` |
-| design_reference | trl7_bundle_design | `docs/trl7-operational-evidence-bundle-design.md` | False | True | UNKNOWN | `d30f23709115` |
+| repository_status | repository_checkpoint_status | `docs/repository-checkpoint-current-status.md` | True | True | UNKNOWN | `ceacb1d59df1` |
+| safety_scan | operational_evidence_safety_scan_report_md | `reports/trl7/operational-evidence-safety-scan-report.md` | True | True | REVIEW_REQUIRED | `632f4c78c19b` |
+| safety_scan | operational_evidence_safety_scan_report_json | `reports/trl7/operational-evidence-safety-scan-report.json` | True | True | UNKNOWN | `fb3dcf4fe026` |
+| design_reference | trl7_bundle_design | `docs/trl7-operational-evidence-bundle-design.md` | False | True | UNKNOWN | `6de2fc32ea73` |
 
 ## Review Boundary Statements
 - This bundle supports TRL7 operational pilot preparation only.

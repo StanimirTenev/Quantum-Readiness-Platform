@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-05-18T04:44:50.794630+00:00",
+  "generated_at_utc": "2026-07-05T08:43:29.332893+00:00",
   "purpose": "Deterministic TRL7 operational evidence bundle indexing/preparation from local dry-run and pilot-preparation artifacts.",
   "summary": {
     "total_artifacts": 8,
@@ -28,7 +28,7 @@
       "notes": "Deterministic dry-run command/report orchestration artifact.",
       "size_bytes": 2775,
       "sha256": "f3f2e5ac905a748b81294a1b3e7d6b5c0baa6f5e61e295e79b3296cbbbb0e349",
-      "modified_time_utc": "2026-05-18T04:22:16.905406+00:00"
+      "modified_time_utc": "2026-07-05T08:43:28.605469+00:00"
     },
     {
       "artifact_id": "trl7_operational_readiness_report",
@@ -45,7 +45,7 @@
       "notes": "Operational readiness framing and constraints report.",
       "size_bytes": 4458,
       "sha256": "0bd72d9eb80d13a7ac66391efbc5cf72b01898ae5807585d5c9b4e9c72310c69",
-      "modified_time_utc": "2026-05-18T04:22:16.905406+00:00"
+      "modified_time_utc": "2026-07-05T08:43:28.608471+00:00"
     },
     {
       "artifact_id": "trl7_operational_pilot_checklist",
@@ -62,7 +62,7 @@
       "notes": "Operator/reviewer checklist and sign-off preparation.",
       "size_bytes": 3593,
       "sha256": "d94a192f54b82f4dff8ecb1035dad3b891ee5dc5f40eb35385da1ccf6f9286a1",
-      "modified_time_utc": "2026-05-18T04:22:16.905406+00:00"
+      "modified_time_utc": "2026-07-05T08:43:28.610471+00:00"
     },
     {
       "artifact_id": "trl7_operational_known_limitations",
@@ -79,7 +79,7 @@
       "notes": "Known dry-run/pilot limitations to review before any claim language.",
       "size_bytes": 538,
       "sha256": "d738d0ed385be579e3e2b8df38fa6d81c5b4ed2f6fe9b1f9417e818fb31a2c95",
-      "modified_time_utc": "2026-05-18T04:22:16.905406+00:00"
+      "modified_time_utc": "2026-07-05T08:43:28.611471+00:00"
     },
     {
       "artifact_id": "repository_checkpoint_status",
@@ -94,9 +94,9 @@
       "reviewed_by_operator": false,
       "status_hint": "UNKNOWN",
       "notes": "Current checkpoint status and review boundaries.",
-      "size_bytes": 17097,
-      "sha256": "1e22a7a943c96e6cce1b84291125e2248cf64491e8cf924bdc7c57f927c53aff",
-      "modified_time_utc": "2026-05-18T04:44:01.149180+00:00"
+      "size_bytes": 18239,
+      "sha256": "ceacb1d59df1663cc6844ddcfd1f5f649424ffcd3e13c5128f1c7fc18405578a",
+      "modified_time_utc": "2026-07-05T08:43:28.613472+00:00"
     },
     {
       "artifact_id": "operational_evidence_safety_scan_report_md",
@@ -111,9 +111,9 @@
       "reviewed_by_operator": false,
       "status_hint": "REVIEW_REQUIRED",
       "notes": "Operational evidence safety scan summary; review before external sharing.",
-      "size_bytes": 2026,
-      "sha256": "661441fe49ed2d6b178a51a11d4b3f73ec2099ad474af843c0adffb3c223f9ee",
-      "modified_time_utc": "2026-05-18T04:44:49.072403+00:00"
+      "size_bytes": 1546,
+      "sha256": "632f4c78c19bf867ded24c3d2c236babbeb22977940a0ffa093855f75d1a45e9",
+      "modified_time_utc": "2026-07-05T08:43:29.139897+00:00"
     },
     {
       "artifact_id": "operational_evidence_safety_scan_report_json",
@@ -128,9 +128,9 @@
       "reviewed_by_operator": false,
       "status_hint": "UNKNOWN",
       "notes": "Operational evidence safety scan structured findings for export/review.",
-      "size_bytes": 2087,
-      "sha256": "1bb4bdf2293c48ff626a37ab38d23f07765afd2644fc15eae3c8b780e4739cdb",
-      "modified_time_utc": "2026-05-18T04:44:49.072403+00:00"
+      "size_bytes": 1591,
+      "sha256": "fb3dcf4fe026fb57687feb590b31ff4ddfc72cb5daa88ea464e2cce45ffda3c4",
+      "modified_time_utc": "2026-07-05T08:43:29.149900+00:00"
     },
     {
       "artifact_id": "trl7_bundle_design",
@@ -145,9 +145,9 @@
       "reviewed_by_operator": false,
       "status_hint": "UNKNOWN",
       "notes": "Design reference for deterministic indexing scope.",
-      "size_bytes": 5427,
-      "sha256": "d30f23709115db9a18bd538f609a41acc72854b12fe8997979916205b71127e3",
-      "modified_time_utc": "2026-05-18T04:44:01.149180+00:00"
+      "size_bytes": 5485,
+      "sha256": "6de2fc32ea733d6a8e54a49829de2570f97ed7118702b9d044339677bfe4cc1e",
+      "modified_time_utc": "2026-07-05T08:43:28.635493+00:00"
     }
   ]
 }

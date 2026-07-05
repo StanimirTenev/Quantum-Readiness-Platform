@@ -49,6 +49,20 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 | dashboard-ui | ✅ Working prototype | — |
 | web-ui | ✅ Working prototype (buildless) | ✅ Build + JS syntax check |
 
+## Repository health check (Windows / PowerShell)
+
+A fast diagnostic that catches the recurring failure classes — wrong branch /
+detached HEAD / out-of-sync remote, `core.autocrlf` that breaks byte-hash
+tooling, missing or unwired scripts (services referenced by `start_all.sh`,
+README-referenced scripts), and stale reports with a `FAIL` verdict:
+
+```powershell
+pwsh scripts/check_repo_health.ps1        # add -Fetch for fresh ahead/behind
+```
+
+Prints a PASS/WARN/FAIL table, writes `reports/repo-health-report.md`
+(git-ignored snapshot), and exits non-zero only on a FAIL.
+
 ## Full smoke test (Windows / PowerShell)
 
 An end-to-end smoke test that starts the analysis stack (risk-engine,

@@ -70,6 +70,20 @@ graph traversal (evidence-path + blast-radius) → integration dry-run. With
 `-WindowsEvidence` it also runs the Windows host collector and pushes the
 machine's real certificates through the pipeline for an aggregate posture.
 
+## Operator / executive report (Windows / PowerShell)
+
+Assess a set of assets and render a migration report — executive summary,
+migration waves, findings, attribution/evidence chains, and boundaries:
+
+```powershell
+pwsh scripts/run_report.ps1                    # fixture assets
+pwsh scripts/run_report.ps1 -WindowsEvidence   # also include this host's real certificates
+```
+
+Writes `reports/operator-report.md` (git-ignored). The report is rendered by the
+pure, tested generator `tools/report/build_operator_report.py` from an
+assessment bundle, so it can also be produced from any saved `/api/assess` output.
+
 ## Repository health check (Windows / PowerShell)
 
 A fast diagnostic that catches the recurring failure classes — wrong branch /

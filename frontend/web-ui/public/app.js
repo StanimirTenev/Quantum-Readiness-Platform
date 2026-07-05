@@ -217,6 +217,99 @@ $("al-load").addEventListener("click", async () => {
   } catch (err) { setMsg(err.message, true); }
 });
 
+// --- Graph ---
+function shortId(id) {
+  const s = String(id || "");
+  return s.length > 48 ? s.slice(0, 45) + "..." : s;
+}
+
+async function loadGraphNodes() {
+  const select = $("gr-node");
+  try {
+    const data = await api("GET", "/graph/nodes");
+    const nodes = data.nodes || [];
+    select.innerHTML = nodes
+      .map((n) => `<option value="${esc(n.id)}">${esc(n.label || n.id)} — ${esc(n.type || "")}</option>`)
+      .join("");
+    setMsg(`Loaded ${nodes.length} graph node(s).`);
+  } catch (err) {
+    select.innerHTML = "";
+    setMsg("Could not load graph nodes: " + err.message, true);
+  }
+}
+
+function grNode() {
+  return $("gr-node").value;
+}
+
+$("gr-reload").addEventListener("click", loadGraphNodes);
+
+$("gr-blast").addEventListener("click", async () => {
+  const node_id = grNode();
+  if (!node_id) return setMsg("Pick a node first.", true);
+  setMsg("Computing blast radius...");
+  try {
+    const data = await api("POST", "/api/graph/blast-radius", { node_id });
+    $("gr-summary").innerHTML = [
+      stat("Node", esc(shortId(data.node_id))),
+      stat("Affected", data.affected_count ?? 0),
+    ].join("");
+    const rows = (data.affected || []).map((a) => `
+      <tr><td>${a.depth}</td><td class="mono">${esc(a.node_id)}</td>
+      <td>${esc(a.node ? a.node.type : "")}</td><td>${esc(a.node ? a.node.label : "")}</td></tr>`).join("");
+    $("gr-result").innerHTML = (data.affected && data.affected.length)
+      ? `<div class="table-scroll"><table>
+          <tr><th>Depth</th><th>Node</th><th>Type</th><th>Label</th></tr>${rows}</table></div>`
+      : '<p class="hint">Nothing depends on this node (blast radius is empty).</p>';
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
+$("gr-chain").addEventListener("click", async () => {
+  const node_id = grNode();
+  if (!node_id) return setMsg("Pick a node first.", true);
+  setMsg("Following trust chain...");
+  try {
+    const data = await api("POST", "/api/graph/trust-chain", { node_id });
+    $("gr-summary").innerHTML = [
+      stat("Length", data.length ?? 0),
+      stat("Root", esc(shortId(data.root || "-"))),
+    ].join("");
+    const parts = (data.chain || []).map((id, i) => {
+      const n = (data.chain_nodes || [])[i];
+      return `<span class="pill pill-info">${esc(n ? n.label : id)}</span>`;
+    }).join(' <span class="arrow">→</span> ');
+    $("gr-result").innerHTML = data.length > 1
+      ? `<div class="chain">${parts}</div>`
+      : '<p class="hint">No SIGNED_BY chain from this node.</p>';
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
+$("gr-neighbors").addEventListener("click", async () => {
+  const node_id = grNode();
+  if (!node_id) return setMsg("Pick a node first.", true);
+  setMsg("Loading neighbours...");
+  try {
+    const data = await api("POST", "/api/graph/neighbors", { node_id, direction: "both" });
+    $("gr-summary").innerHTML = stat("Neighbours", data.neighbor_count ?? 0);
+    const rows = (data.neighbors || []).map((n) => `
+      <tr><td>${esc(n.direction)}</td><td>${esc(n.edge_type)}</td>
+      <td class="mono">${esc(n.node_id)}</td><td>${esc(n.node ? n.node.type : "")}</td></tr>`).join("");
+    $("gr-result").innerHTML = (data.neighbors && data.neighbors.length)
+      ? `<div class="table-scroll"><table>
+          <tr><th>Direction</th><th>Edge</th><th>Node</th><th>Type</th></tr>${rows}</table></div>`
+      : '<p class="hint">No neighbours.</p>';
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
+// Load graph nodes the first time the Graph tab is opened.
+let graphNodesLoaded = false;
+document.querySelector('.tab[data-tab="graph"]').addEventListener("click", () => {
+  if (!graphNodesLoaded) { graphNodesLoaded = true; loadGraphNodes(); }
+});
+
 // --- Init ---
 loadScenarios();
 loadIntegrationActions();

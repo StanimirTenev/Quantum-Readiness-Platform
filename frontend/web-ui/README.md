@@ -11,6 +11,8 @@ Four panels over the gateway's routes:
 - **Scenarios** — re-score assets under a quantum-risk scenario (`POST /api/scenarios/run`).
 - **Integrations** — integration dry-run preview (`POST /api/integrations/dry-run`);
   always shows execution disabled.
+- **Graph** — traverse the dependency snapshot: blast radius, trust chain,
+  neighbours (`GET /graph/nodes` to pick a node, `POST /api/graph/*`).
 - **Algorithms** — the deterministic knowledge base (`GET /api/algorithms`).
 
 The gateway URL is editable in the header; **Check** hits `GET /health`.

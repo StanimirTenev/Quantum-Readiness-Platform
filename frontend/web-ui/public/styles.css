@@ -78,6 +78,9 @@ button { cursor: pointer; }
 button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; padding: 9px 18px; }
 button.primary:hover { filter: brightness(1.08); }
 #check-conn { padding: 7px 12px; }
+.btnrow { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.chain { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.chain .arrow { color: var(--muted); }
 
 .banner-warn {
   background: rgba(255, 159, 69, 0.12); border: 1px solid var(--high);

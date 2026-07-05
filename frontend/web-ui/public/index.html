@@ -27,6 +27,7 @@
       <button class="tab active" data-tab="fingerprint">Fingerprint</button>
       <button class="tab" data-tab="scenarios">Scenarios</button>
       <button class="tab" data-tab="integrations">Integrations</button>
+      <button class="tab" data-tab="graph">Graph</button>
       <button class="tab" data-tab="algorithms">Algorithms</button>
     </nav>
 
@@ -115,6 +116,27 @@ dev-box = 1.0</textarea>
         </div>
         <button id="in-run" class="primary" type="button">Dry-run</button>
         <div id="in-result" class="result"></div>
+      </section>
+
+      <!-- Graph -->
+      <section id="graph" class="panel">
+        <h2>Dependency Graph</h2>
+        <p class="hint">Traverse the projected snapshot: blast radius (what depends on a node),
+          trust chain (certificate to root), neighbours.</p>
+        <div class="grid">
+          <label class="field field-wide">
+            <span>Node</span>
+            <select id="gr-node"></select>
+          </label>
+        </div>
+        <div class="btnrow">
+          <button id="gr-blast" class="primary" type="button">Blast radius</button>
+          <button id="gr-chain" class="primary" type="button">Trust chain</button>
+          <button id="gr-neighbors" class="primary" type="button">Neighbours</button>
+          <button id="gr-reload" type="button">Reload nodes</button>
+        </div>
+        <div id="gr-summary" class="summary"></div>
+        <div id="gr-result" class="result"></div>
       </section>
 
       <!-- Algorithms -->

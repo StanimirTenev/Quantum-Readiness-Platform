@@ -38,6 +38,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 | retrieval-service | ✅ Working prototype | ✅ Unit + API tests |
 | evidence-normalizer | ✅ Working prototype | ✅ Unit + API tests |
 | crypto-fingerprint-service | ✅ Working prototype | ✅ Unit + API tests |
+| pqc-readiness-service | ✅ Working prototype | ✅ Unit + API tests |
 | policy-engine | 🔲 Placeholder | — |
 | scenario-engine | ✅ Working prototype | ✅ Unit + API tests |
 | repo-ci-scanner | 🔲 Placeholder | — |

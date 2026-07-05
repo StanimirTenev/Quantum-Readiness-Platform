@@ -14,6 +14,7 @@
 - `POST /api/policies/evaluate`
 - `GET /api/algorithms`, `POST /api/fingerprint` (crypto-fingerprint-service, `CRYPTO_FINGERPRINT_URL`, default port 8003)
 - `POST /api/normalize` (evidence-normalizer, `EVIDENCE_NORMALIZER_URL`, default port 8009)
+- `GET /api/readiness-states`, `POST /api/pqc-readiness` (pqc-readiness-service, `PQC_READINESS_URL`, default port 8012)
 - `GET /api/integrations`, `POST /api/integrations/dry-run` (integration-service, dry-run/disabled, `INTEGRATION_SERVICE_URL`, default port 8011)
 - `GET /graph/{snapshot|summary|nodes|edges|warnings}` (read-only snapshot)
 

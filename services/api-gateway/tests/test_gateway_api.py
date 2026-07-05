@@ -117,6 +117,27 @@ def test_post_api_policies_evaluate_forwards_payload_and_returns_upstream(monkey
     }
 
 
+def test_post_api_pqc_readiness_forwards_to_classify(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"contract_version": "pqr-v1", "readiness": "classical_only"}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    payload = {"asset_name": "a", "findings": [{"classification": "classical_vulnerable"}]}
+    response = client.post("/api/pqc-readiness", json=payload)
+
+    assert response.status_code == 200
+    assert response.json()["readiness"] == "classical_only"
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/classify")
+    assert captured["payload"] == payload
+
+
 def test_cors_headers_present_for_browser_origin() -> None:
     response = client.get("/health", headers={"Origin": "http://127.0.0.1:5173"})
     assert response.status_code == 200

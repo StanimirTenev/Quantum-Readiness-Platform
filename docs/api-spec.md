@@ -23,6 +23,10 @@
 ## Evidence Normalizer
 - POST /api/normalize
 
+## PQC Readiness
+- GET /api/readiness-states
+- POST /api/pqc-readiness
+
 ## Integrations (dry-run only, disabled)
 - GET /api/integrations
 - POST /api/integrations/dry-run

@@ -40,6 +40,7 @@ POLICY_ENGINE_BASE_URL = os.getenv("POLICY_ENGINE_URL", "http://policy-engine:80
 CRYPTO_FINGERPRINT_BASE_URL = os.getenv("CRYPTO_FINGERPRINT_URL", "http://crypto-fingerprint-service:8000")
 EVIDENCE_NORMALIZER_BASE_URL = os.getenv("EVIDENCE_NORMALIZER_URL", "http://evidence-normalizer:8000")
 INTEGRATION_SERVICE_BASE_URL = os.getenv("INTEGRATION_SERVICE_URL", "http://integration-service:8000")
+PQC_READINESS_BASE_URL = os.getenv("PQC_READINESS_URL", "http://pqc-readiness-service:8000")
 GRAPH_SNAPSHOT_DEFAULT_PATH = "reports/graph/latest/graph-snapshot.json"
 
 
@@ -150,6 +151,16 @@ def fingerprint(payload: dict[str, Any]) -> dict[str, Any]:
 @app.post("/api/normalize")
 def normalize_evidence(payload: dict[str, Any]) -> dict[str, Any]:
     return _request_json("POST", f"{EVIDENCE_NORMALIZER_BASE_URL}/normalize", payload=payload)
+
+
+@app.get("/api/readiness-states")
+def readiness_states() -> dict[str, Any]:
+    return _request_json("GET", f"{PQC_READINESS_BASE_URL}/readiness-states")
+
+
+@app.post("/api/pqc-readiness")
+def pqc_readiness(payload: dict[str, Any]) -> dict[str, Any]:
+    return _request_json("POST", f"{PQC_READINESS_BASE_URL}/classify", payload=payload)
 
 
 @app.get("/api/integrations")

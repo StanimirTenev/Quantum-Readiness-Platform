@@ -40,6 +40,7 @@ $Services = [ordered]@{
     "evidence-normalizer"        = @{ dir = "services/evidence-normalizer";        port = 8009 }
     "scenario-engine"            = @{ dir = "services/scenario-engine";            port = 8006 }
     "integration-service"        = @{ dir = "services/integration-service";        port = 8011 }
+    "pqc-readiness-service"      = @{ dir = "services/pqc-readiness-service";      port = 8012 }
     "api-gateway"                = @{ dir = "services/api-gateway";                port = 8000; target = "main:app" }
 }
 
@@ -88,6 +89,7 @@ try {
     $env:EVIDENCE_NORMALIZER_URL = "http://127.0.0.1:8009"
     $env:SCENARIO_ENGINE_URL = "http://127.0.0.1:8006"
     $env:INTEGRATION_SERVICE_URL = "http://127.0.0.1:8011"
+    $env:PQC_READINESS_URL = "http://127.0.0.1:8012"
 
     foreach ($name in $Services.Keys) {
         $svc = $Services[$name]
@@ -162,6 +164,26 @@ try {
         Assert ($r.scenario_multiplier -eq 1.35) "mult=$($r.scenario_multiplier)"
         Assert ($r.results[0].asset_name -eq "high") "top=$($r.results[0].asset_name)"
         Assert ($r.highest_rating -eq "critical") "highest=$($r.highest_rating)"
+    }
+
+    Check "GET /api/readiness-states lists five states" {
+        $r = Get-Json "/api/readiness-states"
+        $states = $r.states | ForEach-Object { $_.state }
+        foreach ($s in @("classical_only", "hybrid_capable", "pqc_ready", "vendor_blocked", "unknown")) {
+            Assert ($states -contains $s) "missing readiness state $s"
+        }
+    }
+
+    Check "POST /api/pqc-readiness classifies classical-only" {
+        $r = Post "/api/pqc-readiness" @{ asset_name = "smoke"; findings = @(@{ classification = "classical_vulnerable" }) }
+        Assert ($r.readiness -eq "classical_only") "readiness=$($r.readiness)"
+    }
+
+    Check "POST /api/pqc-readiness classifies hybrid and vendor_blocked" {
+        $hybrid = Post "/api/pqc-readiness" @{ asset_name = "smoke"; findings = @(@{ classification = "classical_vulnerable" }, @{ classification = "pqc_ready" }) }
+        Assert ($hybrid.readiness -eq "hybrid_capable") "hybrid=$($hybrid.readiness)"
+        $blocked = Post "/api/pqc-readiness" @{ asset_name = "smoke"; findings = @(@{ classification = "pqc_ready" }); vendor_blocked = $true }
+        Assert ($blocked.readiness -eq "vendor_blocked") "blocked=$($blocked.readiness)"
     }
 
     Check "GET /api/integrations reports everything disabled" {

@@ -11,6 +11,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Inventory Service
 - Evidence Normalizer
 - Crypto Fingerprint Service
+- PQC Readiness Service
 - Risk Engine
 - Scenario Engine
 - Policy Engine
@@ -19,6 +20,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 - Retrieval Service
 - Copilot Service
 - Integration Service
+- Graph Service
 - Linux Host Agent
 - Network Scanner
 - Frontend Web UI
@@ -40,7 +42,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 | crypto-fingerprint-service | ✅ Working prototype | ✅ Unit + API tests |
 | pqc-readiness-service | ✅ Working prototype | ✅ Unit + API tests |
 | graph-service | ✅ Working prototype (in-memory traversal) | ✅ Unit + API tests |
-| policy-engine | 🔲 Placeholder | — |
+| policy-engine | ✅ Working prototype | ✅ Unit + API tests |
 | scenario-engine | ✅ Working prototype | ✅ Unit + API tests |
 | repo-ci-scanner | 🔲 Placeholder | — |
 | integration-service | 🟨 Safe dry-run skeleton | ✅ Unit + API tests |
@@ -49,19 +51,45 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 
 ## Full smoke test (Windows / PowerShell)
 
-An end-to-end smoke test that starts the working-prototype services
-(crypto-fingerprint-service, evidence-normalizer, scenario-engine,
-integration-service) plus the API Gateway, exercises every new gateway route,
-asserts the results, writes `reports/new-services-smoke-report.md`, and stops
-the services:
+An end-to-end smoke test that starts the analysis stack (risk-engine,
+crypto-fingerprint-service, evidence-normalizer, scenario-engine,
+integration-service, pqc-readiness-service, graph-service) plus the API Gateway,
+then asserts 18 checks across every gateway route — including the
+`/api/assess` pipeline and the graph traversal queries — writes
+`reports/new-services-smoke-report.md`, stops the services, and exits non-zero
+on any failure:
 
 ```powershell
 pwsh scripts/run_full_smoke.ps1
 ```
 
-Exits non-zero on any failed check. Use `-KeepRunning` to leave the stack up,
-`-Python <path>` to pick the interpreter. (The `scripts/*.sh` smoke scripts
-remain the Linux-first path.)
+Use `-KeepRunning` to leave the stack up, `-Python <path>` to pick the
+interpreter. (The `scripts/*.sh` smoke scripts remain the Linux-first path.)
+
+## Deterministic analysis pipeline & gateway API
+
+The API Gateway is the single entry point. Besides scans/assets/risk/scenario/
+copilot routing, it exposes the deterministic analysis services and one
+aggregation endpoint that chains them:
+
+| Route | Backing service | Purpose |
+| --- | --- | --- |
+| `POST /api/assess` | fingerprint → pqc-readiness → risk | one-call pipeline for an asset |
+| `GET /api/algorithms`, `POST /api/fingerprint` | crypto-fingerprint-service | identify algorithms (classical vs PQC, HNDL, weak keys) |
+| `GET /api/readiness-states`, `POST /api/pqc-readiness` | pqc-readiness-service | migration state (classical-only / hybrid / pqc-ready / vendor-blocked / unknown) |
+| `POST /api/normalize` | evidence-normalizer | merge host+network evidence into one canonical shape |
+| `POST /api/scenarios/run` | scenario-engine | re-score assets under a quantum-risk scenario |
+| `GET /api/integrations`, `POST /api/integrations/dry-run` | integration-service | Trust Zone 4 dry-run only (never executes) |
+| `GET /api/graph/queries`, `POST /api/graph/{blast-radius,trust-chain,neighbors}` | graph-service | in-memory dependency traversal over the JSON snapshot |
+
+`POST /api/assess` returns the fingerprint summary + findings, the PQC readiness,
+and (when `risk_factors` are supplied) a risk score, plus the list of pipeline
+services that ran. See `services/api-gateway/README.md` for the full route list.
+
+The **web-ui** console (`frontend/web-ui`) surfaces these: a Crypto Assessment
+panel (assess pipeline), Scenarios, Integrations, a Graph panel with an
+interactive SVG diagram (click a node for its blast radius), and an Algorithms
+reference.
 
 ## Crypto Fingerprint Service
 
@@ -429,6 +457,10 @@ For local validation and evidence-pack tooling:
 - Python 3 is required.
 - On Ubuntu 24.04, install `python-is-python3` (or run scripts explicitly with `python3` if `python` is not available).
 - `pytest` is required for Python tooling/tests used in validation flows.
+- Note: the pinned `pydantic==2.9.2` / `fastapi==0.115.0` have no prebuilt
+  wheels for Python 3.14. On 3.14, install current-compatible versions
+  (`pip install "pydantic>=2.11" "fastapi>=0.115" uvicorn pytest httpx`); the
+  service code uses stable pydantic v2 / FastAPI APIs and runs on both.
 
 Suggested setup commands:
 

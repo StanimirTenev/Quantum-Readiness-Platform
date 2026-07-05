@@ -58,12 +58,15 @@ through the entire pipeline, printing a readable narrative and writing
 `reports/flow-run-report.md`:
 
 ```powershell
-pwsh scripts/run_flow.ps1        # -KeepRunning to leave the stack up
+pwsh scripts/run_flow.ps1                    # -KeepRunning to leave the stack up
+pwsh scripts/run_flow.ps1 -WindowsEvidence   # also assess THIS host's real certificates
 ```
 
 Steps: discovery → graph projection → evidence normalization → assessment
 (fingerprint → pqc-readiness → attribution → risk) → scenario re-scoring →
-graph traversal (evidence-path + blast-radius) → integration dry-run.
+graph traversal (evidence-path + blast-radius) → integration dry-run. With
+`-WindowsEvidence` it also runs the Windows host collector and pushes the
+machine's real certificates through the pipeline for an aggregate posture.
 
 ## Repository health check (Windows / PowerShell)
 

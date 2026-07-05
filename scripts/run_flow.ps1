@@ -29,7 +29,8 @@
 [CmdletBinding()]
 param(
     [string]$Python = "python",
-    [switch]$KeepRunning
+    [switch]$KeepRunning,
+    [switch]$WindowsEvidence
 )
 
 Set-StrictMode -Version Latest
@@ -155,6 +156,32 @@ try {
     Say "== 6. Integration dry-run (Trust Zone 4) ==" "Cyan"
     $dry = Post "/api/integrations/dry-run" @{ action = "rotate_certificate"; target_type = "ca"; asset_name = "payments-api"; approved = $true; approvals_provided = @("security_review", "change_approval") }
     Say ("rotate_certificate: executed={0}, would_execute_if_enabled={1}, blocked={2}" -f $dry.executed, $dry.would_execute_if_enabled, ($dry.blocked_reasons -join ","))
+
+    # 7. Optional: real Windows host evidence through the pipeline.
+    if ($WindowsEvidence) {
+        Say ""
+        Say "== 7. Real Windows host assessment ==" "Cyan"
+        $winOut = Join-Path $env:TEMP "qrp-windows-evidence.json"
+        & pwsh -NoProfile -File (Join-Path $Root "agents/windows-host-agent/collect.ps1") -OutFile $winOut -MaxCerts 40 2>&1 | Out-Null
+        $win = Get-Content $winOut -Raw | ConvertFrom-Json
+        $ci = $win.windows_evidence.certificate_store_indicators
+        $ti = $win.windows_evidence.schannel_tls_indicators
+        Say ("Host cert stores: {0} certs, {1} expired, {2} weak-signature; SCHANNEL policy={3}, legacy TLS={4}" -f $ci.certificates_observed_count, $ci.expired_certificates_count, $ci.weak_signature_indicators_count, $ti.schannel_policy_observed, $ti.tls_legacy_protocols_enabled_observed)
+
+        $surface = @($win.certificate_crypto_surface | Where-Object { $_.public_key_algorithm } | Select-Object -First 40)
+        $classical = 0; $weak = 0; $hndl = 0; $weakSig = 0
+        foreach ($c in $surface) {
+            $body = @{ asset_name = "win-host"; tls_metadata = @{ certificate = @{ algorithms = @{ public_key = $c.public_key_algorithm; signature = $c.signature_algorithm }; key = @{ size_bits = $c.public_key_size } } } }
+            try {
+                $r = Post "/api/assess" $body
+                if ($r.pqc_readiness.readiness -eq "classical_only") { $classical++ }
+                if ($r.fingerprint.summary.hndl_exposure) { $hndl++ }
+                if ($r.fingerprint.summary.weak_count -gt 0) { $weak++ }
+            } catch {}
+            if ($c.signature_algorithm -match '(?i)sha1|md5') { $weakSig++ }
+        }
+        Say ("Assessed {0} real certificates: {1} classical-only, {2} HNDL-exposed, {3} with weak key/primitive, {4} weak-signature" -f $surface.Count, $classical, $hndl, $weak, $weakSig)
+    }
 
     Say ""
     Say "== Flow complete ==" "Green"

@@ -1,5 +1,7 @@
 # Quantum Readiness Platform
 
+[![CI](https://github.com/StanimirTenev/Quantum-Readiness-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/StanimirTenev/Quantum-Readiness-Platform/actions/workflows/ci.yml)
+
 QRP is designed for internal/customer-controlled deployment with local-first evidence processing, optional local Copilot support, and no mandatory external LLM dependency.
 
 Note: the legacy demo (`docs/demo/qrp_demo_legacy.html`) has external LLM calls disabled to preserve the local-first/privacy boundary.

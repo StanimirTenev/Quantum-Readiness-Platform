@@ -93,3 +93,13 @@ Do not start graph DB, graph API, graph UI, Neo4j, Postgres graph tables, Copilo
 
 Minimal read-only Graph API is now implemented in the existing api-gateway service (snapshot-backed only).
 Graph DB, Neo4j, graph UI, traversal engine, and blast-radius analysis remain not implemented.
+
+## Projection Enrichment Update (projection_version 0.2.0)
+
+The projection was unfrozen for an additive relationship enrichment (no graph DB, still JSON snapshot):
+
+- `RUNS` edge (Asset -> Service) now links a network service to the asset it runs on, so blast-radius reaches the owning asset.
+- Weak public keys now project as a service-scoped `CryptoFinding` with a `SERVICE_HAS_FINDING` edge (in addition to the existing warning).
+- A deterministic in-memory traversal engine (`services/graph-service`) now provides blast-radius, trust-chain and neighbour queries over the snapshot, surfaced through the API Gateway `/api/graph/*` and the web-ui Graph panel.
+
+Graph DB, Neo4j, PostgreSQL graph tables and persistence remain out of scope.

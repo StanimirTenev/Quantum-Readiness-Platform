@@ -1,7 +1,7 @@
 # Graph Projection Smoke Report
 
 ## Validation Date
-2026-05-17T06:51:43Z
+2026-07-05T07:38:01Z
 
 ## Scope
 - JSON snapshot projection
@@ -13,17 +13,17 @@
 
 | Fixture | Status |
 |---|---|
-| /workspace/Quantum-Readiness-Platform/services/inventory-service/tests/fixtures/stage2_evidence/host_enriched_ingest.json | OK |
-| /workspace/Quantum-Readiness-Platform/services/inventory-service/tests/fixtures/stage2_evidence/network_enriched_ingest.json | OK |
+| services\inventory-service\tests\fixtures\stage2_evidence\host_enriched_ingest.json | OK |
+| services\inventory-service\tests\fixtures\stage2_evidence\network_enriched_ingest.json | OK |
 
 ## Snapshot Summary
 
-- graph_snapshot_id: 50eb0ae424cec904
+- graph_snapshot_id: 65db944a2260420d
 - graph_schema_version: 0.1
-- projection_version: 0.1.0
+- projection_version: 0.2.0
 - source: stage2_fixture_projection_smoke
 - node count: 8
-- edge count: 5
+- edge count: 6
 - warning count: 3
 
 ## Node Types
@@ -42,6 +42,7 @@
 |---|---|
 | HAS_CONFIG | 2 |
 | HAS_PACKAGE | 1 |
+| RUNS | 1 |
 | SIGNED_BY | 1 |
 | USES_CERTIFICATE | 1 |
 
@@ -60,6 +61,7 @@
 | Host packages | Package + HAS_PACKAGE | PASS |
 | Host config indicators | ConfigFile + HAS_CONFIG | PASS |
 | Network TLS service | Service | PASS |
+| Asset runs service | RUNS | PASS |
 | TLS certificate | Certificate + USES_CERTIFICATE | PASS |
 | Certificate chain | Certificate + SIGNED_BY | PASS |
 
@@ -75,7 +77,7 @@
 | node IDs unique | PASS |
 | edge IDs unique | PASS |
 | edge references valid | PASS |
-| confidence values within 0.0â€“1.0 | PASS |
+| confidence values within 0.0–1.0 | PASS |
 
 ## Privacy Boundary
 

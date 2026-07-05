@@ -1,13 +1,13 @@
 {
   "graph_schema_version": "0.1",
-  "projection_version": "0.1.0",
-  "graph_snapshot_id": "50eb0ae424cec904",
-  "generated_at": "2026-05-17T06:51:43Z",
+  "projection_version": "0.2.0",
+  "graph_snapshot_id": "65db944a2260420d",
+  "generated_at": "2026-07-05T07:38:01Z",
   "source": "stage2_fixture_projection_smoke",
   "inputs": {
     "fixtures": [
-      "/workspace/Quantum-Readiness-Platform/services/inventory-service/tests/fixtures/stage2_evidence/host_enriched_ingest.json",
-      "/workspace/Quantum-Readiness-Platform/services/inventory-service/tests/fixtures/stage2_evidence/network_enriched_ingest.json"
+      "services\\inventory-service\\tests\\fixtures\\stage2_evidence\\host_enriched_ingest.json",
+      "services\\inventory-service\\tests\\fixtures\\stage2_evidence\\network_enriched_ingest.json"
     ]
   },
   "nodes": [
@@ -177,6 +177,18 @@
       "scan_id": null,
       "evidence_ref": null,
       "confidence": 0.7,
+      "observed_at": null,
+      "properties": {}
+    },
+    {
+      "id": "edge:asset:api.example.internal:443:RUNS:service:asset:api.example.internal:443:tls:443:api.example.internal",
+      "type": "RUNS",
+      "from": "asset:api.example.internal:443",
+      "to": "service:asset:api.example.internal:443:tls:443:api.example.internal",
+      "source": "stage2_network_fixture",
+      "scan_id": null,
+      "evidence_ref": null,
+      "confidence": 1.0,
       "observed_at": null,
       "properties": {}
     },

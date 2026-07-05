@@ -110,6 +110,41 @@ def test_unique_ids_edge_references_and_confidence_bounds():
         assert 0.0 <= edge["confidence"] <= 1.0
 
 
+def test_runs_edge_links_network_asset_to_service():
+    snapshot = _build_snapshot()
+    nodes_by_id = {n["id"]: n for n in snapshot["nodes"]}
+    runs = [e for e in snapshot["edges"] if e["type"] == "RUNS"]
+
+    assert runs, "expected at least one RUNS edge (Asset -> Service)"
+    for e in runs:
+        assert nodes_by_id[e["from"]]["type"] == "Asset"
+        assert nodes_by_id[e["to"]]["type"] == "Service"
+
+
+def test_weak_public_key_creates_service_finding():
+    payload = {
+        "assets": [{"name": "weak-endpoint", "asset_type": "endpoint"}],
+        "tls_metadata": {
+            "target": "weak.example",
+            "port": 443,
+            "certificate": {
+                "subject": {"display_dn": "CN=weak.example"},
+                "algorithms": {"public_key": "RSA"},
+                "key": {"size_bits": 1024},
+                "sha256_fingerprint": "deadbeef",
+            },
+        },
+    }
+    nodes, edges, warnings = {}, {}, []
+    projector.project_network(payload, nodes, edges, warnings)
+
+    findings = [n for n in nodes.values() if n["type"] == "CryptoFinding"]
+    assert any(f["properties"].get("indicator") == "weak_public_key" for f in findings)
+    assert any(e["type"] == "SERVICE_HAS_FINDING" for e in edges.values())
+    finding_edge = next(e for e in edges.values() if e["type"] == "SERVICE_HAS_FINDING")
+    assert nodes[finding_edge["from"]]["type"] == "Service"
+
+
 def test_warning_shape_is_consistent():
     snapshot = _build_snapshot()
 

@@ -135,6 +135,11 @@ def project_network(payload, nodes, edges, warnings):
         "protocol": protocol,
     })
 
+    # Asset RUNS Service (section 5.3): link the service to the asset it runs on.
+    if asset.get("name"):
+        run_edge = edge(asset_node_id, "RUNS", service_id, "stage2_network_fixture")
+        edges[run_edge["id"]] = run_edge
+
     cert = tls.get("certificate", {})
     fp = cert.get("sha256_fingerprint") or cert.get("fingerprint_sha256") or cert.get("subject", {}).get("fingerprint")
     if not fp:
@@ -156,6 +161,15 @@ def project_network(payload, nodes, edges, warnings):
     edges[e["id"]] = e
     if isinstance(key_size, int) and key_size < 2048:
         warnings.append(warning("weak_public_key", "warning", f"RSA public key size {key_size} is below 2048.", [cert_id]))
+        # Weak key becomes a service-scoped CryptoFinding (section 5.3).
+        wk_id = f"finding:{service_id}:weak_public_key"
+        nodes[wk_id] = node(wk_id, "CryptoFinding", "weak_public_key", "stage2_network_fixture", {
+            "indicator": "weak_public_key",
+            "public_key_size": key_size,
+            "algorithm": cert.get("algorithms", {}).get("public_key"),
+        }, confidence=0.9)
+        wk_edge = edge(service_id, "SERVICE_HAS_FINDING", wk_id, "stage2_network_fixture", confidence=0.9)
+        edges[wk_edge["id"]] = wk_edge
 
     chain = tls.get("certificate_chain", {})
     if chain.get("available") is False:
@@ -222,7 +236,7 @@ def main():
     snapshot_material = "|".join(fixture_refs + sorted(nodes) + sorted(edges))
     snapshot = {
         "graph_schema_version": "0.1",
-        "projection_version": "0.1.0",
+        "projection_version": "0.2.0",
         "graph_snapshot_id": hashlib.sha256(snapshot_material.encode()).hexdigest()[:16],
         "generated_at": iso_now(),
         "source": "stage2_fixture_projection_smoke",
@@ -267,6 +281,11 @@ def main():
             any(n["type"] == "ConfigFile" for n in snapshot["nodes"]) and any(e["type"] == "HAS_CONFIG" for e in snapshot["edges"]),
         ),
         ("Network TLS service", "Service", any(n["type"] == "Service" for n in snapshot["nodes"])),
+        (
+            "Asset runs service",
+            "RUNS",
+            any(e["type"] == "RUNS" for e in snapshot["edges"]),
+        ),
         (
             "TLS certificate",
             "Certificate + USES_CERTIFICATE",

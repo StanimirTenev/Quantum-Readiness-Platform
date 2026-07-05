@@ -84,7 +84,9 @@ button.primary:hover { filter: brightness(1.08); }
 .graphview { overflow-x: auto; border: 1px solid var(--border); border-radius: 10px; background: var(--panel); margin: 12px 0; }
 .graphview:empty { display: none; }
 .graphview svg { display: block; }
+.gnode { cursor: pointer; }
 .gnode rect { stroke-width: 1.5; }
+.gnode:hover rect { stroke-width: 3; }
 .gnode text { fill: var(--text); font-size: 11px; }
 .gnode .gtype { fill: var(--muted); font-size: 9px; }
 .gedge { stroke: var(--muted); stroke-width: 1.5; opacity: 0.55; }

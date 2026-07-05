@@ -306,7 +306,7 @@ function renderGraphSvg(highlightIds) {
     const color = GTYPE_COLOR[n.type] || "#9aa3b2";
     const on = highlight.has(n.id);
     const cls = "gnode" + (on ? " hl" : (active ? " dim" : ""));
-    return `<g class="${cls}"><title>${esc(n.id)}</title>`
+    return `<g class="${cls}" data-node-id="${esc(n.id)}"><title>${esc(n.id)}</title>`
       + `<rect x="${p.x}" y="${p.y}" width="${nodeW}" height="${nodeH}" rx="8" fill="${color}22" stroke="${color}"></rect>`
       + `<text class="gtype" x="${p.x + 10}" y="${p.y + 15}">${esc(n.type)}</text>`
       + `<text x="${p.x + 10}" y="${p.y + 30}">${esc(truncate(n.label || n.id, 24))}</text>`
@@ -322,6 +322,24 @@ function renderGraphSvg(highlightIds) {
 
 $("gr-diagram").addEventListener("click", () => renderGraphSvg([]));
 $("gr-reload").addEventListener("click", () => { loadGraphNodes(); loadGraphData(); });
+
+// Click a node in the diagram to select it and explore its blast radius.
+$("gr-graph").addEventListener("click", (event) => {
+  const group = event.target.closest(".gnode");
+  if (!group) return;
+  const id = group.getAttribute("data-node-id");
+  if (!id) return;
+  const select = $("gr-node");
+  if (![...select.options].some((o) => o.value === id)) {
+    const n = graphData.nodes.find((x) => x.id === id);
+    const option = document.createElement("option");
+    option.value = id;
+    option.textContent = n ? `${n.label || id} — ${n.type}` : id;
+    select.appendChild(option);
+  }
+  select.value = id;
+  $("gr-blast").click();
+});
 
 $("gr-blast").addEventListener("click", async () => {
   const node_id = grNode();

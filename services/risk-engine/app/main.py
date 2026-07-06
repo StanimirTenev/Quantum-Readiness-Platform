@@ -37,6 +37,18 @@ EVIDENCE_SIGNAL_WEIGHTS: dict[str, float] = {
     "certificate_chain_available": 2.0,
 }
 
+# Aggregate Windows host signals (from inventory's windows_normalized_signals).
+# Treated as a parallel evidence family to the Linux/network signals above.
+WINDOWS_LARGE_ESTATE_THRESHOLD = 50
+
+WINDOWS_SIGNAL_WEIGHTS: dict[str, float] = {
+    "windows_expired_certificates": 8.0,
+    "windows_weak_signature_certificates": 6.0,
+    "windows_domain_controller": 5.0,
+    "windows_large_certificate_estate": 3.0,
+    "windows_crypto_services_present": 2.0,
+}
+
 
 class RiskInput(BaseModel):
     contract_version: str = "stage1-v1"
@@ -54,6 +66,7 @@ class RiskInput(BaseModel):
     stage2_notes: str | None = None
     crypto_evidence: dict[str, Any] | None = None
     tls_metadata: dict[str, Any] | None = None
+    windows_signals: dict[str, Any] | None = None
 
 
 class RiskOutput(BaseModel):
@@ -88,6 +101,18 @@ def _parse_iso_datetime(value: Any) -> datetime | None:
         return datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone(UTC)
     except (ValueError, TypeError):
         return None
+
+
+def extract_windows_signals(data: RiskInput) -> dict[str, bool]:
+    windows = data.windows_signals if isinstance(data.windows_signals, dict) else {}
+    return {
+        "windows_expired_certificates": _safe_int(windows.get("expired_certificates_count")) > 0,
+        "windows_weak_signature_certificates": _safe_int(windows.get("weak_signature_indicators_count")) > 0,
+        "windows_domain_controller": windows.get("domain_controller_role_observed") is True,
+        "windows_large_certificate_estate": _safe_int(windows.get("certificates_observed_count"))
+        >= WINDOWS_LARGE_ESTATE_THRESHOLD,
+        "windows_crypto_services_present": _safe_int(windows.get("crypto_relevant_services_count")) > 0,
+    }
 
 
 def extract_stage2_signals(data: RiskInput) -> dict[str, bool | int | dict[str, bool]]:
@@ -143,6 +168,8 @@ def extract_stage2_signals(data: RiskInput) -> dict[str, bool | int | dict[str, 
     return {
         "stage2_notes_signals": notes_signals,
         "evidence_signals": evidence_signals,
+        "windows_signals": extract_windows_signals(data),
+        "windows_evidence_present": isinstance(data.windows_signals, dict) and len(data.windows_signals) > 0,
         "high_dependency_pressure": data.dependency_count >= 10,
         "vendor_blocked": data.vendor_blocked,
         "dependency_count": data.dependency_count,
@@ -168,6 +195,12 @@ def calculate_stage2_adjustment(signals: dict[str, bool | int | dict[str, bool]]
     if isinstance(evidence_signals, dict):
         for signal_name, weight in EVIDENCE_SIGNAL_WEIGHTS.items():
             if bool(evidence_signals.get(signal_name)):
+                adjustment += weight
+
+    windows_signals = signals.get("windows_signals", {})
+    if isinstance(windows_signals, dict):
+        for signal_name, weight in WINDOWS_SIGNAL_WEIGHTS.items():
+            if bool(windows_signals.get(signal_name)):
                 adjustment += weight
 
     return max(adjustment, 0.0)
@@ -204,6 +237,8 @@ def calculate_confidence_score(data: RiskInput, stage2_signals: dict[str, bool |
         confidence_score += 10.0
     if data.crypto_evidence is not None:
         confidence_score += 10.0
+    if bool(stage2_signals.get("windows_evidence_present")):
+        confidence_score += 10.0
     if bool((evidence_signals or {}).get("certificate_chain_available")):
         confidence_score += 5.0
     if bool((data.stage2_notes or "").strip()):
@@ -215,6 +250,8 @@ def calculate_confidence_score(data: RiskInput, stage2_signals: dict[str, bool |
 def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | int | dict[str, bool]]) -> dict[str, float]:
     evidence_signals = stage2_signals.get("evidence_signals", {})
     evidence = evidence_signals if isinstance(evidence_signals, dict) else {}
+    windows_evidence = stage2_signals.get("windows_signals", {})
+    windows = windows_evidence if isinstance(windows_evidence, dict) else {}
 
     exposure = (data.quantum_exposure / 5.0) * 100.0
     if bool(evidence.get("tls_detected")):
@@ -223,9 +260,13 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
         exposure += 8.0
     if bool(evidence.get("ssh_config_detected")):
         exposure += 6.0
+    if bool(windows.get("windows_domain_controller")):
+        exposure += 10.0
 
     impact = (data.criticality / 5.0) * 100.0
     if (data.environment or "").strip().lower() == "production":
+        impact += 10.0
+    if bool(windows.get("windows_domain_controller")):
         impact += 10.0
 
     urgency = 0.0
@@ -235,6 +276,10 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
         urgency += 30.0
     if bool(evidence.get("private_key_files_detected")):
         urgency += 25.0
+    if bool(windows.get("windows_expired_certificates")):
+        urgency += 40.0
+    if bool(windows.get("windows_weak_signature_certificates")):
+        urgency += 25.0
 
     migration_complexity = min((data.dependency_count * 4.0), 70.0)
     if bool(evidence.get("certificate_files_detected")):
@@ -243,6 +288,10 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
         migration_complexity += 15.0
     if data.vendor_blocked:
         migration_complexity += 20.0
+    if bool(windows.get("windows_large_certificate_estate")):
+        migration_complexity += 15.0
+    if bool(windows.get("windows_domain_controller")):
+        migration_complexity += 10.0
 
     return {
         "exposure": _cap_score(exposure),
@@ -329,6 +378,15 @@ def score(data: RiskInput) -> RiskOutput:
             ),
             "migration_complexity_from_private_key_files": bool(
                 stage2_signals["evidence_signals"].get("private_key_files_detected")
+            ),
+            "windows_evidence_present": bool(stage2_signals.get("windows_evidence_present")),
+            "windows_expired_certificates": bool(stage2_signals["windows_signals"].get("windows_expired_certificates")),
+            "windows_weak_signature_certificates": bool(
+                stage2_signals["windows_signals"].get("windows_weak_signature_certificates")
+            ),
+            "windows_domain_controller": bool(stage2_signals["windows_signals"].get("windows_domain_controller")),
+            "windows_large_certificate_estate": bool(
+                stage2_signals["windows_signals"].get("windows_large_certificate_estate")
             ),
         },
     )

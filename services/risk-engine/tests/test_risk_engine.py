@@ -7,9 +7,25 @@ from app.main import (
     calculate_base_score,
     calculate_stage2_adjustment,
     extract_stage2_signals,
+    extract_windows_signals,
 )
 
 client = TestClient(app)
+
+
+def _windows_signals(**overrides) -> dict:
+    signals = {
+        "platform": "windows",
+        "asset_type": "server",
+        "certificates_observed_count": 0,
+        "expired_certificates_count": 0,
+        "weak_signature_indicators_count": 0,
+        "crypto_relevant_services_count": 0,
+        "domain_joined": False,
+        "domain_controller_role_observed": False,
+    }
+    signals.update(overrides)
+    return signals
 
 
 def _base_payload() -> dict:
@@ -186,6 +202,83 @@ def test_score_capped_at_100_with_stage2_evidence_adjustments() -> None:
 
     data = client.post("/score", json=payload).json()
     assert data["normalized_score_100"] == 100.0
+
+
+def test_extract_windows_signals_applies_thresholds() -> None:
+    from app.main import RiskInput
+
+    signals = extract_windows_signals(
+        RiskInput(
+            asset_name="win",
+            criticality=3,
+            confidentiality_lifetime=3,
+            quantum_exposure=3,
+            blast_radius=3,
+            vendor_lock_in=1,
+            migration_difficulty=3,
+            windows_signals=_windows_signals(
+                certificates_observed_count=50,
+                expired_certificates_count=1,
+                weak_signature_indicators_count=0,
+                crypto_relevant_services_count=2,
+                domain_controller_role_observed=True,
+            ),
+        )
+    )
+    assert signals["windows_large_certificate_estate"] is True  # 50 hits threshold
+    assert signals["windows_expired_certificates"] is True
+    assert signals["windows_weak_signature_certificates"] is False
+    assert signals["windows_domain_controller"] is True
+    assert signals["windows_crypto_services_present"] is True
+
+
+def test_windows_signals_add_dedicated_stage2_adjustment() -> None:
+    payload = _base_payload()
+    payload["windows_signals"] = _windows_signals(
+        certificates_observed_count=80,       # >= 50 -> +3
+        expired_certificates_count=5,         # -> +8
+        weak_signature_indicators_count=3,    # -> +6
+        crypto_relevant_services_count=10,    # -> +2
+        domain_controller_role_observed=True, # -> +5
+    )
+    data = client.post("/score", json=payload).json()
+    # No other stage2 evidence in the base payload, so the whole adjustment is
+    # the Windows contribution: 8 + 6 + 5 + 3 + 2 = 24.
+    assert data["stage2_adjustment"] == 24.0
+    assert data["rationale"]["windows_domain_controller"] is True
+    assert data["rationale"]["windows_expired_certificates"] is True
+
+
+def test_windows_signals_absent_means_no_windows_adjustment() -> None:
+    data = client.post("/score", json=_base_payload()).json()
+    assert data["stage2_adjustment"] == 0.0
+    assert data["rationale"]["windows_evidence_present"] is False
+    assert data["rationale"]["windows_domain_controller"] is False
+
+
+def test_windows_domain_controller_raises_dimensions() -> None:
+    payload = _base_payload()
+    payload["quantum_exposure"] = 2
+    payload["criticality"] = 2
+    payload["windows_signals"] = _windows_signals(
+        certificates_observed_count=80,
+        expired_certificates_count=2,
+        weak_signature_indicators_count=1,
+        domain_controller_role_observed=True,
+    )
+    dims = client.post("/score", json=payload).json()["risk_dimensions"]
+    assert dims["exposure"] == 50.0            # (2/5*100) + 10 domain controller
+    assert dims["impact"] == 50.0              # (2/5*100) + 10 domain controller
+    assert dims["urgency"] == 65.0             # 40 expired + 25 weak signature
+    assert dims["migration_complexity"] == 25.0  # 15 large estate + 10 domain controller
+
+
+def test_windows_evidence_presence_raises_confidence() -> None:
+    without = client.post("/score", json=_base_payload()).json()["confidence_score"]
+    payload = _base_payload()
+    payload["windows_signals"] = _windows_signals()  # present but all-clean
+    with_windows = client.post("/score", json=payload).json()["confidence_score"]
+    assert with_windows == without + 10.0
 
 
 def test_calculate_stage2_adjustment_never_returns_negative_value() -> None:

@@ -21,7 +21,7 @@ def build_risk_payload(payload: ScanIngestRequest, asset_name: str, scenario: st
     vendor_lock_in = _vendor_lock_in(target_asset)
     migration_difficulty = _migration_difficulty(payload, windows_signals)
 
-    return {
+    payload = {
         "contract_version": "stage1-v1",
         "asset_name": asset_name,
         "criticality": criticality,
@@ -34,6 +34,13 @@ def build_risk_payload(payload: ScanIngestRequest, asset_name: str, scenario: st
         "vendor_blocked": vendor_blocked,
         "scenario": scenario,
     }
+
+    # Forward the aggregate Windows signals so the risk-engine can apply its own
+    # dedicated evidence adjustment and dimensions (parallel to Linux evidence).
+    if windows_signals is not None:
+        payload["windows_signals"] = windows_signals
+
+    return payload
 
 
 def _windows_signals(payload: ScanIngestRequest) -> Optional[dict[str, Any]]:

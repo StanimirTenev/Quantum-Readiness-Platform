@@ -161,7 +161,7 @@ Proposed implementation phases:
 - **Phase 2** — Add inventory-service fixture validation ✅ done
 - **Phase 3** — Add Windows collector design tests ✅ done
 - **Phase 4** — Implement minimal Windows collector ✅ done + inventory ingestion
-- **Phase 5** — Add E2E smoke using fixture, not live AD 🟨 live persist/read-back via `run_flow.ps1 -WindowsEvidence`
+- **Phase 5** — Add E2E smoke using fixture, not live AD ✅ done (`scripts/run_windows_evidence_smoke.ps1`)
 - **Phase 6** — Optional AD/certificate estate discovery design 🔲 open
 
 ## 14) Non-goals

@@ -126,7 +126,7 @@ Future planner interpretation should remain operator-safe:
 - **Phase 2 — risk-engine tests for aggregate Windows signals** 🔲 open
 - **Phase 3 — planner-service tests for aggregate Windows signals** 🔲 open
 - **Phase 4 — implementation behind conservative feature path** 🟨 ingestion/persistence shipped; signals now shape the risk payload in the inventory `risk_mapper`; dedicated logic inside risk-engine/planner internals still open
-- **Phase 5 — smoke validation using fixture only** 🟨 live persist + read-back via `run_flow.ps1 -WindowsEvidence`
+- **Phase 5 — smoke validation using fixture only** ✅ done (`scripts/run_windows_evidence_smoke.ps1`; `run_flow.ps1 -WindowsEvidence` also covers the live host)
 
 ## 11. Stop conditions
 

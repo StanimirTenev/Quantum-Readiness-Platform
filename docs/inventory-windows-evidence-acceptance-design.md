@@ -160,7 +160,7 @@ Future validation should enforce:
 - **Phase 0** — keep fixture contract tests passing. ✅ done
 - **Phase 1** — add inventory schema/validator tests only. ✅ done
 - **Phase 2** — add inventory ingestion acceptance for Windows fixture. ✅ done (`POST /scans/ingest/windows` + adapter + tests)
-- **Phase 3** — add Stage 2-style Windows inventory smoke. 🟨 covered by `run_flow.ps1 -WindowsEvidence` (live persist + read-back); a dedicated smoke script is still open
+- **Phase 3** — add Stage 2-style Windows inventory smoke. ✅ done (`scripts/run_windows_evidence_smoke.ps1` — fixture-driven assertions; `run_flow.ps1 -WindowsEvidence` covers the live host)
 - **Phase 4** — add risk/planning signal mapping tests. 🟨 signals now shape the risk payload in the inventory `risk_mapper` (with tests); dedicated logic inside risk-engine/planner internals still open
 - **Phase 5** — minimal Windows collector. ✅ done (`agents/windows-host-agent/collect.ps1`)
 

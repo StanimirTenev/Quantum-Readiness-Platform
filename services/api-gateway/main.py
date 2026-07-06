@@ -66,6 +66,16 @@ def ingest_repo_scan(payload: dict[str, Any], scenario: str = Query(default="pub
     return _ingest_scan("repo", payload, scenario)
 
 
+@app.post("/api/scans/windows")
+def ingest_windows_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline")) -> dict[str, Any]:
+    """Persist a Windows host evidence document (from the windows-host-agent).
+
+    The raw redacted/aggregate document is forwarded as-is; the inventory service
+    maps it to the ingest contract (source is fixed to "host" there)."""
+    endpoint = f"{INVENTORY_BASE_URL}/scans/ingest/windows?{parse.urlencode({'scenario': scenario, 'auto_score': 'true'})}"
+    return _request_json("POST", endpoint, payload=payload)
+
+
 @app.get("/api/assets")
 def list_assets() -> list[dict[str, Any]]:
     return _request_json("GET", f"{INVENTORY_BASE_URL}/assets")

@@ -32,6 +32,32 @@ def test_post_api_scans_host_forces_host_source_and_forwards(monkeypatch) -> Non
     assert captured["payload"]["source"] == "host"
 
 
+def test_post_api_scans_windows_forwards_document_to_windows_ingest(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"scan_id": "scan-win-1", "created": 1, "source": "host"}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    document = {
+        "asset": {"asset_id": "a1", "asset_type": "endpoint", "platform": "windows", "name": "redacted-windows-host"},
+        "windows_evidence": {"certificate_store_indicators": {"certificates_observed_count": 3}},
+    }
+    response = client.post("/api/scans/windows?scenario=hidden_capability", json=document)
+
+    assert response.status_code == 200
+    assert response.json()["scan_id"] == "scan-win-1"
+    assert captured["method"] == "POST"
+    assert "/scans/ingest/windows" in captured["url"]
+    assert "scenario=hidden_capability" in captured["url"]
+    # The raw evidence document is forwarded as-is (no "source" injection here).
+    assert captured["payload"] == document
+
+
 def test_get_api_assets_asset_id_risk_builds_payload_and_returns_wrapped_response(monkeypatch) -> None:
     calls: list[tuple[str, str, dict | None]] = []
 

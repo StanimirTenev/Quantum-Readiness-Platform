@@ -94,12 +94,26 @@ the risk engine. Endpoints:
 | --- | --- | --- |
 | `POST /scans/ingest/windows` | inventory-service | persist a raw Windows evidence document (maps → ingest contract) |
 | `POST /api/scans/windows` | api-gateway → inventory-service | same, for the web-ui / external callers |
+| `GET /assets/{id}/history` (`/api/assets/{id}/history`) | inventory-service (+ gateway) | risk-posture trend for a host across its persisted scans |
 
 The aggregate-only normalized signal set is carried on the stored scan
-(`crypto_evidence.windows_normalized_signals`) and shapes the risk score: a
-domain controller / domain-joined host widens blast radius and dependencies, and
-certificate-store volume plus weak/expired indicators raise migration difficulty
-(all bounded to the risk engine's `[0,5]`).
+(`crypto_evidence.windows_normalized_signals`) and drives the risk score in two
+layers:
+
+- the inventory `risk_mapper` shapes the base factors — a domain controller /
+  domain-joined host widens blast radius and dependencies, and certificate-store
+  volume plus weak/expired indicators raise migration difficulty (bounded to the
+  risk engine's `[0,5]`);
+- the `risk-engine` then consumes the signals directly as a parallel evidence
+  family (alongside its Linux/network evidence): expired / weak-signature /
+  domain-controller / large-estate / crypto-services indicators feed a stage2
+  adjustment, the risk dimensions, the confidence score, and the rationale.
+
+Clean or absent Windows evidence adds nothing, so hosts still differentiate.
+
+Because a repeated collection accumulates scans while the asset stays single,
+`GET /assets/{id}/history` returns the host's risk trend over time
+(`improving` / `worsening` / `flat` / `insufficient_data`).
 
 A deterministic smoke test exercises the whole vertical (persist → stored signals
 → Windows-aware risk) against the fixture, through the gateway, on an isolated

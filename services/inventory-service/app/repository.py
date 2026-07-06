@@ -251,6 +251,27 @@ class AssetRepository:
             rows = connection.execute(query, params).fetchall()
         return [self._row_to_risk(row) for row in rows]
 
+    def list_asset_risk_history(self, asset_name: str) -> list[dict[str, Any]]:
+        """Chronological risk trend for an asset across all persisted scans.
+
+        Joins each risk result to its scan so the caller sees how an asset's
+        posture changed over time (one row per risk result, oldest first)."""
+        query = """
+            SELECT r.scan_id AS scan_id,
+                   s.scanned_at AS scanned_at,
+                   r.scenario AS scenario,
+                   r.rating AS rating,
+                   r.normalized_score_100 AS normalized_score_100,
+                   r.final_score AS final_score
+            FROM risk_results r
+            JOIN scans s ON r.scan_id = s.id
+            WHERE r.asset_name = ?
+            ORDER BY s.scanned_at ASC, r.rowid ASC
+        """
+        with self._connect() as connection:
+            rows = connection.execute(query, (asset_name,)).fetchall()
+        return [dict(row) for row in rows]
+
     def cleanup_duplicate_assets(self) -> dict[str, int]:
         with self._connect() as connection:
             rows = connection.execute(

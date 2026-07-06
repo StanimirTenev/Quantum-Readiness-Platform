@@ -32,6 +32,24 @@ def test_post_api_scans_host_forces_host_source_and_forwards(monkeypatch) -> Non
     assert captured["payload"]["source"] == "host"
 
 
+def test_get_api_asset_history_proxies_to_inventory(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        return {"asset_id": "a1", "asset_name": "host-x", "points": [], "trend": "insufficient_data"}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/assets/a1/history")
+
+    assert response.status_code == 200
+    assert response.json()["trend"] == "insufficient_data"
+    assert captured["method"] == "GET"
+    assert captured["url"].endswith("/assets/a1/history")
+
+
 def test_post_api_scans_windows_forwards_document_to_windows_ingest(monkeypatch) -> None:
     captured: dict = {}
 

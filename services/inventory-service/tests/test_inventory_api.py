@@ -205,6 +205,75 @@ def test_scan_ingest_tolerates_partial_and_weird_enrichment_blocks(client: TestC
     assert "tls_evidence.certificate_chain: expected object, dropped invalid value" in tls_warnings
 
 
+def test_asset_risk_history_tracks_trend_across_scans(client: TestClient, monkeypatch) -> None:
+    scores = iter([70.0, 55.0])  # two collections of the same host; posture improves
+
+    def fake_score(self, payload):
+        score = next(scores)
+        return {
+            "contract_version": payload["contract_version"],
+            "asset_name": payload["asset_name"],
+            "scenario": payload["scenario"],
+            "scenario_multiplier": 1.0,
+            "base_score": score / 20.0,
+            "final_score": score / 20.0,
+            "normalized_score_100": score,
+            "rating": "high" if score >= 60 else "medium",
+            "dependency_count": payload["dependency_count"],
+            "vendor_blocked": payload["vendor_blocked"],
+            "rationale": payload,
+        }
+
+    monkeypatch.setattr("app.clients.risk_engine.RiskEngineClient.score", fake_score)
+
+    body = {"source": "host", "assets": [{"asset_type": "server", "name": "host-trend"}]}
+    first = client.post("/scans/ingest", json=body)
+    second = client.post("/scans/ingest", json=body)
+    assert first.status_code == 201 and second.status_code == 201
+
+    asset_id = first.json()["asset_ids"][0]
+    assert second.json()["asset_ids"][0] == asset_id  # dedup to the same asset
+
+    history = client.get(f"/assets/{asset_id}/history")
+    assert history.status_code == 200
+    data = history.json()
+    assert data["asset_name"] == "host-trend"
+    assert [p["normalized_score_100"] for p in data["points"]] == [70.0, 55.0]
+    assert data["first_score"] == 70.0
+    assert data["latest_score"] == 55.0
+    assert data["trend"] == "improving"
+
+
+def test_asset_risk_history_is_insufficient_for_a_single_scan(client: TestClient, monkeypatch) -> None:
+    def fake_score(self, payload):
+        return {
+            "contract_version": payload["contract_version"],
+            "asset_name": payload["asset_name"],
+            "scenario": payload["scenario"],
+            "scenario_multiplier": 1.0,
+            "base_score": 2.0,
+            "final_score": 2.0,
+            "normalized_score_100": 40.0,
+            "rating": "medium",
+            "dependency_count": payload["dependency_count"],
+            "vendor_blocked": payload["vendor_blocked"],
+            "rationale": payload,
+        }
+
+    monkeypatch.setattr("app.clients.risk_engine.RiskEngineClient.score", fake_score)
+
+    ingest = client.post("/scans/ingest", json={"source": "host", "assets": [{"asset_type": "server", "name": "host-single"}]})
+    asset_id = ingest.json()["asset_ids"][0]
+
+    data = client.get(f"/assets/{asset_id}/history").json()
+    assert len(data["points"]) == 1
+    assert data["trend"] == "insufficient_data"
+
+
+def test_asset_risk_history_unknown_asset_returns_404(client: TestClient) -> None:
+    assert client.get("/assets/does-not-exist/history").status_code == 404
+
+
 def test_scan_ingest_rejects_invalid_source(client: TestClient) -> None:
     response = client.post(
         "/scans/ingest",

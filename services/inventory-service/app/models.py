@@ -375,3 +375,22 @@ class RiskRecord(BaseModel):
 class ScanWithRisk(BaseModel):
     scan: ScanRecord
     risks: list[RiskRecord]
+
+
+class AssetRiskHistoryPoint(BaseModel):
+    scan_id: str
+    scanned_at: str
+    scenario: str
+    rating: str
+    normalized_score_100: float
+    final_score: float
+
+
+class AssetRiskHistory(BaseModel):
+    asset_id: str
+    asset_name: str
+    points: list[AssetRiskHistoryPoint]
+    first_score: Optional[float] = None
+    latest_score: Optional[float] = None
+    # Lower risk score = better posture. Direction of the latest vs first point.
+    trend: Literal["improving", "worsening", "flat", "insufficient_data"] = "insufficient_data"

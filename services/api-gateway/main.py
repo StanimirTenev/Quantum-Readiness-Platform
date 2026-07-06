@@ -86,6 +86,12 @@ def get_asset(asset_id: str) -> dict[str, Any]:
     return _request_json("GET", f"{INVENTORY_BASE_URL}/assets/{asset_id}")
 
 
+@app.get("/api/assets/{asset_id}/history")
+def get_asset_history(asset_id: str) -> dict[str, Any]:
+    """Chronological risk trend for an asset across persisted scans."""
+    return _request_json("GET", f"{INVENTORY_BASE_URL}/assets/{asset_id}/history")
+
+
 @app.get("/api/assets/{asset_id}/risk")
 def get_asset_risk(asset_id: str, scenario: str = Query(default="public_timeline")) -> dict[str, Any]:
     asset = _request_json("GET", f"{INVENTORY_BASE_URL}/assets/{asset_id}")

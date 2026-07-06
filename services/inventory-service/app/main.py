@@ -6,6 +6,8 @@ from .clients.risk_engine import RiskEngineClient
 from .models import (
     Asset,
     AssetCreate,
+    AssetRiskHistory,
+    AssetRiskHistoryPoint,
     AssetUpdate,
     RiskRecord,
     ScanIngestRequest,
@@ -38,6 +40,40 @@ def get_asset(asset_id: str) -> Asset:
     if asset is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found")
     return asset
+
+
+@app.get("/assets/{asset_id}/history", response_model=AssetRiskHistory)
+def get_asset_history(asset_id: str) -> AssetRiskHistory:
+    asset = repository.get_asset(asset_id)
+    if asset is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found")
+
+    rows = repository.list_asset_risk_history(asset.name)
+    points = [AssetRiskHistoryPoint(**row) for row in rows]
+
+    first_score = points[0].normalized_score_100 if points else None
+    latest_score = points[-1].normalized_score_100 if points else None
+    trend = _risk_trend(first_score, latest_score, len(points))
+
+    return AssetRiskHistory(
+        asset_id=asset.id,
+        asset_name=asset.name,
+        points=points,
+        first_score=first_score,
+        latest_score=latest_score,
+        trend=trend,
+    )
+
+
+def _risk_trend(first_score: float | None, latest_score: float | None, count: int) -> str:
+    # Lower normalized score means lower risk (better posture).
+    if count < 2 or first_score is None or latest_score is None:
+        return "insufficient_data"
+    if latest_score < first_score:
+        return "improving"
+    if latest_score > first_score:
+        return "worsening"
+    return "flat"
 
 
 @app.post("/assets", response_model=Asset, status_code=status.HTTP_201_CREATED)

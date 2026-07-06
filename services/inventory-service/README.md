@@ -49,9 +49,19 @@
   the store at another file (used by `scripts/run_flow.ps1` for an isolated,
   repeatable demo database).
 
+## Asset risk history
+- `GET /assets/{asset_id}/history` returns the asset's risk trend across all
+  persisted scans (one point per risk result, oldest first), with `first_score`,
+  `latest_score`, and a `trend` of `improving` / `worsening` / `flat` /
+  `insufficient_data`. Lower normalized score means lower risk, so a host whose
+  posture improves between collections reports `improving`. This is the payoff of
+  persistence: a repeated host collection (e.g. `collect.ps1 -Ingest`) accumulates
+  scans while the asset stays single, so the trend reflects change over time.
+
 ## Main endpoints or functions
 - `GET /health`
 - `GET/POST/PUT/DELETE /assets` and `/assets/{asset_id}`
+- `GET /assets/{asset_id}/history`
 - `POST /scans/ingest`, `POST /scans/ingest/windows`, `GET /scans`, `GET /scans/{scan_id}`
 - `GET /risks`, `POST /admin/cleanup-assets`
 

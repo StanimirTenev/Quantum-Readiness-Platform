@@ -22,13 +22,17 @@ risk-engine/planner-service remains future work.
 - The canonical aggregate signal set (`build_windows_normalized_signals`) is
   produced and persisted on the stored scan at
   `crypto_evidence.windows_normalized_signals`.
-- The persisted signals are **now consumed by the inventory `risk_mapper`**:
+- The persisted signals are **consumed by the inventory `risk_mapper`**:
   domain-controller/domain-joined role raises `blast_radius` and
   `dependency_count`, and certificate-store volume plus weak/expired indicators
   raise `migration_difficulty` (all bounded to the risk-engine's [0,5]).
-- Dedicated Windows logic **inside** `risk-engine`/`planner-service` themselves is
-  still future work; today the Windows-aware shaping happens in the inventory
-  payload builder, not in the scoring/planning services' internals.
+- The **`risk-engine` now consumes the signals directly** as a parallel evidence
+  family to the Linux/network stage2 signals: `windows_signals` feed a stage2
+  adjustment (expired/weak/domain-controller/large-estate/crypto-services), the
+  risk dimensions (urgency/impact/exposure/migration_complexity), the confidence
+  score, and the rationale.
+- **`planner-service`** does not yet apply dedicated Windows logic — that is the
+  remaining open item.
 - Downstream services should consume normalized aggregate signals only.
 
 ## 3. Non-goals
@@ -123,9 +127,9 @@ Future planner interpretation should remain operator-safe:
 
 - **Phase 0 — docs-only design** ✅ done
 - **Phase 1 — tests-only normalized signal builder contract** ✅ done (now backed by the production `build_windows_normalized_signals` adapter + tests)
-- **Phase 2 — risk-engine tests for aggregate Windows signals** 🔲 open
+- **Phase 2 — risk-engine tests for aggregate Windows signals** ✅ done (adjustment, dimensions, confidence, rationale)
 - **Phase 3 — planner-service tests for aggregate Windows signals** 🔲 open
-- **Phase 4 — implementation behind conservative feature path** 🟨 ingestion/persistence shipped; signals now shape the risk payload in the inventory `risk_mapper`; dedicated logic inside risk-engine/planner internals still open
+- **Phase 4 — implementation behind conservative feature path** 🟨 ingestion/persistence + inventory `risk_mapper` shaping + risk-engine consumption shipped; planner-service consumption still open
 - **Phase 5 — smoke validation using fixture only** ✅ done (`scripts/run_windows_evidence_smoke.ps1`; `run_flow.ps1 -WindowsEvidence` also covers the live host)
 
 ## 11. Stop conditions
@@ -142,6 +146,6 @@ Stop future implementation work if any of the following becomes required:
 ## 12. Design status wording
 
 Windows Risk/Planning Signal Mapping Design — partially implemented (2026-07-06):
-normalized signal production/persistence shipped, and the signals now shape the
-risk payload in the inventory `risk_mapper`; dedicated logic inside
-risk-engine/planner-service internals remains future work.
+signal production/persistence, inventory `risk_mapper` shaping, and dedicated
+`risk-engine` consumption shipped; `planner-service` consumption remains future
+work.

@@ -61,14 +61,43 @@ through the entire pipeline, printing a readable narrative and writing
 
 ```powershell
 pwsh scripts/run_flow.ps1                    # -KeepRunning to leave the stack up
-pwsh scripts/run_flow.ps1 -WindowsEvidence   # also assess THIS host's real certificates
+pwsh scripts/run_flow.ps1 -WindowsEvidence   # also collect, assess & persist THIS host
 ```
 
 Steps: discovery → graph projection → evidence normalization → assessment
 (fingerprint → pqc-readiness → attribution → risk) → scenario re-scoring →
 graph traversal (evidence-path + blast-radius) → integration dry-run. With
-`-WindowsEvidence` it also runs the Windows host collector and pushes the
-machine's real certificates through the pipeline for an aggregate posture.
+`-WindowsEvidence` it also runs the Windows host collector, pushes the machine's
+real certificates through the pipeline for an aggregate posture, and **persists
+the host into inventory** (source=host) through the gateway — then reads the
+stored scan and risk back to prove it landed. The demo run uses an isolated
+temporary database (`INVENTORY_DB_PATH`) so it stays self-contained.
+
+## Windows host evidence → inventory
+
+The Windows host agent (`agents/windows-host-agent/collect.ps1`) emits a
+redacted, aggregate evidence document (OS/software/certificate-store/service/
+SCHANNEL/domain indicators plus a safe per-certificate crypto surface — no
+hostnames, domains, IPs, subjects, thumbprints, or private material). That
+document can be persisted as durable inventory:
+
+```powershell
+pwsh agents/windows-host-agent/collect.ps1 -Ingest http://127.0.0.1:8001   # direct to inventory
+```
+
+Ingest maps the aggregates to the standard scan contract (fixed `source=host`),
+picks the most quantum-vulnerable certificate from the safe crypto surface to
+drive a realistic score, persists a scan snapshot + asset, and auto-scores it via
+the risk engine. Endpoints:
+
+| Route | Backing service | Purpose |
+| --- | --- | --- |
+| `POST /scans/ingest/windows` | inventory-service | persist a raw Windows evidence document (maps → ingest contract) |
+| `POST /api/scans/windows` | api-gateway → inventory-service | same, for the web-ui / external callers |
+
+The aggregate-only normalized signal set is carried on the stored scan
+(`crypto_evidence.windows_normalized_signals`) so downstream risk/planning see
+only safe numbers.
 
 ## Operator / executive report (Windows / PowerShell)
 

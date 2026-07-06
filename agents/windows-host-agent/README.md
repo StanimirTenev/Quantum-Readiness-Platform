@@ -44,10 +44,23 @@ pwsh agents/windows-host-agent/collect.ps1 -Assess http://127.0.0.1:8000
 `/api/assess` and prints the real PQC readiness — this machine's certificates
 classified by the deterministic pipeline.
 
-Options: `-OutFile <path>`, `-MaxCerts <n>` (default 50), `-Assess <gatewayUrl>`.
+Persist this host as durable inventory:
+
+```powershell
+pwsh agents/windows-host-agent/collect.ps1 -Ingest http://127.0.0.1:8001
+```
+
+`-Ingest` posts the whole evidence document to inventory-service
+`/scans/ingest/windows`, which maps it to the standard ingest contract
+(`source=host`), persists a scan snapshot + asset, and auto-scores it. Prints the
+returned `scan_id`.
+
+Options: `-OutFile <path>`, `-MaxCerts <n>` (default 50), `-Assess <gatewayUrl>`,
+`-Ingest <inventoryUrl>`.
 
 ## Status / limitations
 - First Windows collector implementation (the architecture lists Windows as
   future work; the fixture contract and inventory acceptance were already defined).
-- AD/certificate-estate discovery and Windows ingestion into inventory-service
-  remain out of scope (aggregate signals only, per the Windows signal-mapping design).
+- Windows evidence now persists into inventory-service (`/scans/ingest/windows`,
+  aggregate signals only, per the Windows signal-mapping design). AD /
+  certificate-estate discovery remains out of scope.

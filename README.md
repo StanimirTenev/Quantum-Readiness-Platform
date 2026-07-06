@@ -96,8 +96,21 @@ the risk engine. Endpoints:
 | `POST /api/scans/windows` | api-gateway → inventory-service | same, for the web-ui / external callers |
 
 The aggregate-only normalized signal set is carried on the stored scan
-(`crypto_evidence.windows_normalized_signals`) so downstream risk/planning see
-only safe numbers.
+(`crypto_evidence.windows_normalized_signals`) and shapes the risk score: a
+domain controller / domain-joined host widens blast radius and dependencies, and
+certificate-store volume plus weak/expired indicators raise migration difficulty
+(all bounded to the risk engine's `[0,5]`).
+
+A deterministic smoke test exercises the whole vertical (persist → stored signals
+→ Windows-aware risk) against the fixture, through the gateway, on an isolated
+database:
+
+```powershell
+pwsh scripts/run_windows_evidence_smoke.ps1
+```
+
+Writes `reports/windows-evidence-smoke-report.md` (git-ignored) and exits
+non-zero on any failure.
 
 ## Operator / executive report (Windows / PowerShell)
 

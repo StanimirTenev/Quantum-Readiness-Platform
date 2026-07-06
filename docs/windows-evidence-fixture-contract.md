@@ -2,15 +2,18 @@
 
 ## Purpose
 
-This document defines fixture expectations for future Windows evidence ingestion.
-It does not implement a Windows agent.
+This document defines the fixture/contract expectations for Windows evidence.
+The collector and ingestion described here are now implemented (see "Current
+State"); this contract remains the shape reference.
 
 ## Current State
 
 - Linux-first collection exists.
-- Windows collection is future scope.
-- inventory-service currently supports enriched evidence patterns.
-- This document defines safe normalized Windows fixture examples only.
+- Windows collection is **implemented** (`agents/windows-host-agent/collect.ps1`)
+  and its evidence persists via `POST /scans/ingest/windows`.
+- inventory-service supports enriched Linux/network/Windows evidence patterns.
+- This document defines safe normalized Windows fixture examples matching the
+  live collector output.
 
 ## Non-Goals
 
@@ -127,4 +130,6 @@ Future tests should validate:
 
 ## Status
 
-Windows Evidence Fixture Contract — docs/fixtures only, not implemented.
+Windows Evidence Fixture Contract — implemented (2026-07-06): a live collector
+emits this contract and inventory-service ingests it via
+`POST /scans/ingest/windows`. The fixture examples remain the shape reference.

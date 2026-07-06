@@ -1,22 +1,27 @@
 # Cross-Platform Agent Design
 
-**Status:** Cross-Platform Agent Design — docs-only, not implemented.
+**Status:** Partially implemented (2026-07-06). A Windows host collector now
+exists and its evidence persists into inventory; AD / certificate-estate
+discovery remains future scope. Retained as the design record.
 
 ## 1) Purpose
 
-This document defines a **future** design for cross-platform evidence collection in QRP.
-
-It does **not** implement a Windows agent, AD scanner, or any runtime behavior changes.
+This document defines the design for cross-platform evidence collection in QRP.
+The Windows host collector described here has since been implemented; the AD
+scanner and broader certificate-estate discovery remain future scope.
 
 ## 2) Current state
 
-QRP currently operates as a Linux-first implementation with deterministic local-first evidence collection:
+QRP operates with deterministic local-first evidence collection on Linux and
+Windows hosts:
 
 - Linux host agent exists.
 - Network scanner exists.
-- Enriched evidence ingestion exists.
-- Current implementation is Linux-first.
-- Windows/AD/certificate estate discovery is future scope.
+- Windows host agent exists (`agents/windows-host-agent/collect.ps1`) —
+  redacted/aggregate collector; its evidence persists into inventory via
+  `POST /scans/ingest/windows`.
+- Enriched evidence ingestion exists (Linux/network/Windows).
+- AD / certificate-estate discovery is future scope.
 - Deterministic local-first collection remains the rule.
 
 ## 3) Design principles
@@ -69,19 +74,19 @@ Current Linux-first capability summary:
 - No content parsing
 - Stable evidence output
 
-## 7) Windows future design
+## 7) Windows collection design (implemented 2026-07-06)
 
-Future Windows collection design (not implemented in this task):
+Implemented in `agents/windows-host-agent/collect.ps1` (redacted/aggregate):
 
-- Installed software via registry/WMI/PowerShell
-- Windows certificate store inventory summary
-- Machine role detection
-- Local services with crypto/security relevance
-- TLS/Schannel configuration indicators
-- Domain membership indicators
-- No private key export
-- No secret collection
-- No full filesystem crawl by default
+- Installed software via registry/WMI/PowerShell ✅
+- Windows certificate store inventory summary ✅ (+ safe per-cert crypto surface)
+- Machine role detection ✅
+- Local services with crypto/security relevance ✅
+- TLS/Schannel configuration indicators ✅
+- Domain membership indicators ✅
+- No private key export ✅
+- No secret collection ✅
+- No full filesystem crawl by default ✅
 
 ## 8) AD/certificate estate future design
 
@@ -152,12 +157,12 @@ The future cross-platform design must explicitly maintain these boundaries:
 Proposed implementation phases:
 
 - **Phase 0** — Review current Linux agent contract
-- **Phase 1** — Define Windows evidence fixture only
-- **Phase 2** — Add inventory-service fixture validation
-- **Phase 3** — Add Windows collector design tests
-- **Phase 4** — Implement minimal Windows collector
-- **Phase 5** — Add E2E smoke using fixture, not live AD
-- **Phase 6** — Optional AD/certificate estate discovery design
+- **Phase 1** — Define Windows evidence fixture only ✅ done
+- **Phase 2** — Add inventory-service fixture validation ✅ done
+- **Phase 3** — Add Windows collector design tests ✅ done
+- **Phase 4** — Implement minimal Windows collector ✅ done + inventory ingestion
+- **Phase 5** — Add E2E smoke using fixture, not live AD 🟨 live persist/read-back via `run_flow.ps1 -WindowsEvidence`
+- **Phase 6** — Optional AD/certificate estate discovery design 🔲 open
 
 ## 14) Non-goals
 
@@ -173,4 +178,6 @@ Explicit non-goals for this task:
 
 ## 15) Status wording
 
-Cross-Platform Agent Design — docs-only, not implemented.
+Cross-Platform Agent Design — partially implemented (2026-07-06): Windows host
+collector + inventory ingestion shipped; AD / certificate-estate discovery and
+production hardening remain future scope.

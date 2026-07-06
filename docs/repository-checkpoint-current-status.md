@@ -191,7 +191,7 @@ Graph API read-only hardening status:
 - endpoint surface area remains unchanged
 
 Windows inventory schema/validator hardening status:
-- Windows inventory schema/validator contract coverage has been strengthened as tests-only preparation; Windows runtime ingestion, Windows agent, AD scanner, and credential/private key handling remain not implemented.
+- Windows inventory schema/validator contract coverage has been strengthened as tests-only preparation. **Update (2026-07-06):** Windows runtime ingestion (`POST /scans/ingest/windows`) and the Windows host collector (`agents/windows-host-agent/collect.ps1`) are now implemented; AD scanner and credential/private-key handling remain not implemented.
 - strict tests-only Windows schema/validator contract coverage is added
 - recursive sensitive-key/value safety scan coverage is added
 - normalized aggregate-only summary contract coverage is strengthened

@@ -2,20 +2,30 @@
 
 ## Status
 
-Windows Risk/Planning Signal Mapping Design — docs-only, not implemented.
+Partially implemented (2026-07-06). The normalized aggregate signal set is now
+produced and persisted; dedicated Windows mapping *inside* risk-engine/
+planner-service is still future work. See "Current state" below.
 
 ## 1. Purpose
 
-This document defines the **future** mapping from normalized Windows evidence into safe, aggregate risk/planning signals for downstream consumers.
-
-This document does **not** implement mapping behavior in any runtime service.
+This document defines the mapping from normalized Windows evidence into safe,
+aggregate risk/planning signals for downstream consumers. The signal-production
+half is now implemented (see "Current state"); consumption inside
+risk-engine/planner-service remains future work.
 
 ## 2. Current state
 
 - Windows fixture contract exists.
 - Windows inventory acceptance contract tests exist.
-- Runtime Windows ingestion is not implemented.
-- Risk-engine/planner-service Windows mapping is not implemented.
+- Runtime Windows ingestion — **now implemented** (`POST /scans/ingest/windows`;
+  adapter `services/inventory-service/app/windows_evidence.py`).
+- The canonical aggregate signal set (`build_windows_normalized_signals`) is
+  produced and persisted on the stored scan at
+  `crypto_evidence.windows_normalized_signals`.
+- Scoring currently reuses the generic `risk_mapper` path via a representative
+  certificate; **dedicated Windows mapping inside risk-engine/planner-service is
+  not yet implemented** — the persisted signals are not yet consumed as Windows
+  risk/planning inputs.
 - Downstream services should consume normalized aggregate signals only.
 
 ## 3. Non-goals
@@ -106,14 +116,14 @@ Future planner interpretation should remain operator-safe:
 - absence of Windows evidence must not break existing scoring/planning
 - risk/planning should not depend on raw Windows-specific details
 
-## 10. Validation approach for future work
+## 10. Validation approach (progress)
 
-- **Phase 0 — docs-only design**
-- **Phase 1 — tests-only normalized signal builder contract**
-- **Phase 2 — risk-engine tests for aggregate Windows signals**
-- **Phase 3 — planner-service tests for aggregate Windows signals**
-- **Phase 4 — implementation behind conservative feature path**
-- **Phase 5 — smoke validation using fixture only**
+- **Phase 0 — docs-only design** ✅ done
+- **Phase 1 — tests-only normalized signal builder contract** ✅ done (now backed by the production `build_windows_normalized_signals` adapter + tests)
+- **Phase 2 — risk-engine tests for aggregate Windows signals** 🔲 open
+- **Phase 3 — planner-service tests for aggregate Windows signals** 🔲 open
+- **Phase 4 — implementation behind conservative feature path** 🟨 ingestion/persistence shipped; dedicated risk/planner consumption still open
+- **Phase 5 — smoke validation using fixture only** 🟨 live persist + read-back via `run_flow.ps1 -WindowsEvidence`
 
 ## 11. Stop conditions
 
@@ -128,4 +138,6 @@ Stop future implementation work if any of the following becomes required:
 
 ## 12. Design status wording
 
-Windows Risk/Planning Signal Mapping Design — docs-only, not implemented.
+Windows Risk/Planning Signal Mapping Design — partially implemented (2026-07-06):
+normalized signal production/persistence shipped; dedicated risk-engine/
+planner-service consumption of Windows signals remains future work.

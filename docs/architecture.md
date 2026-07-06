@@ -95,14 +95,16 @@ QRP must support heterogeneous enterprise environments and must not assume Linux
   - Linux workstations
   - Windows workstations
   - macOS later if needed
-- Linux agent is the current first implementation.
-- Windows/AD/certificate estate discovery is future work and not part of the current implementation task.
+- Linux agent was the first implementation; a redacted/aggregate **Windows host
+  agent now exists** (`agents/windows-host-agent/collect.ps1`) and its evidence
+  persists into inventory (`POST /scans/ingest/windows`).
+- AD / certificate-estate discovery is future work and not part of the current implementation task.
 
 ## 2.4 Current Non-Goals
 
 The current phase explicitly does **not** start implementation of:
 
-- Windows agent implementation now
+- AD / certificate-estate scanner now (basic Windows host collection is done)
 - cloud LLM integration now
 - RAG/copilot implementation now
 - production hardening now

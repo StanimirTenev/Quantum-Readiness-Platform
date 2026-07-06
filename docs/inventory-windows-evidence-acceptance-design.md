@@ -23,12 +23,16 @@ Implemented:
 - Windows collector — `agents/windows-host-agent/collect.ps1` (with `-Ingest`),
   wired into `scripts/run_flow.ps1 -WindowsEvidence`.
 
+Also implemented:
+- Windows-aware risk shaping in the inventory `risk_mapper` — the persisted
+  signals raise `blast_radius`/`dependency_count` (domain role) and
+  `migration_difficulty` (certificate volume + weak/expired), bounded to [0,5].
+
 Still future work:
 - AD / certificate-estate scanner.
-- Windows-specific mapping *inside* `risk-engine` / `planner-service` — scoring
-  currently reuses the generic `risk_mapper` path via a representative
-  certificate; the normalized signals are persisted but not yet consumed as
-  dedicated Windows risk/planning inputs.
+- Windows-specific logic *inside* `risk-engine` / `planner-service` themselves
+  (today the shaping happens in the inventory payload builder, not the scoring/
+  planning services' internals).
 
 ## 2) Current state (original design-time snapshot)
 
@@ -157,7 +161,7 @@ Future validation should enforce:
 - **Phase 1** — add inventory schema/validator tests only. ✅ done
 - **Phase 2** — add inventory ingestion acceptance for Windows fixture. ✅ done (`POST /scans/ingest/windows` + adapter + tests)
 - **Phase 3** — add Stage 2-style Windows inventory smoke. 🟨 covered by `run_flow.ps1 -WindowsEvidence` (live persist + read-back); a dedicated smoke script is still open
-- **Phase 4** — add risk/planning signal mapping tests. 🔲 open (generic scoring only so far)
+- **Phase 4** — add risk/planning signal mapping tests. 🟨 signals now shape the risk payload in the inventory `risk_mapper` (with tests); dedicated logic inside risk-engine/planner internals still open
 - **Phase 5** — minimal Windows collector. ✅ done (`agents/windows-host-agent/collect.ps1`)
 
 ## 10) Stop conditions

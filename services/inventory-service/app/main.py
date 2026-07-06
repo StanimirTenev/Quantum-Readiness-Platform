@@ -1,4 +1,6 @@
-from fastapi import FastAPI, HTTPException, Query, status
+from typing import Any
+
+from fastapi import Body, FastAPI, HTTPException, Query, status
 
 from .clients.risk_engine import RiskEngineClient
 from .models import (
@@ -13,6 +15,7 @@ from .models import (
 )
 from .repository import AssetRepository
 from .risk_mapper import build_risk_payload
+from .windows_evidence import build_ingest_request
 
 app = FastAPI(title="Inventory Service", version="0.4.0")
 repository = AssetRepository()
@@ -57,11 +60,10 @@ def delete_asset(asset_id: str) -> None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Asset not found")
 
 
-@app.post("/scans/ingest", response_model=ScanIngestResponse, status_code=status.HTTP_201_CREATED)
-def ingest_scan(
+def _persist_scan(
     payload: ScanIngestRequest,
-    auto_score: bool = Query(default=True),
-    scenario: str = Query(default="public_timeline"),
+    auto_score: bool,
+    scenario: str,
 ) -> ScanIngestResponse:
     scan_id = repository.create_scan(payload)
     created = repository.create_many(payload.assets)
@@ -78,6 +80,41 @@ def ingest_scan(
         asset_ids=[asset.id for asset in created],
         scan_id=scan_id,
     )
+
+
+@app.post("/scans/ingest", response_model=ScanIngestResponse, status_code=status.HTTP_201_CREATED)
+def ingest_scan(
+    payload: ScanIngestRequest,
+    auto_score: bool = Query(default=True),
+    scenario: str = Query(default="public_timeline"),
+) -> ScanIngestResponse:
+    return _persist_scan(payload, auto_score=auto_score, scenario=scenario)
+
+
+@app.post(
+    "/scans/ingest/windows",
+    response_model=ScanIngestResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def ingest_windows_evidence(
+    document: dict[str, Any] = Body(...),
+    auto_score: bool = Query(default=True),
+    scenario: str = Query(default="public_timeline"),
+) -> ScanIngestResponse:
+    """Persist a Windows host evidence document (from the windows-host-agent).
+
+    The raw aggregate/redacted evidence document is mapped to the standard
+    ingest contract, then persisted and risk-scored through the same path as
+    `/scans/ingest`, so a host collection becomes durable inventory.
+    """
+    try:
+        payload = build_ingest_request(document)
+    except (KeyError, TypeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"invalid windows evidence document: {exc}",
+        ) from exc
+    return _persist_scan(payload, auto_score=auto_score, scenario=scenario)
 
 
 @app.get("/scans", response_model=list[ScanRecord])

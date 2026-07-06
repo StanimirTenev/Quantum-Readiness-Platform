@@ -27,15 +27,23 @@
   API Gateway base URL (e.g. http://127.0.0.1:8000). If set, each collected
   certificate is assessed and a short readiness line is printed.
 
+.PARAMETER Ingest
+  Inventory service base URL (e.g. http://127.0.0.1:8001). If set, the collected
+  evidence document is POSTed to `/scans/ingest/windows` so the host becomes
+  durable inventory (persisted scan snapshot + asset + risk score) instead of a
+  one-off file. The redacted, aggregate contract is preserved end to end.
+
 .EXAMPLE
   pwsh agents/windows-host-agent/collect.ps1
   pwsh agents/windows-host-agent/collect.ps1 -Assess http://127.0.0.1:8000
+  pwsh agents/windows-host-agent/collect.ps1 -Ingest http://127.0.0.1:8001
 #>
 [CmdletBinding()]
 param(
     [string]$OutFile,
     [int]$MaxCerts = 50,
-    [string]$Assess
+    [string]$Assess,
+    [string]$Ingest
 )
 
 $ErrorActionPreference = "Stop"
@@ -177,6 +185,19 @@ Write-Host ("Crypto services: {0}  SCHANNEL policy: {1}  legacy TLS: {2}" -f $we
 Write-Host ("Domain joined: {0}" -f $we.domain_membership_indicators.domain_joined)
 Write-Host ("Fingerprint-able certificates: {0}" -f $certSurface.Count)
 Write-Host "Output: $OutFile"
+
+# --- Optional: persist this host as durable inventory ---
+if ($Ingest) {
+    $base = $Ingest.TrimEnd("/")
+    Write-Host "`n== Ingesting host evidence into $base ==" -ForegroundColor Cyan
+    try {
+        $r = Invoke-RestMethod "$base/scans/ingest/windows" -Method Post `
+            -Body ($evidence | ConvertTo-Json -Depth 8) -ContentType "application/json" -TimeoutSec 15
+        Write-Host ("  persisted: scan_id={0}, assets_created={1}, source={2}" -f $r.scan_id, $r.created, $r.source) -ForegroundColor Green
+    } catch {
+        Write-Host "  ingest failed: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+}
 
 # --- Optional: feed real certificates through the flow ---
 if ($Assess) {

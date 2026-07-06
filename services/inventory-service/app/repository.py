@@ -1,4 +1,5 @@
 import json
+import os
 import sqlite3
 import uuid
 from datetime import UTC, datetime
@@ -7,7 +8,9 @@ from typing import Any, Iterable
 
 from .models import Asset, AssetCreate, AssetUpdate, RiskRecord, ScanIngestRequest, ScanRecord
 
-DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "inventory.db"
+# INVENTORY_DB_PATH lets a caller (e.g. the local flow runner) point the store at
+# an isolated database so a demonstration run does not accumulate into the dev DB.
+DEFAULT_DB_PATH = Path(os.getenv("INVENTORY_DB_PATH") or (Path(__file__).resolve().parent.parent / "inventory.db"))
 
 
 class AssetRepository:

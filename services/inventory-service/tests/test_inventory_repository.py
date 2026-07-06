@@ -1,7 +1,26 @@
+import importlib
 from pathlib import Path
 
 from app.models import AssetCreate, AssetUpdate, CryptoEvidence, HostInventory, ScanIngestRequest, TLSEvidence, TLSEvidenceCertificate
 from app.repository import AssetRepository
+
+
+def test_default_db_path_honors_inventory_db_path_env(tmp_path: Path, monkeypatch) -> None:
+    custom = tmp_path / "env-inventory.db"
+    monkeypatch.setenv("INVENTORY_DB_PATH", str(custom))
+
+    import app.repository as repository_module
+
+    reloaded = importlib.reload(repository_module)
+    try:
+        assert reloaded.DEFAULT_DB_PATH == custom
+        repo = reloaded.AssetRepository()
+        repo.create_asset(AssetCreate(asset_type="server", name="env-db-host"))
+        assert custom.exists()
+    finally:
+        # Restore the module to its unpatched default for the rest of the suite.
+        monkeypatch.delenv("INVENTORY_DB_PATH", raising=False)
+        importlib.reload(repository_module)
 
 
 def test_repository_crud(tmp_path: Path) -> None:

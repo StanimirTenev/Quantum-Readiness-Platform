@@ -23,8 +23,14 @@
 .PARAMETER KeepRunning
   Leave the services running after the flow.
 
+.PARAMETER WindowsEvidence
+  Also collect real Windows host evidence, assess each certificate, and persist
+  the host into inventory (source=host) through the gateway, reading the stored
+  scan and risk back to prove it landed. Uses an isolated temp database.
+
 .EXAMPLE
   pwsh scripts/run_flow.ps1
+  pwsh scripts/run_flow.ps1 -WindowsEvidence
 #>
 [CmdletBinding()]
 param(
@@ -41,6 +47,7 @@ $Gateway = "http://127.0.0.1:8000"
 $FixtureDir = Join-Path $Root "services/inventory-service/tests/fixtures/stage2_evidence"
 
 $Services = [ordered]@{
+    "inventory-service"           = @{ dir = "services/inventory-service";           port = 8001 }
     "risk-engine"                 = @{ dir = "services/risk-engine";                 port = 8002 }
     "crypto-fingerprint-service"  = @{ dir = "services/crypto-fingerprint-service";  port = 8003 }
     "evidence-normalizer"         = @{ dir = "services/evidence-normalizer";         port = 8009 }
@@ -77,6 +84,10 @@ try {
     $env:GRAPH_SERVICE_URL = "http://127.0.0.1:8013"
     $env:FINDING_ATTRIBUTION_URL = "http://127.0.0.1:8014"
     $env:RISK_ENGINE_URL = "http://127.0.0.1:8002"
+    $env:INVENTORY_SERVICE_URL = "http://127.0.0.1:8001"
+    # Isolated store so a demonstration run stays self-contained and repeatable.
+    $env:INVENTORY_DB_PATH = Join-Path $env:TEMP "qrp-flow-inventory.db"
+    if (Test-Path $env:INVENTORY_DB_PATH) { Remove-Item $env:INVENTORY_DB_PATH -Force -ErrorAction SilentlyContinue }
     $env:GRAPH_SNAPSHOT_PATH = Join-Path $Root "reports/graph/latest/graph-snapshot.json"
 
     foreach ($name in $Services.Keys) {
@@ -181,6 +192,18 @@ try {
             if ($c.signature_algorithm -match '(?i)sha1|md5') { $weakSig++ }
         }
         Say ("Assessed {0} real certificates: {1} classical-only, {2} HNDL-exposed, {3} with weak key/primitive, {4} weak-signature" -f $surface.Count, $classical, $hndl, $weak, $weakSig)
+
+        # Persist this host as durable inventory through the gateway (source=host),
+        # then read the persisted scan + risk back to prove it landed in the store.
+        $persist = Post "/api/scans/windows" $win
+        Say ("Persisted host to inventory: scan_id={0}, assets_created={1}" -f $persist.scan_id, $persist.created)
+        $scanDetail = Invoke-RestMethod "http://127.0.0.1:8001/scans/$($persist.scan_id)" -TimeoutSec 10
+        $sig = $scanDetail.scan.crypto_evidence.windows_normalized_signals
+        Say ("Stored signals: {0} certs ({1} expired, {2} weak-sig), {3} crypto services, domain_joined={4}" -f $sig.certificates_observed_count, $sig.expired_certificates_count, $sig.weak_signature_indicators_count, $sig.crypto_relevant_services_count, $sig.domain_joined)
+        if ($scanDetail.risks.Count -gt 0) {
+            $hostRisk = $scanDetail.risks[0]
+            Say ("Host risk (persisted): {0} (normalized {1})" -f $hostRisk.rating, $hostRisk.normalized_score_100)
+        }
     }
 
     Say ""

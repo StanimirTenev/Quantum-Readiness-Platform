@@ -97,17 +97,21 @@ the risk engine. Endpoints:
 | `GET /assets/{id}/history` (`/api/assets/{id}/history`) | inventory-service (+ gateway) | risk-posture trend for a host across its persisted scans |
 
 The aggregate-only normalized signal set is carried on the stored scan
-(`crypto_evidence.windows_normalized_signals`) and drives the risk score in two
-layers:
+(`crypto_evidence.windows_normalized_signals`) and is consumed end to end across
+three services:
 
 - the inventory `risk_mapper` shapes the base factors — a domain controller /
   domain-joined host widens blast radius and dependencies, and certificate-store
   volume plus weak/expired indicators raise migration difficulty (bounded to the
   risk engine's `[0,5]`);
-- the `risk-engine` then consumes the signals directly as a parallel evidence
-  family (alongside its Linux/network evidence): expired / weak-signature /
+- the `risk-engine` consumes the signals directly as a parallel evidence family
+  (alongside its Linux/network evidence): expired / weak-signature /
   domain-controller / large-estate / crypto-services indicators feed a stage2
-  adjustment, the risk dimensions, the confidence score, and the rationale.
+  adjustment, the risk dimensions, the confidence score, and the rationale;
+- the `planner-service` reads those Windows flags from `risk.rationale` and
+  prioritizes the host — a domain controller / expired / weak-signature
+  certificate is a high-priority signal (earlier wave, no later than wave 2), a
+  large certificate estate is a medium signal.
 
 Clean or absent Windows evidence adds nothing, so hosts still differentiate.
 
@@ -116,8 +120,8 @@ Because a repeated collection accumulates scans while the asset stays single,
 (`improving` / `worsening` / `flat` / `insufficient_data`).
 
 A deterministic smoke test exercises the whole vertical (persist → stored signals
-→ Windows-aware risk) against the fixture, through the gateway, on an isolated
-database:
+→ Windows-aware risk → planner wave) against the fixture, through the gateway and
+planner-service, on an isolated database:
 
 ```powershell
 pwsh scripts/run_windows_evidence_smoke.ps1

@@ -33,6 +33,13 @@
 - Missing or partial Stage 2 signals are non-fatal and preserve backward-compatible planning behavior for old inputs.
 - This is conservative wave prioritization only and is not dependency graph planning.
 
+## Windows Host Signal Prioritization
+
+- Planner reads the aggregate Windows flags the risk-engine surfaces in `risk.rationale`.
+- High-priority signals: `windows_domain_controller`, `windows_expired_certificates`, `windows_weak_signature_certificates` (raise priority and cap the item no later than wave 2).
+- Medium-priority signal: `windows_large_certificate_estate`.
+- Reasons are surfaced in `planning_reasons`; absent Windows flags leave planning unchanged.
+
 ## Stage 3 Priority Score and Wave Rationale
 
 - Planner now returns `priority_score` (0-100) on each plan item, while keeping existing score fields for backward compatibility.

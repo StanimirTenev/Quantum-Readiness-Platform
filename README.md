@@ -178,13 +178,20 @@ Prints a PASS/WARN/FAIL table, writes `reports/repo-health-report.md`
 An end-to-end smoke test that starts the analysis stack (risk-engine,
 crypto-fingerprint-service, evidence-normalizer, scenario-engine,
 integration-service, pqc-readiness-service, graph-service) plus the API Gateway,
-then asserts 18 checks across every gateway route — including the
+then asserts 21 checks across every gateway route — including the
 `/api/assess` pipeline and the graph traversal queries — writes
 `reports/new-services-smoke-report.md`, stops the services, and exits non-zero
 on any failure:
 
 ```powershell
 pwsh scripts/run_full_smoke.ps1
+```
+
+A Linux/CI-friendly port runs the same 21 checks without `pwsh`, and also
+runs in CI:
+
+```bash
+bash scripts/run_full_smoke.sh
 ```
 
 Use `-KeepRunning` to leave the stack up, `-Python <path>` to pick the

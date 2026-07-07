@@ -1,6 +1,6 @@
 # New Services Smoke Report
 
-Generated: 2026-07-05 11:54:27Z
+Generated: 2026-07-07T18:34:21Z
 
 Scope: crypto-fingerprint-service, evidence-normalizer, scenario-engine,
 integration-service (dry-run), web-ui gateway routes -- exercised through api-gateway.

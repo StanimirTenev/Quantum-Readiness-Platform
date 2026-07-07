@@ -30,11 +30,12 @@ Also implemented:
 - Dedicated Windows consumption *inside* the `risk-engine` — `windows_signals`
   feed a stage2 adjustment, the risk dimensions, the confidence score, and the
   rationale, parallel to the Linux/network evidence family.
+- `planner-service` wave prioritization — the planner reads the Windows flags from
+  `risk.rationale` (domain controller / expired / weak-signature = high priority
+  and no later than wave 2; large estate = medium).
 
 Still future work:
 - AD / certificate-estate scanner.
-- `planner-service` Windows-specific logic (risk-engine now consumes the signals;
-  the planner does not yet).
 
 ## 2) Current state (original design-time snapshot)
 
@@ -163,7 +164,7 @@ Future validation should enforce:
 - **Phase 1** — add inventory schema/validator tests only. ✅ done
 - **Phase 2** — add inventory ingestion acceptance for Windows fixture. ✅ done (`POST /scans/ingest/windows` + adapter + tests)
 - **Phase 3** — add Stage 2-style Windows inventory smoke. ✅ done (`scripts/run_windows_evidence_smoke.ps1` — fixture-driven assertions; `run_flow.ps1 -WindowsEvidence` covers the live host)
-- **Phase 4** — add risk/planning signal mapping tests. 🟨 inventory `risk_mapper` shaping + `risk-engine` consumption done (with tests); `planner-service` consumption still open
+- **Phase 4** — add risk/planning signal mapping tests. ✅ done (inventory `risk_mapper` shaping + `risk-engine` consumption + `planner-service` wave prioritization, all with tests)
 - **Phase 5** — minimal Windows collector. ✅ done (`agents/windows-host-agent/collect.ps1`)
 
 ## 10) Stop conditions

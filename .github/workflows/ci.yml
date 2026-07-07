@@ -40,3 +40,25 @@ jobs:
 
       - name: TRL7 evidence bundle consistency (LF integrity guard)
         run: python tools/evidence_pack/validate_trl7_evidence_bundle_consistency.py --repo-root .
+
+  go-agents:
+    name: Go agents build / test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        agent: [linux-host-agent, network-scanner]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+
+      - name: Build
+        working-directory: agents/${{ matrix.agent }}
+        run: go build ./...
+
+      - name: Test
+        working-directory: agents/${{ matrix.agent }}
+        run: go test ./...

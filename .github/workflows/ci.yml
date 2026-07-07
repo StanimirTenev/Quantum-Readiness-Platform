@@ -38,6 +38,9 @@ jobs:
       - name: Tools tests
         run: PYTHONPATH=. python -m pytest tools/graph_projection tools/report -q
 
+      - name: Repo/CI scanner tests
+        run: cd agents/repo-ci-scanner && PYTHONPATH=. python -m pytest -q
+
       - name: TRL7 evidence bundle consistency (LF integrity guard)
         run: python tools/evidence_pack/validate_trl7_evidence_bundle_consistency.py --repo-root .
 

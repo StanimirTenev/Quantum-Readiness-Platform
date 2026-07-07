@@ -16,6 +16,19 @@ MEDIUM_PRIORITY_STAGE2_SIGNALS = {
     "crypto_packages_detected": "stage2_crypto_packages",
 }
 
+# Aggregate Windows host signals surfaced by the risk-engine in risk.rationale.
+# A domain controller (domain trust anchor) or expired/weak certificates warrant
+# an earlier remediation wave; a large certificate estate is a medium signal.
+HIGH_PRIORITY_WINDOWS_SIGNALS = {
+    "windows_domain_controller": "windows_domain_controller",
+    "windows_expired_certificates": "windows_expired_certificates",
+    "windows_weak_signature_certificates": "windows_weak_signature_certificates",
+}
+
+MEDIUM_PRIORITY_WINDOWS_SIGNALS = {
+    "windows_large_certificate_estate": "windows_large_certificate_estate",
+}
+
 
 def build_plan(assets: list[dict[str, Any]], risks: list[dict[str, Any]]) -> dict[str, Any]:
     asset_map = {asset["name"]: asset for asset in assets}
@@ -128,7 +141,8 @@ def _priority_score(asset: dict[str, Any], risk: dict[str, Any]) -> float:
     dependency_boost = min(_dependency_count(asset, risk), 10) * 1.5
     vendor_boost = 8.0 if _vendor_blocked(asset, risk) else 0.0
     stage2_boost = _stage2_priority_boost(risk)
-    score = base_score + dimension_boost + confidence_adjustment + dependency_boost + vendor_boost + stage2_boost
+    windows_boost = _windows_priority_boost(risk)
+    score = base_score + dimension_boost + confidence_adjustment + dependency_boost + vendor_boost + stage2_boost + windows_boost
     return max(0.0, min(score, 100.0))
 
 
@@ -175,6 +189,29 @@ def _stage2_priority_boost(risk: dict[str, Any]) -> float:
     return boost
 
 
+def _windows_flags(risk: dict[str, Any]) -> dict[str, Any]:
+    rationale = risk.get("rationale", {})
+    return rationale if isinstance(rationale, dict) else {}
+
+
+def _has_high_priority_windows_signal(risk: dict[str, Any]) -> bool:
+    flags = _windows_flags(risk)
+    return any(bool(flags.get(signal)) for signal in HIGH_PRIORITY_WINDOWS_SIGNALS)
+
+
+def _windows_priority_boost(risk: dict[str, Any]) -> float:
+    flags = _windows_flags(risk)
+    if not flags:
+        return 0.0
+
+    boost = 0.0
+    if _has_high_priority_windows_signal(risk):
+        boost += 15.0
+    if any(bool(flags.get(signal)) for signal in MEDIUM_PRIORITY_WINDOWS_SIGNALS):
+        boost += 5.0
+    return boost
+
+
 def _planning_reasons(risk: dict[str, Any]) -> list[str]:
     evidence_signals = _evidence_signals(risk)
     reasons: list[str] = ["priority_score_computed"]
@@ -208,6 +245,15 @@ def _planning_reasons(risk: dict[str, Any]) -> list[str]:
 
     for signal, reason in MEDIUM_PRIORITY_STAGE2_SIGNALS.items():
         if bool(evidence_signals.get(signal)):
+            reasons.append(reason)
+
+    windows_flags = _windows_flags(risk)
+    for signal, reason in HIGH_PRIORITY_WINDOWS_SIGNALS.items():
+        if bool(windows_flags.get(signal)):
+            reasons.append(reason)
+            reasons.append("wave_cap_from_windows_high_signal")
+    for signal, reason in MEDIUM_PRIORITY_WINDOWS_SIGNALS.items():
+        if bool(windows_flags.get(signal)):
             reasons.append(reason)
 
     return reasons
@@ -248,10 +294,15 @@ def _safe_float(value: Any) -> float | None:
 def _enforce_stage2_wave_caps(
     wave_1: list[dict[str, Any]], wave_2: list[dict[str, Any]], wave_3: list[dict[str, Any]]
 ) -> None:
+    cap_reasons = {
+        "stage2_private_key_files",
+        "stage2_weak_public_key",
+        "wave_cap_from_windows_high_signal",
+    }
     remaining_wave_3: list[dict[str, Any]] = []
     for item in wave_3:
         reasons = set(item.get("planning_reasons", []))
-        if "stage2_private_key_files" in reasons or "stage2_weak_public_key" in reasons:
+        if reasons & cap_reasons:
             wave_2.append(item)
         else:
             remaining_wave_3.append(item)

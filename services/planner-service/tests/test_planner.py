@@ -81,6 +81,75 @@ def test_stage2_private_key_files_detected_not_later_than_wave_2() -> None:
     assert "stage2_private_key_files" in plan["wave_2"][0]["planning_reasons"]
 
 
+def test_windows_domain_controller_raises_priority_score() -> None:
+    baseline = build_plan(
+        assets=[],
+        risks=[{"asset_name": "win-host", "rating": "medium", "normalized_score_100": 50.0}],
+    )
+    with_dc = build_plan(
+        assets=[],
+        risks=[
+            {
+                "asset_name": "win-host",
+                "rating": "medium",
+                "normalized_score_100": 50.0,
+                "rationale": {"windows_evidence_present": True, "windows_domain_controller": True},
+            }
+        ],
+    )
+    baseline_item = (baseline["wave_1"] + baseline["wave_2"] + baseline["wave_3"])[0]
+    dc_item = (with_dc["wave_1"] + with_dc["wave_2"] + with_dc["wave_3"])[0]
+    assert dc_item["priority_score_100"] == baseline_item["priority_score_100"] + 15.0
+    assert "windows_domain_controller" in dc_item["planning_reasons"]
+
+
+def test_windows_high_signal_not_later_than_wave_2() -> None:
+    plan = build_plan(
+        assets=[],
+        risks=[
+            {
+                "asset_name": "win-expired-host",
+                "rating": "low",
+                "normalized_score_100": 10.0,
+                "rationale": {"windows_evidence_present": True, "windows_expired_certificates": True},
+            }
+        ],
+    )
+
+    assert len(plan["wave_3"]) == 0
+    assert len(plan["wave_2"]) == 1
+    assert plan["wave_2"][0]["asset_name"] == "win-expired-host"
+    assert "windows_expired_certificates" in plan["wave_2"][0]["planning_reasons"]
+
+
+def test_windows_large_certificate_estate_is_a_medium_boost_only() -> None:
+    plan = build_plan(
+        assets=[],
+        risks=[
+            {
+                "asset_name": "win-estate-host",
+                "rating": "low",
+                "normalized_score_100": 10.0,
+                "rationale": {"windows_evidence_present": True, "windows_large_certificate_estate": True},
+            }
+        ],
+    )
+    # A medium signal boosts priority but does not force an earlier wave.
+    item = plan["wave_3"][0]
+    assert item["priority_score_100"] == 15.0  # 10 base + 5 medium windows boost
+    assert "windows_large_certificate_estate" in item["planning_reasons"]
+
+
+def test_windows_flags_absent_leave_planning_unchanged() -> None:
+    plan = build_plan(
+        assets=[],
+        risks=[{"asset_name": "plain-host", "rating": "low", "normalized_score_100": 10.0}],
+    )
+    item = plan["wave_3"][0]
+    assert item["priority_score_100"] == 10.0
+    assert not any(r.startswith("windows_") for r in item["planning_reasons"])
+
+
 def test_stage2_expiring_certificate_adds_reason() -> None:
     plan = build_plan(
         assets=[],

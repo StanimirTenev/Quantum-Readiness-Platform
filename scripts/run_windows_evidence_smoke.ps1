@@ -6,14 +6,16 @@
   the risk score.
 
 .DESCRIPTION
-  Starts risk-engine, inventory-service (on an isolated temporary database) and
-  the api-gateway, then drives the committed Windows evidence fixture (and a few
-  in-memory variants of it) through `POST /api/scans/windows`. Asserts that:
+  Starts risk-engine, inventory-service (on an isolated temporary database),
+  planner-service and the api-gateway, then drives the committed Windows evidence
+  fixture (and a few in-memory variants of it) through `POST /api/scans/windows`.
+  Asserts that:
     - the document persists as source=host with a single asset,
     - the aggregate normalized signals are stored on the scan,
     - the persisted risk reflects the Windows-aware factors (domain role ->
       blast radius / dependencies; certificate volume + weak/expired ->
       migration difficulty),
+    - the planner prioritizes the host into wave 1 with the Windows reasons,
     - no raw identifiers leak.
   Uses the fixture (not the live host) so it is deterministic and CI-friendly.
   Writes reports/windows-evidence-smoke-report.md and exits non-zero on failure.
@@ -44,6 +46,7 @@ $FixturePath = Join-Path $Root "services/inventory-service/tests/fixtures/stage2
 $Services = [ordered]@{
     "risk-engine"       = @{ dir = "services/risk-engine";       port = 8002 }
     "inventory-service" = @{ dir = "services/inventory-service"; port = 8001 }
+    "planner-service"   = @{ dir = "services/planner-service";   port = 8004 }
     "api-gateway"       = @{ dir = "services/api-gateway";       port = 8000; target = "main:app" }
 }
 
@@ -180,6 +183,16 @@ try {
         Assert ($r.rationale.migration_difficulty -eq 3) "migration_difficulty=$($r.rationale.migration_difficulty)"
     }
 
+    Check "planner places the Windows host in wave 1 with Windows reasons" {
+        # The planner reads the Windows flags the risk-engine surfaced in
+        # risk.rationale (persisted above) and prioritizes accordingly.
+        $plan = Invoke-RestMethod "http://127.0.0.1:8004/plan" -TimeoutSec 10
+        $item = $plan.wave_1 | Where-Object { $_.asset_name -eq "redacted-windows-host" } | Select-Object -First 1
+        Assert ($null -ne $item) "redacted-windows-host not in wave_1"
+        Assert ($item.planning_reasons -contains "windows_expired_certificates") `
+            "missing windows planning reason: $($item.planning_reasons -join ',')"
+    }
+
 } finally {
     $passed = @($script:Results | Where-Object Result -eq "PASS").Count
     $failed = @($script:Results | Where-Object Result -eq "FAIL").Count
@@ -197,7 +210,8 @@ try {
         $lines += "Generated: $((Get-Date).ToUniversalTime().ToString('u'))"
         $lines += ""
         $lines += "Scope: Windows evidence -> inventory persistence + Windows-aware risk"
-        $lines += "scoring, exercised through api-gateway with an isolated database."
+        $lines += "scoring + planner wave prioritization, exercised through api-gateway"
+        $lines += "and planner-service with an isolated database."
         $lines += ""
         $lines += "| Check | Result |"
         $lines += "| --- | --- |"

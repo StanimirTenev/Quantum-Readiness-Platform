@@ -127,6 +127,13 @@ planner-service, on an isolated database:
 pwsh scripts/run_windows_evidence_smoke.ps1
 ```
 
+A Linux/CI-friendly port of the same fixture-based checks (no PowerShell
+required) runs in CI and locally:
+
+```bash
+bash scripts/run_windows_evidence_smoke.sh
+```
+
 Writes `reports/windows-evidence-smoke-report.md` (git-ignored) and exits
 non-zero on any failure.
 

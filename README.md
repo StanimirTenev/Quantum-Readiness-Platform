@@ -162,6 +162,14 @@ README-referenced scripts), and stale reports with a `FAIL` verdict:
 pwsh scripts/check_repo_health.ps1        # add -Fetch for fresh ahead/behind
 ```
 
+A Linux/CI-friendly port runs the same checks without `pwsh` (local use only —
+CI runners always check out a detached HEAD, so the "detached HEAD" check
+would false-positive as part of a CI gate):
+
+```bash
+bash scripts/check_repo_health.sh          # add --fetch for fresh ahead/behind
+```
+
 Prints a PASS/WARN/FAIL table, writes `reports/repo-health-report.md`
 (git-ignored snapshot), and exits non-zero only on a FAIL.
 

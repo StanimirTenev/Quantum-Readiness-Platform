@@ -104,6 +104,9 @@ jobs:
       - name: Run report
         run: bash scripts/run_report.sh
 
+      - name: Run report with windows evidence
+        run: bash scripts/run_report.sh --windows-evidence
+
   go-agents:
     name: Go agents build / test
     runs-on: ubuntu-latest

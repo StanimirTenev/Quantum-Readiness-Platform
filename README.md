@@ -155,16 +155,25 @@ pwsh scripts/run_report.ps1                    # fixture assets
 pwsh scripts/run_report.ps1 -WindowsEvidence   # also include this host's real certificates
 ```
 
-A Linux/CI-friendly port runs the same fixture-assets flow without `pwsh`
-(again, `-WindowsEvidence` stays Windows-only):
+A Linux/CI-friendly port runs the same fixture-assets flow without `pwsh`.
+`--windows-evidence` persists the committed Windows evidence *fixture* (not a
+real host — there's no Windows agent to run here) so the report includes a
+persisted Windows host with its aggregate risk and migration wave:
 
 ```bash
 bash scripts/run_report.sh
+bash scripts/run_report.sh --windows-evidence
 ```
 
 Writes `reports/operator-report.md` (git-ignored). The report is rendered by the
 pure, tested generator `tools/report/build_operator_report.py` from an
 assessment bundle, so it can also be produced from any saved `/api/assess` output.
+A bundle entry can also be a `persisted_risk` record (rating +
+`normalized_score_100` + `rationale`) instead of an `assess` result — this is
+how a persisted Windows host (risk-scored from aggregate certificate-store
+signals, not per-algorithm classification) surfaces with the correct wave;
+its wave placement mirrors planner-service's own Windows signal weighting so
+the two stay consistent.
 
 ## Repository health check (Windows / PowerShell)
 

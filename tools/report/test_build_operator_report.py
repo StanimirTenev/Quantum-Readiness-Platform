@@ -62,3 +62,65 @@ def test_empty_bundle_is_handled():
     report = reporter.build_report({"assets": []})
     assert "Assets assessed: **0**" in report
     assert "Posture is largely post-quantum ready" in report
+
+
+def _windows_host(name, rating, score_100, rationale=None, app="windows-host"):
+    return {
+        "asset_name": name,
+        "application": app,
+        "persisted_risk": {
+            "rating": rating,
+            "normalized_score_100": score_100,
+            "rationale": rationale or {},
+        },
+    }
+
+
+def test_windows_host_view_has_unknown_readiness_and_no_fingerprint_signals():
+    view = reporter.asset_view(_windows_host("dc-01", "critical", 90, {"windows_domain_controller": True}))
+    assert view["readiness"] == "unknown"
+    assert view["quantum_vulnerable"] == 0
+    assert view["hndl"] is False
+    assert view["source"] == "windows_host"
+    assert "windows_domain_controller" in view["windows_high_signals"]
+
+
+def test_windows_host_high_signal_reaches_wave_1_when_score_is_high():
+    view = reporter.asset_view(_windows_host("dc-01", "critical", 60, {"windows_domain_controller": True}))
+    # 60 base + 15 high-signal boost = 75 >= 65 -> wave 1
+    assert reporter.assign_wave(view) == 1
+
+
+def test_windows_host_high_signal_is_capped_at_wave_2_not_3():
+    # Low base score (30) + 15 boost = 45 would normally be wave 2 anyway;
+    # use a score low enough that only the wave-3 cap saves it (e.g. base 10).
+    view = reporter.asset_view(_windows_host("dc-02", "low", 10, {"windows_expired_certificates": True}))
+    # 10 + 15 = 25 -> would be wave 3, but a high-priority signal caps it at 2.
+    assert reporter.assign_wave(view) == 2
+
+
+def test_windows_host_with_no_signals_and_low_score_lands_in_wave_3():
+    view = reporter.asset_view(_windows_host("clean-host", "minimal", 5, {}))
+    assert reporter.assign_wave(view) == 3
+
+
+def test_windows_host_medium_signal_only_reaches_wave_2():
+    view = reporter.asset_view(_windows_host("big-estate", "low", 40, {"windows_large_certificate_estate": True}))
+    # 40 + 5 = 45 -> wave 2
+    assert reporter.assign_wave(view) == 2
+
+
+def test_windows_host_does_not_pollute_pqc_readiness_counts():
+    bundle = {
+        "environment": "unit-test",
+        "assets": [
+            _asset("payments-api", "classical_only", "critical", hndl=True, qv=2),
+            _windows_host("dc-01", "critical", 90, {"windows_domain_controller": True, "windows_expired_certificates": True}),
+        ],
+    }
+    report = reporter.build_report(bundle)
+    assert "Assets assessed: **2**" in report
+    # only the assess-pipeline asset counts toward classical-only, not the windows host.
+    assert "1 classical-only" in report
+    assert "dc-01" in report
+    assert "Windows: windows_domain_controller, windows_expired_certificates" in report

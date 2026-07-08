@@ -1,13 +1,13 @@
 {
   "graph_schema_version": "0.1",
   "projection_version": "0.3.0",
-  "graph_snapshot_id": "d6bdb5c0a7c184d4",
-  "generated_at": "2026-07-05T11:52:06Z",
+  "graph_snapshot_id": "07023e0d35e1ee66",
+  "generated_at": "2026-07-08T06:07:22Z",
   "source": "stage2_fixture_projection_smoke",
   "inputs": {
     "fixtures": [
-      "services\\inventory-service\\tests\\fixtures\\stage2_evidence\\host_enriched_ingest.json",
-      "services\\inventory-service\\tests\\fixtures\\stage2_evidence\\network_enriched_ingest.json"
+      "services/inventory-service/tests/fixtures/stage2_evidence/host_enriched_ingest.json",
+      "services/inventory-service/tests/fixtures/stage2_evidence/network_enriched_ingest.json"
     ]
   },
   "nodes": [

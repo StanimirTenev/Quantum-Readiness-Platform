@@ -64,6 +64,14 @@ pwsh scripts/run_flow.ps1                    # -KeepRunning to leave the stack u
 pwsh scripts/run_flow.ps1 -WindowsEvidence   # also collect, assess & persist THIS host
 ```
 
+A Linux/CI-friendly port runs the same base flow without `pwsh` (the
+`-WindowsEvidence` step is Windows-only by design, so it has no `.sh`
+equivalent):
+
+```bash
+bash scripts/run_flow.sh
+```
+
 Steps: discovery → graph projection → evidence normalization → assessment
 (fingerprint → pqc-readiness → attribution → risk) → scenario re-scoring →
 graph traversal (evidence-path + blast-radius) → integration dry-run. With
@@ -145,6 +153,13 @@ migration waves, findings, attribution/evidence chains, and boundaries:
 ```powershell
 pwsh scripts/run_report.ps1                    # fixture assets
 pwsh scripts/run_report.ps1 -WindowsEvidence   # also include this host's real certificates
+```
+
+A Linux/CI-friendly port runs the same fixture-assets flow without `pwsh`
+(again, `-WindowsEvidence` stays Windows-only):
+
+```bash
+bash scripts/run_report.sh
 ```
 
 Writes `reports/operator-report.md` (git-ignored). The report is rendered by the

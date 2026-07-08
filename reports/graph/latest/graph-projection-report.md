@@ -1,7 +1,7 @@
 # Graph Projection Smoke Report
 
 ## Validation Date
-2026-07-05T11:52:06Z
+2026-07-08T06:07:22Z
 
 ## Scope
 - JSON snapshot projection
@@ -13,12 +13,12 @@
 
 | Fixture | Status |
 |---|---|
-| services\inventory-service\tests\fixtures\stage2_evidence\host_enriched_ingest.json | OK |
-| services\inventory-service\tests\fixtures\stage2_evidence\network_enriched_ingest.json | OK |
+| services/inventory-service/tests/fixtures/stage2_evidence/host_enriched_ingest.json | OK |
+| services/inventory-service/tests/fixtures/stage2_evidence/network_enriched_ingest.json | OK |
 
 ## Snapshot Summary
 
-- graph_snapshot_id: d6bdb5c0a7c184d4
+- graph_snapshot_id: 07023e0d35e1ee66
 - graph_schema_version: 0.1
 - projection_version: 0.3.0
 - source: stage2_fixture_projection_smoke
@@ -80,7 +80,7 @@
 | node IDs unique | PASS |
 | edge IDs unique | PASS |
 | edge references valid | PASS |
-| confidence values within 0.0–1.0 | PASS |
+| confidence values within 0.0â€“1.0 | PASS |
 
 ## Privacy Boundary
 

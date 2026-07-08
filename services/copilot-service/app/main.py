@@ -9,6 +9,7 @@ from .clients.planner import PlannerClient
 from .clients.retrieval import RetrievalClient
 from .clients.workflow import WorkflowClient
 from .providers import DISABLED_ANSWER, CopilotProviderRuntime
+from .risk_narrator import narrate_asset_bundle
 
 app = FastAPI(title="Copilot Service", version="0.4.0")
 retrieval = RetrievalClient()
@@ -75,6 +76,19 @@ def asset_details(asset_name: str) -> dict:
         return retrieval.get_asset(asset_name)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Asset lookup failed: {exc}") from exc
+
+
+@app.get("/narrate/{asset_name:path}")
+def narrate_asset(asset_name: str) -> dict:
+    """Risk Narrator: plain-language explanation of an asset's persisted risk.
+    Deterministic (template rules over risk-engine's rationale), not an LLM
+    call -- see app/risk_narrator.py."""
+    try:
+        asset_bundle = retrieval.get_asset(asset_name)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Narrate failed: {exc}") from exc
+
+    return narrate_asset_bundle(asset_name, asset_bundle)
 
 
 @app.get("/plan-summary")
@@ -164,6 +178,12 @@ def query(payload: QueryRequest) -> dict:
 
     if "top risk" in lowered or "highest risk" in lowered:
         return {"intent": "top_risks", "result": top_risks()}
+
+    if ("why" in lowered or "explain" in lowered) and "asset " in lowered:
+        remainder = question.split("asset ", 1)[1].strip()
+        asset_name = remainder.split(" ", 1)[0].rstrip("?.,!")
+        if asset_name:
+            return {"intent": "narrate_asset", "result": narrate_asset(asset_name)}
 
     if "asset " in lowered:
         asset_name = question.split("asset ", 1)[1].strip()

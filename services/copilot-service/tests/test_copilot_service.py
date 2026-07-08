@@ -46,6 +46,32 @@ def test_query_top_risks(monkeypatch) -> None:
     assert response.json()["intent"] == "top_risks"
 
 
+def test_narrate_asset_endpoint(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.main.retrieval.get_asset",
+        lambda asset_name: {"risks": [{"rating": "high", "normalized_score_100": 70.0, "scenario": "public_timeline", "scenario_multiplier": 1.0, "rationale": {"weak_public_key_detected": True}}]},
+    )
+
+    response = client.get("/narrate/payments-api")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["asset_name"] == "payments-api"
+    assert "weak public key" in data["narrative"]
+
+
+def test_query_why_asset_routes_to_narrate(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.main.retrieval.get_asset",
+        lambda asset_name: {"risks": [{"rating": "critical", "normalized_score_100": 90.0, "scenario": "public_timeline", "scenario_multiplier": 1.0, "rationale": {}}]},
+    )
+
+    response = client.post("/query", json={"question": "why is asset payments-api risky?"})
+    assert response.status_code == 200
+    data = response.json()
+    assert data["intent"] == "narrate_asset"
+    assert data["result"]["asset_name"] == "payments-api"
+
+
 def test_operational_summary(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.main.retrieval.get_overview",

@@ -623,6 +623,24 @@ def test_get_api_copilot_narrate_proxies_to_copilot_service(monkeypatch) -> None
     assert captured["url"].endswith("/narrate/payments-api")
 
 
+def test_get_api_copilot_discover_proxies_to_copilot_service(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        return {"narrative": "Discovered 2 explicit crypto finding(s)...", "explicit_findings": [], "inferred_context": [], "evidence_gaps": []}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/copilot/discover")
+
+    assert response.status_code == 200
+    assert "narrative" in response.json()
+    assert captured["method"] == "GET"
+    assert captured["url"].endswith("/discover")
+
+
 def test_get_api_copilot_plan_summary_proxies_to_copilot_service(monkeypatch) -> None:
     captured: dict = {}
 

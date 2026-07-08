@@ -36,6 +36,17 @@ def test_search(monkeypatch) -> None:
     assert response.json()["results"]["documents"] == []
 
 
+def test_documents_endpoint_returns_full_index(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.main.load_document_index",
+        lambda: {"documents": [{"doc_id": "vendor.pdf", "chunks": [{"chunk_index": 0, "text": "roadmap"}]}]},
+    )
+
+    response = client.get("/documents")
+    assert response.status_code == 200
+    assert response.json()["documents"][0]["doc_id"] == "vendor.pdf"
+
+
 def test_search_includes_document_matches(monkeypatch) -> None:
     monkeypatch.setattr("app.main.inventory.get_assets", lambda: [])
     monkeypatch.setattr("app.main.inventory.get_scans", lambda: [])

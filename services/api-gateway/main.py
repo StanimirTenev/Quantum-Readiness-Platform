@@ -290,6 +290,11 @@ def copilot_narrate(asset_name: str) -> dict[str, Any]:
     return _request_json("GET", f"{COPILOT_BASE_URL}/narrate/{asset_name}")
 
 
+@app.get("/api/copilot/discover")
+def copilot_discover() -> dict[str, Any]:
+    return _request_json("GET", f"{COPILOT_BASE_URL}/discover")
+
+
 @app.get("/api/copilot/plan-summary")
 def copilot_plan_summary() -> dict[str, Any]:
     return _request_json("GET", f"{COPILOT_BASE_URL}/plan-summary")

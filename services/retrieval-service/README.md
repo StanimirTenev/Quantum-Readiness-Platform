@@ -11,6 +11,8 @@
 
 ## Main endpoints or functions
 - `GET /health`, `GET /overview`, `GET /asset`
+- `GET /documents` — the full loaded document index (not search-filtered); used by consumers
+  that need to walk every ingested document, e.g. the Discovery Analyst Copilot subagent.
 - `POST /search`
 
 ## Inputs / outputs

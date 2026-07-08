@@ -29,3 +29,9 @@ class RetrievalClient:
             response = client.post(f"{self.base_url}/search", json={"query": query})
             response.raise_for_status()
             return response.json()
+
+    def get_documents(self) -> dict[str, Any]:
+        with httpx.Client(timeout=10.0) as client:
+            response = client.get(f"{self.base_url}/documents")
+            response.raise_for_status()
+            return response.json()

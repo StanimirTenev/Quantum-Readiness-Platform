@@ -46,6 +46,30 @@ def test_query_top_risks(monkeypatch) -> None:
     assert response.json()["intent"] == "top_risks"
 
 
+def test_discover_endpoint(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.inventory.get_scans", lambda: [{"id": "s1", "source": "host", "crypto_evidence": {"openssl_available": True}, "tls_evidence": None}])
+    monkeypatch.setattr("app.main.inventory.get_risks", lambda: [])
+    monkeypatch.setattr("app.main.retrieval.get_documents", lambda: {"documents": []})
+    monkeypatch.setattr("app.main.load_graph_snapshot", lambda: None)
+
+    response = client.get("/discover")
+    assert response.status_code == 200
+    data = response.json()
+    assert "narrative" in data
+    assert any(f["source"] == "host" for f in data["explicit_findings"])
+
+
+def test_query_discover_routes_to_discover(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.inventory.get_scans", lambda: [])
+    monkeypatch.setattr("app.main.inventory.get_risks", lambda: [])
+    monkeypatch.setattr("app.main.retrieval.get_documents", lambda: {"documents": []})
+    monkeypatch.setattr("app.main.load_graph_snapshot", lambda: None)
+
+    response = client.post("/query", json={"question": "what crypto dependencies did we discover?"})
+    assert response.status_code == 200
+    assert response.json()["intent"] == "discover"
+
+
 def test_narrate_asset_endpoint(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.main.retrieval.get_asset",

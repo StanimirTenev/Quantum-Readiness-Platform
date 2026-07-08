@@ -50,6 +50,14 @@ def asset(asset_name: str = Query(..., min_length=1)) -> dict:
         raise HTTPException(status_code=500, detail=f"Asset lookup failed: {exc}") from exc
 
 
+@app.get("/documents")
+def documents() -> dict:
+    """Full loaded document index (not search-filtered) -- used by consumers
+    that need to walk every ingested document, e.g. the Discovery Analyst
+    Copilot subagent, rather than a single keyword query."""
+    return load_document_index()
+
+
 @app.post("/search")
 def search(payload: SearchRequest) -> dict:
     try:

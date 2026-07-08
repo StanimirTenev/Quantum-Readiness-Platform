@@ -5,9 +5,12 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from .clients.inventory import InventoryClient
 from .clients.planner import PlannerClient
 from .clients.retrieval import RetrievalClient
 from .clients.workflow import WorkflowClient
+from .discovery_analyst import build_discovery_summary
+from .graph_snapshot import load_graph_snapshot
 from .providers import DISABLED_ANSWER, CopilotProviderRuntime
 from .risk_narrator import narrate_asset_bundle
 
@@ -15,6 +18,7 @@ app = FastAPI(title="Copilot Service", version="0.4.0")
 retrieval = RetrievalClient()
 planner = PlannerClient()
 workflow = WorkflowClient()
+inventory = InventoryClient()
 provider_runtime = CopilotProviderRuntime()
 
 class QueryRequest(BaseModel):
@@ -91,6 +95,23 @@ def narrate_asset(asset_name: str) -> dict:
     return narrate_asset_bundle(asset_name, asset_bundle)
 
 
+@app.get("/discover")
+def discover() -> dict:
+    """Discovery Analyst: deterministic synthesis of crypto dependencies found
+    across host/network/repo scans, indexed documents, the dependency graph,
+    and persisted risk records -- explicit findings, inferred context, and
+    evidence gaps. No LLM call, read-only. See app/discovery_analyst.py."""
+    try:
+        scans = inventory.get_scans()
+        risks = inventory.get_risks()
+        documents = retrieval.get_documents().get("documents", [])
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Discovery failed: {exc}") from exc
+
+    graph_snapshot = load_graph_snapshot()
+    return build_discovery_summary(scans, documents, graph_snapshot, risks)
+
+
 @app.get("/plan-summary")
 def plan_summary() -> dict:
     try:
@@ -163,6 +184,9 @@ def query(payload: QueryRequest) -> dict:
 
     if not lowered:
         raise HTTPException(status_code=400, detail="Question must not be empty")
+
+    if "discover" in lowered or "dependencies" in lowered or "dependency" in lowered:
+        return {"intent": "discover", "result": discover()}
 
     if "operational" in lowered or "operations" in lowered:
         return {"intent": "operational_summary", "result": operational_summary()}

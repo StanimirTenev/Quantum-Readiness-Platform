@@ -92,6 +92,45 @@ def test_query_vendor_routes_to_vendor_intelligence(monkeypatch) -> None:
     assert response.json()["intent"] == "vendor_intelligence"
 
 
+def test_migration_plan_endpoint(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.main.planner.get_plan",
+        lambda: {
+            "summary": {"total_assets": 1, "total_risks": 1, "wave_1_count": 1, "wave_2_count": 0, "wave_3_count": 0},
+            "wave_1": [{"asset_name": "asset-a", "rating": "critical", "priority_score_100": 90.0, "planning_reasons": [], "vendor_blocked": False, "recommended_action": "Escalate."}],
+            "wave_2": [],
+            "wave_3": [],
+        },
+    )
+    monkeypatch.setattr("app.main.retrieval.get_documents", lambda: {"documents": []})
+
+    response = client.get("/migration-plan")
+    assert response.status_code == 200
+    data = response.json()
+    assert "narrative" in data
+    assert data["waves"][0]["assets"][0]["asset_name"] == "asset-a"
+
+
+def test_query_migration_plan_routes_to_migration_plan(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.main.planner.get_plan",
+        lambda: {"summary": {"total_assets": 0, "total_risks": 0, "wave_1_count": 0, "wave_2_count": 0, "wave_3_count": 0}, "wave_1": [], "wave_2": [], "wave_3": []},
+    )
+    monkeypatch.setattr("app.main.retrieval.get_documents", lambda: {"documents": []})
+
+    response = client.post("/query", json={"question": "what is the migration plan sequencing?"})
+    assert response.status_code == 200
+    assert response.json()["intent"] == "migration_plan"
+
+
+def test_query_plain_plan_still_routes_to_plan_summary(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.planner.get_plan", lambda: {"summary": {"wave_1_count": 0, "wave_2_count": 0, "wave_3_count": 0}})
+
+    response = client.post("/query", json={"question": "show me the wave plan"})
+    assert response.status_code == 200
+    assert response.json()["intent"] == "plan_summary"
+
+
 def test_narrate_asset_endpoint(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.main.retrieval.get_asset",

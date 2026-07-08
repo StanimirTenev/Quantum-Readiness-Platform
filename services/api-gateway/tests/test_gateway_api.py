@@ -659,6 +659,24 @@ def test_get_api_copilot_vendor_intelligence_proxies_to_copilot_service(monkeypa
     assert captured["url"].endswith("/vendor-intelligence")
 
 
+def test_get_api_copilot_migration_plan_proxies_to_copilot_service(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        return {"narrative": "Migration plan covers 0 asset(s)...", "waves": [], "vendor_readiness_context": {}}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/copilot/migration-plan")
+
+    assert response.status_code == 200
+    assert "narrative" in response.json()
+    assert captured["method"] == "GET"
+    assert captured["url"].endswith("/migration-plan")
+
+
 def test_get_api_copilot_plan_summary_proxies_to_copilot_service(monkeypatch) -> None:
     captured: dict = {}
 

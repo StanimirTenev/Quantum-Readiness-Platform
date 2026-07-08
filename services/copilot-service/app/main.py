@@ -11,6 +11,7 @@ from .clients.retrieval import RetrievalClient
 from .clients.workflow import WorkflowClient
 from .discovery_analyst import build_discovery_summary
 from .graph_snapshot import load_graph_snapshot
+from .migration_planner import build_migration_plan_summary
 from .providers import DISABLED_ANSWER, CopilotProviderRuntime
 from .risk_narrator import narrate_asset_bundle
 from .vendor_intelligence_analyst import build_vendor_intelligence_summary
@@ -127,6 +128,22 @@ def vendor_intelligence() -> dict:
     return build_vendor_intelligence_summary(documents)
 
 
+@app.get("/migration-plan")
+def migration_plan() -> dict:
+    """Migration Planner: deterministic plain-language explanation of
+    planner-service's wave/priority plan -- why each asset landed in its
+    wave, plus document-level vendor readiness context from Vendor
+    Intelligence Analyst. No LLM call, read-only. See app/migration_planner.py."""
+    try:
+        plan_data = planner.get_plan()
+        documents = retrieval.get_documents().get("documents", [])
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Migration plan failed: {exc}") from exc
+
+    readiness_matrix = build_vendor_intelligence_summary(documents)["readiness_matrix"]
+    return build_migration_plan_summary(plan_data, readiness_matrix)
+
+
 @app.get("/plan-summary")
 def plan_summary() -> dict:
     try:
@@ -205,6 +222,9 @@ def query(payload: QueryRequest) -> dict:
 
     if "vendor" in lowered or "readiness matrix" in lowered or "roadmap" in lowered:
         return {"intent": "vendor_intelligence", "result": vendor_intelligence()}
+
+    if "migration plan" in lowered or "sequencing" in lowered or "migration order" in lowered:
+        return {"intent": "migration_plan", "result": migration_plan()}
 
     if "operational" in lowered or "operations" in lowered:
         return {"intent": "operational_summary", "result": operational_summary()}

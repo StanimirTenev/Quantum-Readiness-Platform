@@ -131,6 +131,33 @@ def test_query_plain_plan_still_routes_to_plan_summary(monkeypatch) -> None:
     assert response.json()["intent"] == "plan_summary"
 
 
+def test_change_plan_endpoint(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.main.retrieval.get_asset",
+        lambda asset_name: {"risks": [{"rating": "critical", "normalized_score_100": 90.0, "rationale": {"weak_public_key_detected": True}, "vendor_blocked": False, "dependency_count": 0}]},
+    )
+    monkeypatch.setattr("app.main.planner.get_plan", lambda: {"wave_1": [{"asset_name": "payments-api"}], "wave_2": [], "wave_3": []})
+    monkeypatch.setattr("app.main.workflow.get_tasks", lambda: [])
+
+    response = client.get("/change-plan/payments-api")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["asset_name"] == "payments-api"
+    assert data["wave"] == "wave_1"
+    assert len(data["pre_change_checklist"]) > 0
+
+
+def test_query_change_plan_requires_asset_name(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.retrieval.get_asset", lambda asset_name: {"risks": []})
+    monkeypatch.setattr("app.main.planner.get_plan", lambda: {"wave_1": [], "wave_2": [], "wave_3": []})
+    monkeypatch.setattr("app.main.workflow.get_tasks", lambda: [])
+
+    response = client.post("/query", json={"question": "give me a change plan checklist for asset payments-api"})
+    assert response.status_code == 200
+    assert response.json()["intent"] == "change_plan"
+    assert response.json()["result"]["asset_name"] == "payments-api"
+
+
 def test_narrate_asset_endpoint(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.main.retrieval.get_asset",

@@ -623,6 +623,24 @@ def test_get_api_copilot_narrate_proxies_to_copilot_service(monkeypatch) -> None
     assert captured["url"].endswith("/narrate/payments-api")
 
 
+def test_get_api_copilot_change_plan_proxies_to_copilot_service(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        return {"asset_name": "payments-api", "narrative": "Draft change plan...", "pre_change_checklist": []}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/copilot/change-plan/payments-api")
+
+    assert response.status_code == 200
+    assert response.json()["asset_name"] == "payments-api"
+    assert captured["method"] == "GET"
+    assert captured["url"].endswith("/change-plan/payments-api")
+
+
 def test_get_api_copilot_discover_proxies_to_copilot_service(monkeypatch) -> None:
     captured: dict = {}
 

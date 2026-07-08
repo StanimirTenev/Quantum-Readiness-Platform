@@ -6,9 +6,10 @@
 - Discovery Analyst (`GET /discover`, or `POST /query` with a "discover"/"dependencies" question): deterministic synthesis of crypto dependencies across host/network/repo scans, indexed documents, the dependency graph, and persisted risk records — no LLM call. Classifies findings as explicit (directly observed), inferred (aggregate-signal context scanners don't state directly, e.g. a domain-controller host being a PKI trust anchor, or a graph node's blast radius), and evidence gaps (source types or assets with no supporting evidence). See `app/discovery_analyst.py`.
 - Vendor Intelligence Analyst (`GET /vendor-intelligence`, or `POST /query` with a "vendor"/"roadmap"/"readiness matrix" question): deterministic extraction of PQC readiness claims from indexed vendor documents — no LLM call. Classifies each paragraph-level claim by `claimed_readiness` (reusing pqc-readiness-service's own state taxonomy: classical_only/hybrid_capable/pqc_ready/vendor_blocked/unknown), a `confidence` (certain/uncertain/unknown — roadmap language like "we plan to" or "Q3 2026" is flagged uncertain, not treated as fact), and whether it's a migration blocker note. Aggregates into a per-document `readiness_matrix`. See `app/vendor_intelligence_analyst.py`.
 - Migration Planner (`GET /migration-plan`, or `POST /query` with a "migration plan"/"sequencing" question): deterministic plain-language explanation of planner-service's algorithmic wave/priority plan — no LLM call. Turns each asset's `planning_reasons` codes into narrative sentences (why it landed in its wave), flags vendor-blocked assets, and surfaces Vendor Intelligence Analyst's readiness matrix as document-level context (not joined to specific assets — no reliable asset<->vendor-doc key exists yet, and a fuzzy name match would risk a misleading link). See `app/migration_planner.py`.
+- Change Assistant (`GET /change-plan/{asset_name}`, or `POST /query` with a "change plan"/"checklist" question naming an asset): deterministic draft pre-change checklist for one asset — no LLM call, and never executes or schedules anything itself (only GETs existing state). Turns the asset's risk rationale into actionable pre-checks (e.g. "confirm a PQC-capable replacement certificate is provisioned"), reports its recommended wave, and either references an existing workflow-service task or suggests creating one — never creating a duplicate silently. Always ends with an explicit safety notice that QRP does not execute changes. See `app/change_assistant.py`.
 
 ## Current role in the prototype
-- Working prototype orchestration layer for evaluator-facing Q&A over platform data, plus four deterministic Copilot subagents (Risk Narrator, Discovery Analyst, Vendor Intelligence Analyst, Migration Planner) from the architecture reference doc's LLM Copilot Layer subagent model.
+- Working prototype orchestration layer for evaluator-facing Q&A over platform data, plus all five deterministic Copilot subagents (Risk Narrator, Discovery Analyst, Vendor Intelligence Analyst, Migration Planner, Change Assistant) named in the architecture reference doc's LLM Copilot Layer subagent model.
 
 ## Main endpoints or functions
 - `GET /health`, `GET /summary`, `GET /top-risks`, `GET /asset/{asset_name}`
@@ -16,6 +17,7 @@
 - `GET /discover` — Discovery Analyst
 - `GET /vendor-intelligence` — Vendor Intelligence Analyst
 - `GET /migration-plan` — Migration Planner
+- `GET /change-plan/{asset_name}` — Change Assistant
 - `GET /plan-summary`, `GET /workflow-summary`, `GET /operational-summary`
 - `POST /query`
 
@@ -42,4 +44,5 @@
 - Vendor Intelligence Analyst classifies at paragraph granularity within a chunk (split on blank lines), not sentence granularity — two claims run together without a blank line between them would still be conflated into one classification.
 - Vendor Intelligence Analyst's `product_hint` is derived from the document's filename, not parsed from its body — a v1 heuristic; the doc, not an NLP-extracted product name, is the unit of the readiness matrix.
 - Migration Planner's vendor readiness context is document-level, not per-asset: it reports "N analyzed vendor documents raise a blocker" without claiming which specific asset(s) that blocker applies to.
-- Four of five subagents (Risk Narrator, Discovery Analyst, Vendor Intelligence Analyst, Migration Planner) are implemented; Change Assistant does not exist yet.
+- Change Assistant's pre-change checklist is a small deterministic starter set keyed off the same rationale flags Risk Narrator uses; it doesn't yet cover repo/CI-specific remediation steps (e.g. rotating a signing key referenced in a CI pipeline).
+- All five named subagents (Risk Narrator, Discovery Analyst, Vendor Intelligence Analyst, Migration Planner, Change Assistant) are implemented.

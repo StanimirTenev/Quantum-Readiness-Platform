@@ -5,6 +5,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
+from .change_assistant import build_change_plan
 from .clients.inventory import InventoryClient
 from .clients.planner import PlannerClient
 from .clients.retrieval import RetrievalClient
@@ -95,6 +96,23 @@ def narrate_asset(asset_name: str) -> dict:
         raise HTTPException(status_code=500, detail=f"Narrate failed: {exc}") from exc
 
     return narrate_asset_bundle(asset_name, asset_bundle)
+
+
+@app.get("/change-plan/{asset_name:path}")
+def change_plan(asset_name: str) -> dict:
+    """Change Assistant: deterministic draft pre-change checklist for one
+    asset -- what to verify before migrating it, its recommended wave, and
+    whether a workflow task already tracks it. Read-only: never creates a
+    task or calls any execute/dry-run endpoint. No LLM call. See
+    app/change_assistant.py."""
+    try:
+        asset_bundle = retrieval.get_asset(asset_name)
+        plan_data = planner.get_plan()
+        tasks = workflow.get_tasks()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Change plan failed: {exc}") from exc
+
+    return build_change_plan(asset_name, asset_bundle, plan_data, tasks)
 
 
 @app.get("/discover")
@@ -225,6 +243,12 @@ def query(payload: QueryRequest) -> dict:
 
     if "migration plan" in lowered or "sequencing" in lowered or "migration order" in lowered:
         return {"intent": "migration_plan", "result": migration_plan()}
+
+    if ("change plan" in lowered or "checklist" in lowered) and "asset " in lowered:
+        remainder = question.split("asset ", 1)[1].strip()
+        asset_name = remainder.split(" ", 1)[0].rstrip("?.,!")
+        if asset_name:
+            return {"intent": "change_plan", "result": change_plan(asset_name)}
 
     if "operational" in lowered or "operations" in lowered:
         return {"intent": "operational_summary", "result": operational_summary()}

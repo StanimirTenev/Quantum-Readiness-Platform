@@ -21,7 +21,7 @@ def build_risk_payload(payload: ScanIngestRequest, asset_name: str, scenario: st
     vendor_lock_in = _vendor_lock_in(target_asset)
     migration_difficulty = _migration_difficulty(payload, windows_signals)
 
-    payload = {
+    risk_payload = {
         "contract_version": "stage1-v1",
         "asset_name": asset_name,
         "criticality": criticality,
@@ -38,9 +38,23 @@ def build_risk_payload(payload: ScanIngestRequest, asset_name: str, scenario: st
     # Forward the aggregate Windows signals so the risk-engine can apply its own
     # dedicated evidence adjustment and dimensions (parallel to Linux evidence).
     if windows_signals is not None:
-        payload["windows_signals"] = windows_signals
+        risk_payload["windows_signals"] = windows_signals
 
-    return payload
+    # Forward raw evidence so risk-engine's stage2 evidence-signal extraction
+    # (weak keys, expiring certs, crypto packages/configs) can run on a normal
+    # ingest, not just when /score is called directly with hand-built evidence.
+    # exclude_none matters: risk-engine reads nested blocks with
+    # `.get("key", {})`, which only falls back on a truly *absent* key, not one
+    # explicitly set to null -- a full model_dump() would otherwise emit every
+    # unset optional field as an explicit `null` and crash risk-engine's parser.
+    if payload.crypto_evidence is not None:
+        risk_payload["crypto_evidence"] = payload.crypto_evidence.model_dump(mode="json", exclude_none=True)
+    if payload.tls_evidence is not None:
+        risk_payload["tls_metadata"] = payload.tls_evidence.model_dump(mode="json", exclude_none=True)
+    if payload.stage2_notes:
+        risk_payload["stage2_notes"] = payload.stage2_notes
+
+    return risk_payload
 
 
 def _windows_signals(payload: ScanIngestRequest) -> Optional[dict[str, Any]]:

@@ -24,6 +24,7 @@ def test_build_ingest_payload_shape():
         "app/crypto.py",
     ]
     assert payload["crypto_evidence"]["repo_scan"] == scan_result
+    assert payload["crypto_evidence"]["package_metadata"]["packages"] == [{"name": "RSA"}]
 
 
 def test_main_writes_output_file(tmp_path: Path):

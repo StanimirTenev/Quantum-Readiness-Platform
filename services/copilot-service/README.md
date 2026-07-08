@@ -25,5 +25,10 @@
 
 ## Known limitations
 - Intent routing is rule-based keyword matching, not a full LLM agent.
-- Risk Narrator only narrates signals present in `RiskRecord.rationale` — the `/scans/ingest` auto-score path does not currently forward `tls_metadata`/`crypto_evidence` to risk-engine (only Windows aggregate signals are forwarded), so classical stage2 evidence signals (weak keys, expiring certs) only appear in the rationale when risk-engine's `/score` is called directly with that evidence, not via a routine ingest. Pre-existing behavior, unrelated to this feature.
+- Risk Narrator only narrates signals present in `RiskRecord.rationale`. As of 2026-07-08, a
+  normal `/scans/ingest` (network/host/repo) forwards `tls_metadata`/`crypto_evidence` into
+  risk-engine's stage2 evidence-signal extraction (see
+  `services/inventory-service/app/risk_mapper.py`), so classical evidence signals (weak keys,
+  expiring certs, crypto packages/configs) populate the rationale on a routine ingest, not
+  only via a hand-built `/score` call. See `scripts/run_evidence_to_risk_smoke.sh`.
 - Only one subagent (Risk Narrator) is implemented; the other four named in the architecture reference (Discovery Analyst, Migration Planner, Vendor Intelligence Analyst, Change Assistant) do not exist yet.

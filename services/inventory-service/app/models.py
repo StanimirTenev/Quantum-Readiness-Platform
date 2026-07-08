@@ -338,6 +338,7 @@ class ScanIngestRequest(BaseModel):
     host_inventory: Optional[HostInventory] = None
     crypto_evidence: Optional[CryptoEvidence] = None
     tls_evidence: Optional[TLSEvidence] = Field(default=None, validation_alias=AliasChoices("tls_evidence", "tls_metadata"), serialization_alias="tls_evidence")
+    stage2_notes: Optional[str] = None
 
 
 class ScanIngestResponse(BaseModel):

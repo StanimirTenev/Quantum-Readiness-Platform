@@ -16,11 +16,16 @@ def build_ingest_payload(scan_result: dict[str, Any], repo_name: str) -> dict[st
         finding["path"]
         for finding in scan_result["source_code_findings"] + scan_result["ci_pipeline_findings"]
     })
+    # Map detected algorithms into the package_metadata.packages shape
+    # risk-engine's stage2 evidence extraction already reads (crypto_packages_detected),
+    # so a repo scan's findings actually feed into risk rationale on ingest.
+    packages = [{"name": algorithm} for algorithm in scan_result["detected_algorithms"]]
     return {
         "source": "repo",
         "assets": [{"asset_type": "other", "name": repo_name}],
         "crypto_evidence": {
             "known_crypto_files": known_files,
+            "package_metadata": {"packages": packages},
             "repo_scan": scan_result,
         },
     }

@@ -501,6 +501,15 @@ It runs:
 - `linux-host-agent` evidence depth is environment-dependent (OS/files/packages/permissions).
 - Inventory keeps evidence JSON blobs as-is after model normalization; no deep semantic enrichment beyond current validators.
 - Stage 2 smoke is a short-path validation, not a full multi-service deployment conformance suite.
+- `linux-host-agent`'s real evidence shape for certificate/config file discovery uses a `files`
+  list (`cert_indicators.certificate_file_indicators.files`), but risk-engine's stage2 evidence
+  extraction reads a `counts` sub-object (`.counts.certificate`, `.counts.key`, etc. — see
+  `services/risk-engine/app/main.py::extract_stage2_signals`). A normal Linux host ingest today
+  correctly triggers `crypto_packages_detected` (package_metadata.packages does match), but not
+  `certificate_files_detected`/`tls_config_detected`/`ssh_config_detected`, since nothing
+  currently populates the `counts` shape those signals read. Found 2026-07-08 while forwarding
+  evidence into risk-engine (see `scripts/run_evidence_to_risk_smoke.sh`); not fixed here —
+  either the collector or the risk-engine parser needs to change to close this gap.
 
 ## TRL Evidence Package
 

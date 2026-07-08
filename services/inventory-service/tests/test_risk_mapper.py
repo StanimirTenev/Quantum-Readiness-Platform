@@ -1,4 +1,4 @@
-from app.models import AssetCreate, CryptoEvidence, ScanIngestRequest
+from app.models import AssetCreate, CryptoEvidence, ScanIngestRequest, TLSEvidence
 from app.risk_mapper import build_risk_payload
 
 
@@ -80,6 +80,69 @@ def test_moderate_certificate_volume_raises_migration_difficulty_by_one() -> Non
     score = build_risk_payload(payload, asset_name="redacted-windows-host")
 
     assert score["migration_difficulty"] == 4.0  # host base 3 + (>=10 certs) 1
+
+
+def test_build_risk_payload_forwards_tls_evidence_for_weak_key_detection() -> None:
+    payload = ScanIngestRequest(
+        source="network",
+        assets=[AssetCreate(asset_type="endpoint", name="legacy-vpn.internal:443")],
+        tls_evidence=TLSEvidence(
+            collected=True,
+            certificate={"public_key_algorithm": "RSA", "public_key_size": 1024, "not_after": "2027-01-01T00:00:00Z"},
+        ),
+    )
+
+    score = build_risk_payload(payload, asset_name="legacy-vpn.internal:443")
+
+    assert score["tls_metadata"]["collected"] is True
+    assert score["tls_metadata"]["certificate"]["public_key_algorithm"] == "RSA"
+    assert score["tls_metadata"]["certificate"]["public_key_size"] == 1024
+
+
+def test_build_risk_payload_forwards_crypto_evidence_for_host_evidence_signals() -> None:
+    payload = ScanIngestRequest(
+        source="host",
+        assets=[AssetCreate(asset_type="server", name="linux-host-01")],
+        crypto_evidence=CryptoEvidence(
+            openssl_available=True,
+            package_metadata={"packages": [{"name": "openssl"}]},
+            cert_indicators={
+                "certificate_file_indicators": {"counts": {"certificate": 2, "key": 1}},
+                "config_file_indicators": {"counts": {"tls_server_config": 1, "ssh_server_config": 1}},
+            },
+        ),
+    )
+
+    score = build_risk_payload(payload, asset_name="linux-host-01")
+
+    assert score["crypto_evidence"]["package_metadata"]["packages"] == [{"name": "openssl"}]
+    assert score["crypto_evidence"]["cert_indicators"]["certificate_file_indicators"]["counts"]["key"] == 1
+    assert score["crypto_evidence"]["cert_indicators"]["config_file_indicators"]["counts"]["ssh_server_config"] == 1
+
+
+def test_build_risk_payload_forwards_stage2_notes_when_present() -> None:
+    payload = ScanIngestRequest(
+        source="host",
+        assets=[AssetCreate(asset_type="server", name="archive-host")],
+        stage2_notes="Long-term archive, HNDL exposure noted by operator.",
+    )
+
+    score = build_risk_payload(payload, asset_name="archive-host")
+
+    assert score["stage2_notes"] == "Long-term archive, HNDL exposure noted by operator."
+
+
+def test_build_risk_payload_omits_evidence_keys_when_not_present() -> None:
+    payload = ScanIngestRequest(
+        source="manual",
+        assets=[AssetCreate(asset_type="server", name="bare-asset")],
+    )
+
+    score = build_risk_payload(payload, asset_name="bare-asset")
+
+    assert "tls_metadata" not in score
+    assert "crypto_evidence" not in score
+    assert "stage2_notes" not in score
 
 
 def test_windows_factors_stay_within_engine_bounds() -> None:

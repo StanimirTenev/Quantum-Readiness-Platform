@@ -309,6 +309,7 @@ Wired into the flow: `start_all.sh` starts it and the API Gateway exposes it as
 - Windows Evidence Fixture Contract: `docs/windows-evidence-fixture-contract.md`
 - Inventory Windows Evidence Acceptance Design: `docs/inventory-windows-evidence-acceptance-design.md`
 - Windows Risk/Planning Signal Mapping Design: `docs/windows-risk-planning-signal-mapping-design.md`
+- AD / Certificate Estate Discovery Design: `docs/ad-certificate-estate-design.md`
 - Post-Copilot-freeze repository checkpoint added: docs/repository-checkpoint-post-copilot-freeze.md
 - Copilot local-first design documented: `docs/copilot-local-first-design.md`
 - Copilot provider test plan documented: `docs/copilot-provider-test-plan.md`

@@ -1,8 +1,9 @@
 # Cross-Platform Agent Design
 
 **Status:** Partially implemented (2026-07-06). A Windows host collector now
-exists and its evidence persists into inventory; AD / certificate-estate
-discovery remains future scope. Retained as the design record.
+exists and its evidence persists into inventory. AD / certificate-estate
+discovery has a design (2026-07-08, `docs/ad-certificate-estate-design.md`)
+but no implementation yet. Retained as the design record.
 
 ## 1) Purpose
 
@@ -90,7 +91,10 @@ Implemented in `agents/windows-host-agent/collect.ps1` (redacted/aggregate):
 
 ## 8) AD/certificate estate future design
 
-Future AD/certificate estate discovery scope (design only):
+Expanded into a dedicated design document: `docs/ad-certificate-estate-design.md`
+(2026-07-08) — safety contract, evidence categories, redaction rules,
+collection mechanism, and phased implementation plan. Design only; no
+collector, ingest, or risk/planning code exists yet. Summary of scope:
 
 - Domain presence detection
 - CA presence indicators
@@ -162,7 +166,10 @@ Proposed implementation phases:
 - **Phase 3** — Add Windows collector design tests ✅ done
 - **Phase 4** — Implement minimal Windows collector ✅ done + inventory ingestion
 - **Phase 5** — Add E2E smoke using fixture, not live AD ✅ done (`scripts/run_windows_evidence_smoke.ps1`)
-- **Phase 6** — Optional AD/certificate estate discovery design 🔲 open
+- **Phase 6** — Optional AD/certificate estate discovery design ✅ done
+  (2026-07-08, `docs/ad-certificate-estate-design.md`); Phases 6a–6e
+  (fixture, collector, ingest, risk mapping, smoke) remain open implementation
+  work.
 
 ## 14) Non-goals
 

@@ -54,6 +54,40 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 | dashboard-ui | ✅ Working prototype | — |
 | web-ui | ✅ Working prototype (buildless) | ✅ Build + JS syntax check |
 
+## One-command product demo (Linux)
+
+The fastest way to see the whole product work end to end:
+
+```bash
+bash scripts/run_product_demo.sh
+```
+
+Starts an isolated 15-service stack on a temp database, then walks the full
+pipeline against real self-contained evidence: `linux-host-agent` collects
+this machine's own real host evidence; `network-scanner` scans a local
+self-signed TLS endpoint it spins up itself; `repo-ci-scanner` scans a small
+sample repo with a deliberately weak-crypto file; `doc-ingestion` indexes a
+sample vendor PQC-roadmap doc; a dependency graph snapshot is built;
+`retrieval-service` searches the indexed doc; the Risk Narrator Copilot
+subagent explains each asset's risk in plain language; and an operator/exec
+migration report is generated from everything. Stops all services and
+deletes the temp DB/binaries on exit, success or failure.
+
+Writes (git-ignored, regenerate any time):
+- `reports/product-demo/product-demo-report.md` — human-readable narrative
+- `reports/product-demo/product-demo-report.json` — the same data, structured
+- `reports/product-demo/product-demo-smoke-report.md` — PASS/FAIL per step
+
+Exits non-zero if any step fails. Runs in CI (`product-demo` job), which also
+uploads the three reports as a build artifact.
+
+Known cosmetic limitation: the operator report's `persisted_risk` bundle
+shape (added for Windows hosts, see `tools/report/build_operator_report.py`)
+is reused here for the network/repo assets too, so its "top vulnerability"
+column and one boundary note read as Windows-specific even for non-Windows
+entries. Wave placement and ratings are unaffected — only the vulnerability
+label/note text carries over from that shape's original scope.
+
 ## Run the whole flow locally (Windows / PowerShell)
 
 One command starts the analysis stack + API Gateway and drives real evidence

@@ -15,6 +15,11 @@
   - missing optional Stage 2 blocks do not fail ingest
   - obvious invalid shapes are rejected (for example non-numeric `tls_metadata.port`, non-array `package_metadata.packages`, non-array `certificate_chain.certificates`)
   - safe defaults are applied when practical (`packages/files/errors/searched_paths/certificates -> []`)
+- `tls_metadata.certificate.key.size_bits` (Stage 2 structured form) normalizes into the flat
+  `public_key_size` field risk-engine reads (fixed 2026-07-08 — was silently dropped before,
+  so `weak_public_key_detected` could never fire from a real Stage-2-shaped network scan).
+- `tls_metadata.collected` is inferred `true` when a `certificate` block is present but no
+  explicit `collected` flag was sent (fixed 2026-07-08, same date/reason as above).
 
 ### Sample ingest payload snippet
 ```json

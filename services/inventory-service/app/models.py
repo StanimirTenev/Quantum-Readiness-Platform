@@ -216,6 +216,7 @@ class TLSEvidenceCertificate(BaseModel):
     not_after: Optional[str] = None
     signature_algorithm: Optional[str] = None
     public_key_algorithm: Optional[str] = None
+    public_key_size: Optional[int] = None
     dns_names: list[str] = Field(default_factory=list)
     normalization_warnings: list[str] = Field(default_factory=list, validation_alias=AliasChoices("_normalization_warnings", "normalization_warnings"), serialization_alias="_normalization_warnings")
 
@@ -259,6 +260,11 @@ class TLSEvidenceCertificate(BaseModel):
         else:
             data["signature_algorithm"] = _clean_optional_string(data.get("signature_algorithm"))
             data["public_key_algorithm"] = _clean_optional_string(data.get("public_key_algorithm"))
+
+        key_block = data.get("key")
+        if isinstance(key_block, dict):
+            data["public_key_size"] = key_block.get("size_bits")
+            warnings.append("tls_evidence.certificate.key: normalized from stage2 object")
 
         san = data.get("san")
         if isinstance(san, dict):
@@ -317,6 +323,12 @@ class TLSEvidence(BaseModel):
 
         if data.get("certificate") is None:
             warnings.append("tls_evidence.certificate: missing certificate block")
+        elif data.get("collected") is None:
+            # Stage2-structured network-scanner payloads carry a certificate
+            # block but no explicit `collected` flag; a real certificate is
+            # itself proof TLS collection succeeded.
+            data["collected"] = True
+            warnings.append("tls_evidence.collected: inferred true from a present certificate block")
 
         data["_normalization_warnings"] = warnings
         return data

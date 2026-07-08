@@ -49,6 +49,7 @@ reports/operator-report.md
 reports/windows-evidence-smoke-report.md
 reports/product-stack-smoke-report.md
 reports/evidence-to-risk-smoke-report.md
+reports/product-demo/
 
 # Windows host agent output (real local cert/software inventory; do not commit)
 agents/windows-host-agent/output/

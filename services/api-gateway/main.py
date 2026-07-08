@@ -285,14 +285,24 @@ def copilot_query(payload: dict[str, Any]) -> dict[str, Any]:
     return _request_json("POST", f"{COPILOT_BASE_URL}/query", payload=payload)
 
 
-@app.post("/api/copilot/explain-risk")
-def copilot_explain_risk(payload: dict[str, Any]) -> dict[str, Any]:
-    return _request_json("POST", f"{COPILOT_BASE_URL}/explain-risk", payload=payload)
+@app.get("/api/copilot/narrate/{asset_name:path}")
+def copilot_narrate(asset_name: str) -> dict[str, Any]:
+    return _request_json("GET", f"{COPILOT_BASE_URL}/narrate/{asset_name}")
 
 
-@app.post("/api/copilot/generate-wave-plan")
-def copilot_generate_wave_plan(payload: dict[str, Any]) -> dict[str, Any]:
-    return _request_json("POST", f"{COPILOT_BASE_URL}/generate-wave-plan", payload=payload)
+@app.get("/api/copilot/plan-summary")
+def copilot_plan_summary() -> dict[str, Any]:
+    return _request_json("GET", f"{COPILOT_BASE_URL}/plan-summary")
+
+
+@app.get("/api/copilot/workflow-summary")
+def copilot_workflow_summary() -> dict[str, Any]:
+    return _request_json("GET", f"{COPILOT_BASE_URL}/workflow-summary")
+
+
+@app.get("/api/copilot/operational-summary")
+def copilot_operational_summary() -> dict[str, Any]:
+    return _request_json("GET", f"{COPILOT_BASE_URL}/operational-summary")
 
 
 def _load_graph_snapshot_or_raise() -> dict[str, Any]:

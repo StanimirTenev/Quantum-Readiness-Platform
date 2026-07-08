@@ -603,3 +603,83 @@ def test_graph_mutation_requests_are_not_successful() -> None:
     for method, path in mutation_requests:
         response = client.request(method.upper(), path, json={})
         assert response.status_code < 200 or response.status_code >= 300
+
+
+def test_get_api_copilot_narrate_proxies_to_copilot_service(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        return {"asset_name": "payments-api", "narrative": "Asset 'payments-api' is rated critical."}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/copilot/narrate/payments-api")
+
+    assert response.status_code == 200
+    assert response.json()["asset_name"] == "payments-api"
+    assert captured["method"] == "GET"
+    assert captured["url"].endswith("/narrate/payments-api")
+
+
+def test_get_api_copilot_plan_summary_proxies_to_copilot_service(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        return {"summary": {"wave_1_count": 1}}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/copilot/plan-summary")
+
+    assert response.status_code == 200
+    assert captured["method"] == "GET"
+    assert captured["url"].endswith("/plan-summary")
+
+
+def test_get_api_copilot_workflow_summary_proxies_to_copilot_service(monkeypatch) -> None:
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        return {"task_count": 0}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/copilot/workflow-summary")
+    assert response.status_code == 200
+    assert response.json()["task_count"] == 0
+
+
+def test_get_api_copilot_operational_summary_proxies_to_copilot_service(monkeypatch) -> None:
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        return {"platform": {}, "planning": {}, "workflow": {}}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/copilot/operational-summary")
+    assert response.status_code == 200
+
+
+def test_post_api_copilot_query_proxies_to_copilot_service(monkeypatch) -> None:
+    captured: dict = {}
+
+    def fake_request_json(method: str, url: str, payload: dict | None = None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"intent": "search", "result": {}}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.post("/api/copilot/query", json={"question": "top risks"})
+
+    assert response.status_code == 200
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/query")
+    assert captured["payload"]["question"] == "top risks"
+
+
+def test_old_dead_copilot_routes_are_gone() -> None:
+    assert client.post("/api/copilot/explain-risk", json={}).status_code == 404
+    assert client.post("/api/copilot/generate-wave-plan", json={}).status_code == 404

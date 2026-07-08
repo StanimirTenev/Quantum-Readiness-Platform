@@ -551,6 +551,17 @@ Startup fix summary (2026-05-08):
 - Service logs are written to `logs/*.log` for direct diagnostics.
 - Local API Gateway startup now injects local upstream URLs: `INVENTORY_SERVICE_URL=http://127.0.0.1:8001`, `RISK_ENGINE_URL=http://127.0.0.1:8002`, `POLICY_ENGINE_URL=http://127.0.0.1:8007` (plus local planner/workflow/scenario/copilot defaults).
 
+Product stack wiring fix (2026-07-08): `start_all.sh` / `stop_all.sh` / `status_all.sh` now
+also start/stop/check `retrieval-service` (port 8015) and `copilot-service` (port 8008) --
+previously the gateway had a `COPILOT_SERVICE_URL` pointing at port 8008 but nothing actually
+listened there. The gateway's `/api/copilot/*` routes were also fixed to match
+copilot-service's real endpoints (`/query`, `/narrate/{asset_name}`, `/plan-summary`,
+`/workflow-summary`, `/operational-summary`) -- the previous `/api/copilot/explain-risk` and
+`/api/copilot/generate-wave-plan` routes proxied to endpoints that never existed.
+`bash scripts/run_product_stack_smoke.sh` exercises this end-to-end (start the full stack,
+seed a fixture scan, query retrieval, ask the Risk Narrator through the gateway, confirm the
+Copilot LLM provider stays disabled) on an isolated inventory DB.
+
 How to inspect logs:
 ```bash
 tail -n 200 logs/inventory-service.log

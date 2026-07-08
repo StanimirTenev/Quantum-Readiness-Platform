@@ -38,6 +38,8 @@ stop_service() {
 }
 
 stop_service "api-gateway"
+stop_service "copilot-service"
+stop_service "retrieval-service"
 stop_service "finding-attribution-service"
 stop_service "graph-service"
 stop_service "pqc-readiness-service"

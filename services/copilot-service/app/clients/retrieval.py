@@ -5,7 +5,7 @@ from typing import Any
 
 import httpx
 
-DEFAULT_RETRIEVAL_URL = os.getenv("RETRIEVAL_SERVICE_URL", "http://127.0.0.1:8006")
+DEFAULT_RETRIEVAL_URL = os.getenv("RETRIEVAL_SERVICE_URL", "http://127.0.0.1:8015")
 
 
 class RetrievalClient:

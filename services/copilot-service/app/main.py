@@ -13,6 +13,7 @@ from .discovery_analyst import build_discovery_summary
 from .graph_snapshot import load_graph_snapshot
 from .providers import DISABLED_ANSWER, CopilotProviderRuntime
 from .risk_narrator import narrate_asset_bundle
+from .vendor_intelligence_analyst import build_vendor_intelligence_summary
 
 app = FastAPI(title="Copilot Service", version="0.4.0")
 retrieval = RetrievalClient()
@@ -112,6 +113,20 @@ def discover() -> dict:
     return build_discovery_summary(scans, documents, graph_snapshot, risks)
 
 
+@app.get("/vendor-intelligence")
+def vendor_intelligence() -> dict:
+    """Vendor Intelligence Analyst: deterministic extraction of PQC readiness
+    claims from indexed vendor documents, with a confidence/uncertainty
+    classification -- roadmap language is flagged uncertain, not treated as
+    fact. No LLM call, read-only. See app/vendor_intelligence_analyst.py."""
+    try:
+        documents = retrieval.get_documents().get("documents", [])
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Vendor intelligence failed: {exc}") from exc
+
+    return build_vendor_intelligence_summary(documents)
+
+
 @app.get("/plan-summary")
 def plan_summary() -> dict:
     try:
@@ -187,6 +202,9 @@ def query(payload: QueryRequest) -> dict:
 
     if "discover" in lowered or "dependencies" in lowered or "dependency" in lowered:
         return {"intent": "discover", "result": discover()}
+
+    if "vendor" in lowered or "readiness matrix" in lowered or "roadmap" in lowered:
+        return {"intent": "vendor_intelligence", "result": vendor_intelligence()}
 
     if "operational" in lowered or "operations" in lowered:
         return {"intent": "operational_summary", "result": operational_summary()}

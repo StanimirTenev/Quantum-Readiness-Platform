@@ -70,6 +70,28 @@ def test_query_discover_routes_to_discover(monkeypatch) -> None:
     assert response.json()["intent"] == "discover"
 
 
+def test_vendor_intelligence_endpoint(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "app.main.retrieval.get_documents",
+        lambda: {"documents": [{"doc_id": "vendor.md", "chunks": [{"chunk_index": 0, "text": "We now support post-quantum cryptography."}]}]},
+    )
+
+    response = client.get("/vendor-intelligence")
+    assert response.status_code == 200
+    data = response.json()
+    assert "narrative" in data
+    assert len(data["claims"]) == 1
+    assert data["readiness_matrix"][0]["doc_id"] == "vendor.md"
+
+
+def test_query_vendor_routes_to_vendor_intelligence(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.retrieval.get_documents", lambda: {"documents": []})
+
+    response = client.post("/query", json={"question": "show me the vendor readiness matrix"})
+    assert response.status_code == 200
+    assert response.json()["intent"] == "vendor_intelligence"
+
+
 def test_narrate_asset_endpoint(monkeypatch) -> None:
     monkeypatch.setattr(
         "app.main.retrieval.get_asset",

@@ -295,6 +295,11 @@ def copilot_discover() -> dict[str, Any]:
     return _request_json("GET", f"{COPILOT_BASE_URL}/discover")
 
 
+@app.get("/api/copilot/vendor-intelligence")
+def copilot_vendor_intelligence() -> dict[str, Any]:
+    return _request_json("GET", f"{COPILOT_BASE_URL}/vendor-intelligence")
+
+
 @app.get("/api/copilot/plan-summary")
 def copilot_plan_summary() -> dict[str, Any]:
     return _request_json("GET", f"{COPILOT_BASE_URL}/plan-summary")

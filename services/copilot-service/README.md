@@ -4,14 +4,16 @@
 - Converts user questions into operational summaries, plan/workflow summaries, asset lookups, search requests, or plain-language risk explanations.
 - Risk Narrator (`GET /narrate/{asset_name}`, or `POST /query` with a "why"/"explain" question): deterministic, template-based explanation of an asset's persisted risk — no LLM call. Turns risk-engine's `rationale` flags (weak keys, expiring/expired certs, domain-controller role, dependency count, vendor blocks) into plain-language sentences plus a rating-based recommendation. See `app/risk_narrator.py`.
 - Discovery Analyst (`GET /discover`, or `POST /query` with a "discover"/"dependencies" question): deterministic synthesis of crypto dependencies across host/network/repo scans, indexed documents, the dependency graph, and persisted risk records — no LLM call. Classifies findings as explicit (directly observed), inferred (aggregate-signal context scanners don't state directly, e.g. a domain-controller host being a PKI trust anchor, or a graph node's blast radius), and evidence gaps (source types or assets with no supporting evidence). See `app/discovery_analyst.py`.
+- Vendor Intelligence Analyst (`GET /vendor-intelligence`, or `POST /query` with a "vendor"/"roadmap"/"readiness matrix" question): deterministic extraction of PQC readiness claims from indexed vendor documents — no LLM call. Classifies each paragraph-level claim by `claimed_readiness` (reusing pqc-readiness-service's own state taxonomy: classical_only/hybrid_capable/pqc_ready/vendor_blocked/unknown), a `confidence` (certain/uncertain/unknown — roadmap language like "we plan to" or "Q3 2026" is flagged uncertain, not treated as fact), and whether it's a migration blocker note. Aggregates into a per-document `readiness_matrix`. See `app/vendor_intelligence_analyst.py`.
 
 ## Current role in the prototype
-- Working prototype orchestration layer for evaluator-facing Q&A over platform data, plus two deterministic Copilot subagents (Risk Narrator, Discovery Analyst) from the architecture reference doc's LLM Copilot Layer subagent model.
+- Working prototype orchestration layer for evaluator-facing Q&A over platform data, plus three deterministic Copilot subagents (Risk Narrator, Discovery Analyst, Vendor Intelligence Analyst) from the architecture reference doc's LLM Copilot Layer subagent model.
 
 ## Main endpoints or functions
 - `GET /health`, `GET /summary`, `GET /top-risks`, `GET /asset/{asset_name}`
 - `GET /narrate/{asset_name}` — Risk Narrator
 - `GET /discover` — Discovery Analyst
+- `GET /vendor-intelligence` — Vendor Intelligence Analyst
 - `GET /plan-summary`, `GET /workflow-summary`, `GET /operational-summary`
 - `POST /query`
 
@@ -35,4 +37,6 @@
   only via a hand-built `/score` call. See `scripts/run_evidence_to_risk_smoke.sh`.
 - Discovery Analyst's document keyword matching is a fixed list (`DOC_CRYPTO_KEYWORDS`) with word-boundary matching — not semantic, so a doc discussing "quantum-safe" without ever saying "PQC" or an algorithm name won't surface.
 - Discovery Analyst's "inferred context" rules are a small deterministic starter set (domain-controller trust anchor, repo signing without pipeline evidence, graph blast radius) — not exhaustive; extend `app/discovery_analyst.py::_inferred_context` as new inference patterns prove useful.
-- Two of five subagents (Risk Narrator, Discovery Analyst) are implemented; Migration Planner, Vendor Intelligence Analyst, and Change Assistant do not exist yet.
+- Vendor Intelligence Analyst classifies at paragraph granularity within a chunk (split on blank lines), not sentence granularity — two claims run together without a blank line between them would still be conflated into one classification.
+- Vendor Intelligence Analyst's `product_hint` is derived from the document's filename, not parsed from its body — a v1 heuristic; the doc, not an NLP-extracted product name, is the unit of the readiness matrix.
+- Three of five subagents (Risk Narrator, Discovery Analyst, Vendor Intelligence Analyst) are implemented; Migration Planner and Change Assistant do not exist yet.

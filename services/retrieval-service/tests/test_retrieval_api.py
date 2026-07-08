@@ -33,3 +33,21 @@ def test_search(monkeypatch) -> None:
     response = client.post("/search", json={"query": "google"})
     assert response.status_code == 200
     assert len(response.json()["results"]["assets"]) == 1
+    assert response.json()["results"]["documents"] == []
+
+
+def test_search_includes_document_matches(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.inventory.get_assets", lambda: [])
+    monkeypatch.setattr("app.main.inventory.get_scans", lambda: [])
+    monkeypatch.setattr("app.main.inventory.get_risks", lambda: [])
+    monkeypatch.setattr("app.main.workflow.get_tasks", lambda: [])
+    monkeypatch.setattr(
+        "app.main.load_document_index",
+        lambda: {"documents": [{"doc_id": "vendor.pdf", "source_path": "/docs/vendor.pdf", "chunks": [{"chunk_index": 0, "page": 1, "text": "PQC roadmap for 2026"}]}]},
+    )
+
+    response = client.post("/search", json={"query": "roadmap"})
+    assert response.status_code == 200
+    documents = response.json()["results"]["documents"]
+    assert len(documents) == 1
+    assert documents[0]["doc_id"] == "vendor.pdf"

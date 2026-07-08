@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 from .clients.inventory import InventoryClient
 from .clients.planner import PlannerClient
 from .clients.workflow import WorkflowClient
+from .document_index import load_document_index, search_documents
 from .search import build_overview, get_asset_bundle, search_all
 
 app = FastAPI(title="Retrieval Service", version="0.1.0")
@@ -56,9 +57,8 @@ def search(payload: SearchRequest) -> dict:
         scans = inventory.get_scans()
         risks = inventory.get_risks()
         tasks = workflow.get_tasks()
-        return {
-            "query": payload.query,
-            "results": search_all(payload.query, assets, scans, risks, tasks),
-        }
+        results = search_all(payload.query, assets, scans, risks, tasks)
+        results["documents"] = search_documents(payload.query, load_document_index()["documents"])
+        return {"query": payload.query, "results": results}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Search failed: {exc}") from exc

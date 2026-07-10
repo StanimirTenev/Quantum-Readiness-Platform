@@ -1,7 +1,239 @@
-version: '3.9'
+x-build-common: &build-common
+  context: ../..
+  dockerfile: infra/docker/Dockerfile
+
+x-healthcheck: &healthcheck
+  test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+  interval: 5s
+  timeout: 3s
+  retries: 20
+  start_period: 5s
+
 services:
+  risk-engine:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/risk-engine
+    ports:
+      - "8002:8000"
+    healthcheck: *healthcheck
+
+  crypto-fingerprint-service:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/crypto-fingerprint-service
+    ports:
+      - "8003:8000"
+    healthcheck: *healthcheck
+
+  workflow-service:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/workflow-service
+    ports:
+      - "8005:8000"
+    healthcheck: *healthcheck
+
+  scenario-engine:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/scenario-engine
+    ports:
+      - "8006:8000"
+    healthcheck: *healthcheck
+
+  policy-engine:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/policy-engine
+    ports:
+      - "8007:8000"
+    healthcheck: *healthcheck
+
+  evidence-normalizer:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/evidence-normalizer
+    ports:
+      - "8009:8000"
+    healthcheck: *healthcheck
+
+  integration-service:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/integration-service
+    ports:
+      - "8011:8000"
+    healthcheck: *healthcheck
+
+  pqc-readiness-service:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/pqc-readiness-service
+    ports:
+      - "8012:8000"
+    healthcheck: *healthcheck
+
+  finding-attribution-service:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/finding-attribution-service
+    ports:
+      - "8014:8000"
+    healthcheck: *healthcheck
+
+  graph-service:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/graph-service
+    ports:
+      - "8013:8000"
+    environment:
+      GRAPH_SNAPSHOT_PATH: /data/graph/graph-snapshot.json
+    volumes:
+      - ../../reports/graph/latest:/data/graph:ro
+    healthcheck: *healthcheck
+
+  inventory-service:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/inventory-service
+    ports:
+      - "8001:8000"
+    environment:
+      RISK_ENGINE_URL: http://risk-engine:8000
+      INVENTORY_DB_PATH: /data/inventory.db
+    volumes:
+      - inventory-data:/data
+    depends_on:
+      risk-engine:
+        condition: service_healthy
+    healthcheck: *healthcheck
+
+  planner-service:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/planner-service
+    ports:
+      - "8004:8000"
+    environment:
+      INVENTORY_SERVICE_URL: http://inventory-service:8000
+      WORKFLOW_SERVICE_URL: http://workflow-service:8000
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+      workflow-service:
+        condition: service_healthy
+    healthcheck: *healthcheck
+
+  retrieval-service:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/retrieval-service
+    ports:
+      - "8015:8000"
+    environment:
+      INVENTORY_SERVICE_URL: http://inventory-service:8000
+      PLANNER_SERVICE_URL: http://planner-service:8000
+      WORKFLOW_SERVICE_URL: http://workflow-service:8000
+      DOC_INDEX_PATH: /data/doc-index/doc-index.json
+    volumes:
+      - ../../reports/doc-index/latest:/data/doc-index:ro
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+      planner-service:
+        condition: service_healthy
+      workflow-service:
+        condition: service_healthy
+    healthcheck: *healthcheck
+
+  copilot-service:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/copilot-service
+    ports:
+      - "8008:8000"
+    environment:
+      INVENTORY_SERVICE_URL: http://inventory-service:8000
+      RETRIEVAL_SERVICE_URL: http://retrieval-service:8000
+      PLANNER_SERVICE_URL: http://planner-service:8000
+      WORKFLOW_SERVICE_URL: http://workflow-service:8000
+      GRAPH_SNAPSHOT_PATH: /data/graph/graph-snapshot.json
+    volumes:
+      - ../../reports/graph/latest:/data/graph:ro
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+      retrieval-service:
+        condition: service_healthy
+      planner-service:
+        condition: service_healthy
+      workflow-service:
+        condition: service_healthy
+    healthcheck: *healthcheck
+
   api-gateway:
-    image: python:3.11-slim
-    command: python -m http.server 8000
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/api-gateway
+    command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
+    environment:
+      INVENTORY_SERVICE_URL: http://inventory-service:8000
+      RISK_ENGINE_URL: http://risk-engine:8000
+      COPILOT_SERVICE_URL: http://copilot-service:8000
+      SCENARIO_ENGINE_URL: http://scenario-engine:8000
+      POLICY_ENGINE_URL: http://policy-engine:8000
+      CRYPTO_FINGERPRINT_URL: http://crypto-fingerprint-service:8000
+      EVIDENCE_NORMALIZER_URL: http://evidence-normalizer:8000
+      INTEGRATION_SERVICE_URL: http://integration-service:8000
+      PQC_READINESS_URL: http://pqc-readiness-service:8000
+      GRAPH_SERVICE_URL: http://graph-service:8000
+      FINDING_ATTRIBUTION_URL: http://finding-attribution-service:8000
+      GRAPH_SNAPSHOT_PATH: /data/graph/graph-snapshot.json
+    volumes:
+      - ../../reports/graph/latest:/data/graph:ro
+    depends_on:
+      inventory-service:
+        condition: service_healthy
+      risk-engine:
+        condition: service_healthy
+      copilot-service:
+        condition: service_healthy
+      scenario-engine:
+        condition: service_healthy
+      policy-engine:
+        condition: service_healthy
+      crypto-fingerprint-service:
+        condition: service_healthy
+      evidence-normalizer:
+        condition: service_healthy
+      integration-service:
+        condition: service_healthy
+      pqc-readiness-service:
+        condition: service_healthy
+      graph-service:
+        condition: service_healthy
+      finding-attribution-service:
+        condition: service_healthy
+    healthcheck: *healthcheck
+
+volumes:
+  inventory-data:

@@ -238,3 +238,40 @@ jobs:
       - name: Test
         working-directory: agents/${{ matrix.agent }}
         run: go test ./...
+
+  docker-compose-smoke:
+    name: Docker Compose stack smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build and start
+        working-directory: infra/docker
+        run: docker compose up -d --build
+
+      - name: Wait for gateway health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8000/health; then exit 0; fi
+            sleep 2
+          done
+          echo "gateway did not become healthy in time"
+          exit 1
+
+      - name: Smoke -- ingest through gateway, score, narrate
+        run: |
+          set -euo pipefail
+          curl -fsS -X POST http://127.0.0.1:8000/api/scans/host \
+            -H "Content-Type: application/json" \
+            -d '{"assets":[{"asset_type":"server","name":"ci-docker-host","criticality":4,"environment":"production","lifecycle_years":3}],"crypto_evidence":{"package_metadata":{"packages":[{"name":"openssl","algorithm":"RSA","key_size":1024}]}}}'
+          curl -fsS http://127.0.0.1:8000/api/copilot/narrate/ci-docker-host | grep -q '"narrative"'
+
+      - name: Compose logs (on failure)
+        if: failure()
+        working-directory: infra/docker
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        working-directory: infra/docker
+        run: docker compose down -v

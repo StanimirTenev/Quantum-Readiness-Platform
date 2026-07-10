@@ -20,6 +20,8 @@ from tools.graph_projection.graph_snapshot_loader import (
     summarize_graph_snapshot,
 )
 
+import demo_seed
+
 app = FastAPI(title="API Gateway", version="0.2.0")
 
 # Allow the local web-ui (a browser frontend) to call the gateway. Configurable
@@ -74,6 +76,70 @@ def ingest_windows_scan(payload: dict[str, Any], scenario: str = Query(default="
     maps it to the ingest contract (source is fixed to "host" there)."""
     endpoint = f"{INVENTORY_BASE_URL}/scans/ingest/windows?{parse.urlencode({'scenario': scenario, 'auto_score': 'true'})}"
     return _request_json("POST", endpoint, payload=payload)
+
+
+@app.post("/api/demo/load")
+def demo_load() -> dict[str, Any]:
+    """Seeds the small, realistic demo dataset (host/network/repo evidence +
+    a vendor document) into the currently-running stack for the web-ui's
+    "Load Demo" button. See demo_seed.py. Best-effort: each step is recorded
+    independently so a single failure doesn't hide the others. Idempotent:
+    an asset that's already present is skipped rather than re-ingested, so
+    clicking "Load Demo" twice doesn't create duplicate scans/findings."""
+    steps: list[dict[str, Any]] = []
+
+    try:
+        existing_assets = _request_json("GET", f"{INVENTORY_BASE_URL}/assets")
+    except HTTPException:
+        existing_assets = []
+    existing_names = {a.get("name") for a in existing_assets} if isinstance(existing_assets, list) else set()
+
+    for source, asset_name, payload in demo_seed.load_demo_scan_payloads():
+        if asset_name in existing_names:
+            steps.append({"step": f"ingest_{source}", "status": "skipped", "asset_name": asset_name, "detail": "already loaded"})
+            continue
+        try:
+            _ingest_scan(source, payload, "public_timeline")
+            steps.append({"step": f"ingest_{source}", "status": "ok", "asset_name": asset_name})
+        except HTTPException as exc:
+            steps.append({"step": f"ingest_{source}", "status": "error", "asset_name": asset_name, "detail": str(exc.detail)})
+
+    try:
+        demo_seed.write_demo_doc_index()
+        steps.append({"step": "doc_index", "status": "ok"})
+    except OSError as exc:
+        steps.append({"step": "doc_index", "status": "error", "detail": str(exc)})
+
+    graph_path = Path(os.getenv("GRAPH_SNAPSHOT_PATH", demo_seed.GRAPH_SNAPSHOT_DEFAULT_PATH))
+    graph_ok, graph_message = demo_seed.build_demo_graph_snapshot(graph_path)
+    steps.append({"step": "graph_snapshot", "status": "ok" if graph_ok else "error", "detail": graph_message})
+
+    overall = "ok" if all(s["status"] in ("ok", "skipped") for s in steps) else "partial"
+    return {"overall": overall, "steps": steps}
+
+
+@app.get("/api/demo/status")
+def demo_status() -> dict[str, Any]:
+    """Whether the demo dataset (see /api/demo/load) currently appears
+    loaded in the running stack -- used by the web-ui to decide whether to
+    show "Load Demo" or a status summary."""
+    try:
+        assets = _request_json("GET", f"{INVENTORY_BASE_URL}/assets")
+    except HTTPException:
+        assets = []
+    asset_names = {a.get("name") for a in assets} if isinstance(assets, list) else set()
+    present = [name for name in demo_seed.DEMO_ASSET_NAMES if name in asset_names]
+    missing = [name for name in demo_seed.DEMO_ASSET_NAMES if name not in asset_names]
+
+    graph_path = Path(os.getenv("GRAPH_SNAPSHOT_PATH", demo_seed.GRAPH_SNAPSHOT_DEFAULT_PATH))
+    return {
+        "loaded": len(missing) == 0,
+        "assets_present": present,
+        "assets_missing": missing,
+        "asset_count_total": len(asset_names),
+        "graph_snapshot_present": graph_path.exists(),
+        "doc_index_present": demo_seed.DOC_INDEX_DEFAULT_PATH.exists(),
+    }
 
 
 @app.get("/api/assets")

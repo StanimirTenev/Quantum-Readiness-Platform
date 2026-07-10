@@ -585,6 +585,112 @@ $("cp-migration").addEventListener("click", async () => {
   } catch (err) { setMsg(err.message, true); }
 });
 
+// --- Demo ---
+function renderDemoStatus(status) {
+  $("demo-status").innerHTML = [
+    stat("Loaded", status.loaded ? pill("yes", "ok") : pill("no", "err")),
+    stat("Assets found", `${status.assets_present.length} / ${status.assets_present.length + status.assets_missing.length}`),
+    stat("Total assets", status.asset_count_total ?? 0),
+    stat("Graph snapshot", status.graph_snapshot_present ? pill("present", "ok") : pill("missing", "muted")),
+    stat("Doc index", status.doc_index_present ? pill("present", "ok") : pill("missing", "muted")),
+  ].join("");
+  return status;
+}
+
+async function refreshDemoStatus() {
+  const status = await api("GET", "/api/demo/status");
+  renderDemoStatus(status);
+  return status;
+}
+
+function renderDemoAssets(assets) {
+  if (!assets || !assets.length) { $("demo-assets").innerHTML = '<p class="hint">No assets yet.</p>'; return; }
+  const rows = assets.map((a) => `<tr><td>${esc(a.name)}</td><td>${esc(a.asset_type)}</td><td>${esc(a.environment || "-")}</td></tr>`).join("");
+  $("demo-assets").innerHTML = `<div class="table-scroll"><table>
+    <tr><th>Name</th><th>Type</th><th>Environment</th></tr>${rows}</table></div>`;
+}
+
+function renderDemoRiskTable(waves) {
+  const rows = (waves || []).flatMap((w) => w.assets || []).map((a) => `
+    <tr><td>${esc(a.asset_name)}</td><td>${pill(a.rating || "unknown", a.rating || "unknown")}</td>
+    <td>${a.priority_score_100 ?? "-"}</td></tr>`).join("");
+  $("demo-waves").innerHTML = (rows
+    ? `<div class="table-scroll"><table><tr><th>Asset</th><th>Rating</th><th>Priority</th></tr>${rows}</table></div>`
+    : '<p class="hint">No risk-scored assets yet.</p>') + renderWaves(waves);
+}
+
+async function loadDemoOverview(assetsPresent) {
+  const [assets, discover, migration, graphSummary, vendor] = await Promise.all([
+    api("GET", "/api/assets"),
+    api("GET", "/api/copilot/discover"),
+    api("GET", "/api/copilot/migration-plan"),
+    api("GET", "/graph/summary").catch(() => null),
+    api("GET", "/api/copilot/vendor-intelligence"),
+  ]);
+
+  renderDemoAssets(assets);
+
+  $("demo-findings").innerHTML = renderList("Explicit findings", discover.explicit_findings)
+    + renderList("Inferred context", discover.inferred_context)
+    + renderList("Evidence gaps", discover.evidence_gaps);
+
+  $("demo-waves-narrative").innerHTML = esc(migration.narrative || "");
+  renderDemoRiskTable(migration.waves);
+
+  $("demo-graph-summary").innerHTML = graphSummary
+    ? Object.entries(graphSummary).map(([k, v]) => stat(k.replace(/_/g, " "), typeof v === "object" ? JSON.stringify(v) : v)).join("")
+    : '<p class="hint">No graph snapshot yet.</p>';
+
+  $("demo-vendor-narrative").innerHTML = esc(vendor.narrative || "");
+  $("demo-vendor").innerHTML = renderReadinessMatrix(vendor.readiness_matrix) || '<p class="hint">No vendor documents analyzed yet.</p>';
+
+  const narratives = await Promise.all(assetsPresent.map((name) =>
+    api("GET", "/api/copilot/narrate/" + encodeURIComponent(name)).catch((err) => ({ asset_name: name, narrative: "Error: " + err.message }))
+  ));
+  $("demo-narratives").innerHTML = narratives.map((n) => `
+    <div class="narrative"><strong>${esc(n.asset_name)}</strong><br>${esc(n.narrative || "")}</div>`).join("") || '<p class="hint">No assets to explain yet.</p>';
+
+  const changePlans = await Promise.all(assetsPresent.map((name) =>
+    api("GET", "/api/copilot/change-plan/" + encodeURIComponent(name)).catch((err) => ({ asset_name: name, narrative: "Error: " + err.message, pre_change_checklist: [] }))
+  ));
+  $("demo-checklists").innerHTML = changePlans.map((c) => `
+    <div class="narrative"><strong>${esc(c.asset_name)}</strong><br>${esc(c.narrative || "")}
+    ${renderList("", c.pre_change_checklist)}</div>`).join("") || '<p class="hint">No assets to plan yet.</p>';
+}
+
+async function refreshDemoTab() {
+  setMsg("Refreshing demo status...");
+  try {
+    const status = await refreshDemoStatus();
+    await loadDemoOverview(status.assets_present);
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+}
+
+$("demo-load").addEventListener("click", async () => {
+  setMsg("Loading demo dataset...");
+  try {
+    const data = await api("POST", "/api/demo/load");
+    const statusKind = { ok: "ok", skipped: "muted", error: "err" };
+    const rows = data.steps.map((s) => `
+      <tr><td>${esc(s.step)}</td><td>${pill(s.status, statusKind[s.status] || "muted")}</td>
+      <td>${esc(s.asset_name || s.detail || "")}</td></tr>`).join("");
+    $("demo-load-result").innerHTML = `<div class="table-scroll"><table>
+      <tr><th>Step</th><th>Status</th><th>Detail</th></tr>${rows}</table></div>`;
+    await refreshDemoTab();
+    setMsg(data.overall === "ok" ? "Demo loaded." : "Demo loaded with some errors -- see the step table.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
+$("demo-refresh").addEventListener("click", refreshDemoTab);
+
+// Populate the Demo tab automatically the first time it's shown.
+let demoStatusLoaded = false;
+document.querySelector('.tab[data-tab="demo"]').addEventListener("click", () => {
+  if (!demoStatusLoaded) { demoStatusLoaded = true; refreshDemoTab(); }
+});
+
 // --- Init ---
 loadScenarios();
 loadIntegrationActions();
+refreshDemoStatus().catch(() => {});

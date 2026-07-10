@@ -21,6 +21,12 @@
 - `GET /api/graph/queries`, `POST /api/graph/{blast-radius,trust-chain,neighbors}` (graph-service, in-memory traversal, `GRAPH_SERVICE_URL`, default port 8013)
 - `GET /api/integrations`, `POST /api/integrations/dry-run` (integration-service, dry-run/disabled, `INTEGRATION_SERVICE_URL`, default port 8011)
 - `GET /graph/{snapshot|summary|nodes|edges|warnings}` (read-only snapshot)
+- `POST /api/demo/load`, `GET /api/demo/status` — seeds/checks the small realistic demo dataset
+  (host/network/repo evidence + a vendor document, graph snapshot, doc index) the web-ui's
+  Demo tab uses. The one deliberate exception to the gateway being read-only/proxy-only:
+  writes directly, but only through the normal `/scans/ingest` contract plus a graph
+  snapshot/doc index file write, same as a real collector would. Idempotent -- an asset
+  already present is skipped, not re-ingested. See `demo_seed.py`.
 
 ## Inputs / outputs
 - Input: JSON payloads for scans, scenario runs, and copilot requests.

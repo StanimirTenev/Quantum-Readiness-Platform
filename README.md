@@ -68,10 +68,11 @@ this machine's own real host evidence; `network-scanner` scans a local
 self-signed TLS endpoint it spins up itself; `repo-ci-scanner` scans a small
 sample repo with a deliberately weak-crypto file; `doc-ingestion` indexes a
 sample vendor PQC-roadmap doc; a dependency graph snapshot is built;
-`retrieval-service` searches the indexed doc; the Risk Narrator Copilot
-subagent explains each asset's risk in plain language; and an operator/exec
-migration report is generated from everything. Stops all services and
-deletes the temp DB/binaries on exit, success or failure.
+`retrieval-service` searches the indexed doc; all five Copilot subagents
+(Risk Narrator, Discovery Analyst, Vendor Intelligence Analyst, Migration
+Planner, Change Assistant) explain the evidence in plain language; and an
+operator/exec migration report is generated from everything. Stops all
+services and deletes the temp DB/binaries on exit, success or failure.
 
 Writes (git-ignored, regenerate any time):
 - `reports/product-demo/product-demo-report.md` — human-readable narrative
@@ -80,6 +81,15 @@ Writes (git-ignored, regenerate any time):
 
 Exits non-zero if any step fails. Runs in CI (`product-demo` job), which also
 uploads the three reports as a build artifact.
+
+For an interactive demo instead of a report, start the stack
+(`scripts/start_all.sh`) and open the web-ui's **Demo** tab: click "Load
+Demo" to seed the same kind of dataset live, then browse assets, findings,
+risk, waves, the graph, vendor intelligence, and Copilot explanations
+directly in the console — see `frontend/web-ui/README.md`.
+`scripts/run_ui_endpoints_smoke.sh` exercises every endpoint that tab (and
+the rest of the console) calls, including the demo-load/status endpoints,
+on a real full stack.
 
 Known cosmetic limitation: the operator report's `persisted_risk` bundle
 shape (added for Windows hosts, see `tools/report/build_operator_report.py`)

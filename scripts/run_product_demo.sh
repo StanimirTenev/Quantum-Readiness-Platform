@@ -8,7 +8,9 @@
 # Steps: start isolated stack -> linux-host-agent ingest -> network-scanner
 # ingest (local TLS target) -> repo-ci-scanner ingest (sample repo) ->
 # doc-ingestion (sample vendor docs) -> graph snapshot -> retrieval search ->
-# Risk Narrator -> operator report -> stop + clean up.
+# all five Copilot subagents (Risk Narrator, Discovery Analyst, Vendor
+# Intelligence Analyst, Migration Planner, Change Assistant) -> operator
+# report -> stop + clean up.
 #
 # Writes reports/product-demo/{product-demo-report.md,
 # product-demo-report.json, product-demo-smoke-report.md} and exits
@@ -283,6 +285,43 @@ else
 fi
 
 echo ""
+echo "== Step 8b-8e: the other four Copilot subagents =="
+discover_resp="$(curl -sS "$COPILOT_BASE/discover" 2>>"$LOG_DIR/discover.log")" || true
+if echo "$discover_resp" | grep -q '"narrative"'; then
+    record "Step 8b: Discovery Analyst summarizes discovered dependencies" "PASS" ""
+else
+    record "Step 8b: Discovery Analyst summarizes discovered dependencies" "FAIL" "no narrative in response"
+fi
+
+vendor_resp="$(curl -sS "$COPILOT_BASE/vendor-intelligence" 2>>"$LOG_DIR/vendor-intelligence.log")" || true
+if echo "$vendor_resp" | grep -q '"narrative"'; then
+    record "Step 8c: Vendor Intelligence Analyst extracts readiness claims" "PASS" ""
+else
+    record "Step 8c: Vendor Intelligence Analyst extracts readiness claims" "FAIL" "no narrative in response"
+fi
+
+migration_resp="$(curl -sS "$COPILOT_BASE/migration-plan" 2>>"$LOG_DIR/migration-plan.log")" || true
+if echo "$migration_resp" | grep -q '"narrative"'; then
+    record "Step 8d: Migration Planner explains the wave plan" "PASS" ""
+else
+    record "Step 8d: Migration Planner explains the wave plan" "FAIL" "no narrative in response"
+fi
+
+change_plan_ok=true
+for asset in "$LINUX_ASSET" "$NETWORK_ASSET" "$REPO_ASSET"; do
+    [[ -z "$asset" ]] && continue
+    change_resp="$(curl -sS "$COPILOT_BASE/change-plan/$asset" 2>>"$LOG_DIR/change-plan.log")" || true
+    if ! echo "$change_resp" | grep -q '"pre_change_checklist"'; then
+        change_plan_ok=false
+    fi
+done
+if [[ "$change_plan_ok" == "true" ]]; then
+    record "Step 8e: Change Assistant drafts a checklist for every ingested asset" "PASS" ""
+else
+    record "Step 8e: Change Assistant drafts a checklist for every ingested asset" "FAIL" "at least one asset got no checklist"
+fi
+
+echo ""
 echo "== Step 9: Building operator report =="
 OPERATOR_REPORT="$OUT_DIR/product-demo-operator-report.md"
 if (cd "$ROOT_DIR" && "$PYTHON_BIN" - "$INVENTORY_BASE" "$OPERATOR_REPORT" "$LINUX_ASSET" "$NETWORK_ASSET" "$REPO_ASSET" <<'PY' 2>"$LOG_DIR/operator-report.log"
@@ -407,7 +446,15 @@ def narrate(name):
     return (data or {}).get("narrative", "")
 
 
+def change_plan(name):
+    return get(f"http://127.0.0.1:8008/change-plan/{name}") or {}
+
+
 overview = get(f"{retrieval_base}/overview") or {}
+discover = get("http://127.0.0.1:8008/discover") or {}
+vendor_intelligence = get("http://127.0.0.1:8008/vendor-intelligence") or {}
+migration_plan = get("http://127.0.0.1:8008/migration-plan") or {}
+change_plans = {name: change_plan(name) for name in asset_names}
 search = None
 try:
     req = urllib.request.Request(
@@ -440,6 +487,10 @@ result = {
     "retrieval_document_search_query": "roadmap",
     "retrieval_document_matches": (search or {}).get("results", {}).get("documents", []),
     "risk_narratives": narratives,
+    "discovery_analyst": discover,
+    "vendor_intelligence": vendor_intelligence,
+    "migration_plan": migration_plan,
+    "change_plans": change_plans,
     "operator_report_excerpt": operator_report_text[:4000],
 }
 
@@ -454,9 +505,10 @@ lines = [
     "> One-command tour of the full platform: collection agents (Linux host,",
     "> network TLS, repo/CI, document ingestion) feeding a deterministic risk",
     "> pipeline, a dependency graph, keyword retrieval over indexed documents,",
-    "> the Risk Narrator Copilot subagent, and an operator/exec migration report.",
-    "> Runs on an isolated stack with a temporary database; nothing here",
-    "> touches persistent state.",
+    "> all five Copilot subagents (Risk Narrator, Discovery Analyst, Vendor",
+    "> Intelligence Analyst, Migration Planner, Change Assistant), and an",
+    "> operator/exec migration report. Runs on an isolated stack with a",
+    "> temporary database; nothing here touches persistent state.",
     "",
     f"## Result: {overall}",
     "",
@@ -470,6 +522,17 @@ for name, text in narratives.items():
     lines.append(f"### {name}")
     lines.append("")
     lines.append(text or "_(no narrative available)_")
+    lines.append("")
+lines += ["", "## Discovery Analyst", "", discover.get("narrative") or "_(no narrative available)_", ""]
+lines += ["", "## Vendor Intelligence Analyst", "", vendor_intelligence.get("narrative") or "_(no narrative available)_", ""]
+lines += ["", "## Migration Planner", "", migration_plan.get("narrative") or "_(no narrative available)_", ""]
+lines += ["", "## Change Assistant", ""]
+for name, plan in change_plans.items():
+    lines.append(f"### {name}")
+    lines.append("")
+    lines.append(plan.get("narrative") or "_(no narrative available)_")
+    for item in plan.get("pre_change_checklist") or []:
+        lines.append(f"- {item}")
     lines.append("")
 lines += [
     "## Retrieval",

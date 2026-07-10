@@ -1,6 +1,7 @@
 from pathlib import Path
 import sys
 
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 sys.path.append(str(Path(__file__).resolve().parents[1]))
@@ -755,3 +756,86 @@ def test_post_api_copilot_query_proxies_to_copilot_service(monkeypatch) -> None:
 def test_old_dead_copilot_routes_are_gone() -> None:
     assert client.post("/api/copilot/explain-risk", json={}).status_code == 404
     assert client.post("/api/copilot/generate-wave-plan", json={}).status_code == 404
+
+
+def test_demo_load_reports_ok_when_all_steps_succeed(monkeypatch, tmp_path) -> None:
+    monkeypatch.setattr(main, "_request_json", lambda method, url, payload=None: {"scan_id": "s1", "created": 1})
+    monkeypatch.setattr(main.demo_seed, "write_demo_doc_index", lambda: tmp_path / "doc-index.json")
+    monkeypatch.setattr(main.demo_seed, "build_demo_graph_snapshot", lambda target: (True, "graph snapshot built"))
+
+    response = client.post("/api/demo/load")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["overall"] == "ok"
+    step_names = [s["step"] for s in data["steps"]]
+    assert step_names == ["ingest_host", "ingest_network", "ingest_repo", "doc_index", "graph_snapshot"]
+    assert all(s["status"] == "ok" for s in data["steps"])
+
+
+def test_demo_load_skips_already_loaded_assets_idempotently(monkeypatch, tmp_path) -> None:
+    calls = []
+
+    def fake_request_json(method, url, payload=None):
+        calls.append((method, url))
+        if method == "GET" and url.endswith("/assets"):
+            return [{"name": name} for name in main.demo_seed.DEMO_ASSET_NAMES]
+        return {"scan_id": "s1", "created": 1}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+    monkeypatch.setattr(main.demo_seed, "write_demo_doc_index", lambda: tmp_path / "doc-index.json")
+    monkeypatch.setattr(main.demo_seed, "build_demo_graph_snapshot", lambda target: (True, "graph snapshot built"))
+
+    response = client.post("/api/demo/load")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["overall"] == "ok"
+    ingest_steps = [s for s in data["steps"] if s["step"].startswith("ingest_")]
+    assert all(s["status"] == "skipped" for s in ingest_steps)
+    # no POST to /scans/ingest should have happened, only the initial GET /assets check
+    assert not any(method == "POST" and "/scans/ingest" in url for method, url in calls)
+
+
+def test_demo_load_reports_partial_when_one_ingest_fails(monkeypatch, tmp_path) -> None:
+    def fake_request_json(method, url, payload=None):
+        if payload and payload.get("source") == "repo":
+            raise HTTPException(status_code=500, detail="inventory-service unavailable")
+        return {"scan_id": "s1", "created": 1}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+    monkeypatch.setattr(main.demo_seed, "write_demo_doc_index", lambda: tmp_path / "doc-index.json")
+    monkeypatch.setattr(main.demo_seed, "build_demo_graph_snapshot", lambda target: (True, "graph snapshot built"))
+
+    response = client.post("/api/demo/load")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["overall"] == "partial"
+    repo_step = next(s for s in data["steps"] if s["step"] == "ingest_repo")
+    assert repo_step["status"] == "error"
+
+
+def test_demo_status_reports_loaded_when_all_assets_present(monkeypatch) -> None:
+    monkeypatch.setattr(
+        main, "_request_json",
+        lambda method, url, payload=None: [{"name": name} for name in main.demo_seed.DEMO_ASSET_NAMES],
+    )
+
+    response = client.get("/api/demo/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["loaded"] is True
+    assert data["assets_missing"] == []
+
+
+def test_demo_status_reports_not_loaded_when_assets_missing(monkeypatch) -> None:
+    monkeypatch.setattr(main, "_request_json", lambda method, url, payload=None: [])
+
+    response = client.get("/api/demo/status")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["loaded"] is False
+    assert set(data["assets_missing"]) == set(main.demo_seed.DEMO_ASSET_NAMES)

@@ -5,7 +5,15 @@ no `node_modules` — just `public/index.html`, `styles.css`, and `app.js`. It t
 to the gateway with `fetch` and is theme-aware (light/dark).
 
 ## What it does
-Six panels over the gateway's routes:
+Seven panels over the gateway's routes:
+- **Demo** (the default/first tab) — one click ("Load Demo") seeds a small realistic dataset
+  (host, network, repo evidence, and a vendor document) via `POST /api/demo/load`, then shows
+  assets, Discovery Analyst findings, risk + migration waves (Migration Planner), a dependency
+  graph summary, Vendor Intelligence Analyst's readiness matrix, a Risk Narrator explanation
+  per asset, and a Change Assistant checklist per asset — the whole product on one screen,
+  without touching any script or service directly. "Refresh demo status" re-checks
+  (`GET /api/demo/status`) without re-seeding. `POST /api/demo/load` is idempotent: an asset
+  already present is skipped, not re-ingested, so clicking twice never creates duplicates.
 - **Fingerprint** — classify algorithms / a TLS certificate (`POST /api/fingerprint`);
   colour-coded findings + a readiness summary.
 - **Scenarios** — re-score assets under a quantum-risk scenario (`POST /api/scenarios/run`).

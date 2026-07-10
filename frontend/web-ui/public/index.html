@@ -24,7 +24,8 @@
     </header>
 
     <nav class="tabs" role="tablist">
-      <button class="tab active" data-tab="fingerprint">Fingerprint</button>
+      <button class="tab active" data-tab="demo">Demo</button>
+      <button class="tab" data-tab="fingerprint">Fingerprint</button>
       <button class="tab" data-tab="scenarios">Scenarios</button>
       <button class="tab" data-tab="integrations">Integrations</button>
       <button class="tab" data-tab="graph">Graph</button>
@@ -33,8 +34,49 @@
     </nav>
 
     <main>
+      <!-- Demo -->
+      <section id="demo" class="panel active">
+        <h2>Product Demo</h2>
+        <p class="hint">One click to see the whole product: seeds a small, realistic dataset
+          (host, network, repo evidence, and a vendor document), then shows assets, findings,
+          risk, migration waves, the dependency graph, vendor readiness, and Copilot's
+          explanation for each asset &mdash; no need to touch scripts or services directly.</p>
+
+        <div class="btnrow">
+          <button id="demo-load" class="primary" type="button">Load Demo</button>
+          <button id="demo-refresh" type="button">Refresh demo status</button>
+        </div>
+        <div id="demo-status" class="summary"></div>
+        <div id="demo-load-result" class="result"></div>
+
+        <div id="demo-overview">
+          <h3>Assets</h3>
+          <div id="demo-assets" class="result"></div>
+
+          <h3>Findings (Discovery Analyst)</h3>
+          <div id="demo-findings" class="result"></div>
+
+          <h3>Risk &amp; Migration Waves (Migration Planner)</h3>
+          <div id="demo-waves-narrative" class="narrative"></div>
+          <div id="demo-waves" class="result"></div>
+
+          <h3>Dependency Graph</h3>
+          <div id="demo-graph-summary" class="summary"></div>
+
+          <h3>Vendor Intelligence</h3>
+          <div id="demo-vendor-narrative" class="narrative"></div>
+          <div id="demo-vendor" class="result"></div>
+
+          <h3>Copilot Explanations (Risk Narrator)</h3>
+          <div id="demo-narratives" class="result"></div>
+
+          <h3>Change Checklists (Change Assistant)</h3>
+          <div id="demo-checklists" class="result"></div>
+        </div>
+      </section>
+
       <!-- Fingerprint -->
-      <section id="fingerprint" class="panel active">
+      <section id="fingerprint" class="panel">
         <h2>Crypto Assessment</h2>
         <p class="hint">Fingerprint algorithms and get the PQC migration readiness in one call
           (fingerprint → pqc-readiness pipeline). Enter algorithm names

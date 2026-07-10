@@ -585,7 +585,10 @@ $("cp-migration").addEventListener("click", async () => {
   } catch (err) { setMsg(err.message, true); }
 });
 
-// --- Demo ---
+// --- Operator workflow: Dashboard / Assets / Findings / Risk / Migration Plan / Reports ---
+// Each tab lazy-loads on first visit (see the registry near the bottom); "Load Demo"
+// invalidates every tab so the next visit re-fetches, and re-loads whichever tab is
+// currently on screen immediately.
 function renderDemoStatus(status) {
   $("demo-status").innerHTML = [
     stat("Loaded", status.loaded ? pill("yes", "ok") : pill("no", "err")),
@@ -603,69 +606,168 @@ async function refreshDemoStatus() {
   return status;
 }
 
-function renderDemoAssets(assets) {
-  if (!assets || !assets.length) { $("demo-assets").innerHTML = '<p class="hint">No assets yet.</p>'; return; }
-  const rows = assets.map((a) => `<tr><td>${esc(a.name)}</td><td>${esc(a.asset_type)}</td><td>${esc(a.environment || "-")}</td></tr>`).join("");
-  $("demo-assets").innerHTML = `<div class="table-scroll"><table>
-    <tr><th>Name</th><th>Type</th><th>Environment</th></tr>${rows}</table></div>`;
+// --- Asset detail (the click-through flow: asset row -> narrative -> checklist -> wave) ---
+const WAVE_LABELS = { wave_1: "Wave 1 (urgent)", wave_2: "Wave 2 (near-term)", wave_3: "Wave 3 (planned)" };
+
+async function showAssetDetail(assetName) {
+  const panel = $("asset-detail");
+  panel.hidden = false;
+  $("ad-title").textContent = "Asset detail: " + assetName;
+  $("ad-meta").innerHTML = stat("Asset", esc(assetName));
+  $("ad-narrative").textContent = "Loading...";
+  $("ad-change-narrative").textContent = "";
+  $("ad-checklist").innerHTML = "";
+  $("ad-wave").innerHTML = "";
+  panel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  setMsg("Loading asset detail for " + assetName + "...");
+  try {
+    const [narrate, changePlan] = await Promise.all([
+      api("GET", "/api/copilot/narrate/" + encodeURIComponent(assetName)),
+      api("GET", "/api/copilot/change-plan/" + encodeURIComponent(assetName)),
+    ]);
+    $("ad-meta").innerHTML = [
+      stat("Asset", esc(assetName)),
+      stat("Rating", changePlan.rating ? pill(changePlan.rating, changePlan.rating) : "-"),
+      stat("Wave", changePlan.wave ? pill(WAVE_LABELS[changePlan.wave] || changePlan.wave, "info") : "-"),
+    ].join("");
+    $("ad-narrative").innerHTML = esc(narrate.narrative || "");
+    $("ad-change-narrative").innerHTML = esc(changePlan.narrative || "");
+    $("ad-checklist").innerHTML = renderList("Pre-change checklist", changePlan.pre_change_checklist)
+      || '<p class="hint">No checklist items.</p>';
+    $("ad-wave").innerHTML = changePlan.wave
+      ? stat("Migration wave", WAVE_LABELS[changePlan.wave] || changePlan.wave)
+      : '<p class="hint">Not yet placed in a migration wave.</p>';
+    setMsg("Done.");
+  } catch (err) {
+    $("ad-narrative").textContent = "";
+    setMsg(err.message, true);
+  }
 }
 
-function renderDemoRiskTable(waves) {
-  const rows = (waves || []).flatMap((w) => w.assets || []).map((a) => `
-    <tr><td>${esc(a.asset_name)}</td><td>${pill(a.rating || "unknown", a.rating || "unknown")}</td>
-    <td>${a.priority_score_100 ?? "-"}</td></tr>`).join("");
-  $("demo-waves").innerHTML = (rows
-    ? `<div class="table-scroll"><table><tr><th>Asset</th><th>Rating</th><th>Priority</th></tr>${rows}</table></div>`
-    : '<p class="hint">No risk-scored assets yet.</p>') + renderWaves(waves);
-}
-
-async function loadDemoOverview(assetsPresent) {
-  const [assets, discover, migration, graphSummary, vendor] = await Promise.all([
-    api("GET", "/api/assets"),
-    api("GET", "/api/copilot/discover"),
-    api("GET", "/api/copilot/migration-plan"),
-    api("GET", "/graph/summary").catch(() => null),
-    api("GET", "/api/copilot/vendor-intelligence"),
+// --- Dashboard ---
+async function loadDashboardTab() {
+  const [status, operational] = await Promise.all([
+    refreshDemoStatus(),
+    api("GET", "/api/copilot/operational-summary"),
   ]);
+  const platform = operational.platform || {};
+  $("dash-overview").innerHTML = [
+    stat("Assets", platform.asset_count ?? 0),
+    stat("Scans", platform.scan_count ?? 0),
+    stat("Risks", platform.risk_count ?? 0),
+    ...Object.entries(platform.risk_counts || {}).map(([rating, count]) => stat(rating, pill(String(count), rating))),
+  ].join("");
+  const topRisks = platform.top_risks || [];
+  $("dash-top-risks").innerHTML = topRisks.length
+    ? `<div class="table-scroll"><table><tr><th>Asset</th><th>Rating</th><th>Score</th></tr>${
+        topRisks.map((r) => `<tr class="asset-row" data-asset="${esc(r.asset_name)}">
+          <td>${esc(r.asset_name)}</td><td>${pill(r.rating, r.rating)}</td><td>${r.normalized_score_100 ?? "-"}</td></tr>`).join("")
+      }</table></div>`
+    : '<p class="hint">No risk data yet -- click "Load Demo" above.</p>';
+  $("dash-top-risks").querySelectorAll(".asset-row").forEach((row) => {
+    row.addEventListener("click", () => { switchTab("assets"); showAssetDetail(row.dataset.asset); });
+  });
+  return status;
+}
 
-  renderDemoAssets(assets);
+// --- Assets ---
+async function loadAssetsTab() {
+  const [assets, migration] = await Promise.all([
+    api("GET", "/api/assets"),
+    api("GET", "/api/copilot/migration-plan").catch(() => ({ waves: [] })),
+  ]);
+  const ratingByAsset = {};
+  (migration.waves || []).forEach((w) => (w.assets || []).forEach((a) => { ratingByAsset[a.asset_name] = a.rating; }));
 
-  $("demo-findings").innerHTML = renderList("Explicit findings", discover.explicit_findings)
+  $("assets-table").innerHTML = assets.length
+    ? `<div class="table-scroll"><table>
+        <tr><th>Name</th><th>Type</th><th>Environment</th><th>Rating</th></tr>${
+          assets.map((a) => `<tr class="asset-row" data-asset="${esc(a.name)}">
+            <td>${esc(a.name)}</td><td>${esc(a.asset_type)}</td><td>${esc(a.environment || "-")}</td>
+            <td>${ratingByAsset[a.name] ? pill(ratingByAsset[a.name], ratingByAsset[a.name]) : "-"}</td></tr>`).join("")
+        }</table></div>`
+    : '<p class="hint">No assets yet -- go to Dashboard and click "Load Demo".</p>';
+  $("assets-table").querySelectorAll(".asset-row").forEach((row) => {
+    row.addEventListener("click", () => showAssetDetail(row.dataset.asset));
+  });
+}
+
+// --- Findings ---
+async function loadFindingsTab() {
+  const discover = await api("GET", "/api/copilot/discover");
+  $("find-narrative").innerHTML = esc(discover.narrative || "");
+  $("find-result").innerHTML = renderList("Explicit findings", discover.explicit_findings)
     + renderList("Inferred context", discover.inferred_context)
     + renderList("Evidence gaps", discover.evidence_gaps);
-
-  $("demo-waves-narrative").innerHTML = esc(migration.narrative || "");
-  renderDemoRiskTable(migration.waves);
-
-  $("demo-graph-summary").innerHTML = graphSummary
-    ? Object.entries(graphSummary).map(([k, v]) => stat(k.replace(/_/g, " "), typeof v === "object" ? JSON.stringify(v) : v)).join("")
-    : '<p class="hint">No graph snapshot yet.</p>';
-
-  $("demo-vendor-narrative").innerHTML = esc(vendor.narrative || "");
-  $("demo-vendor").innerHTML = renderReadinessMatrix(vendor.readiness_matrix) || '<p class="hint">No vendor documents analyzed yet.</p>';
-
-  const narratives = await Promise.all(assetsPresent.map((name) =>
-    api("GET", "/api/copilot/narrate/" + encodeURIComponent(name)).catch((err) => ({ asset_name: name, narrative: "Error: " + err.message }))
-  ));
-  $("demo-narratives").innerHTML = narratives.map((n) => `
-    <div class="narrative"><strong>${esc(n.asset_name)}</strong><br>${esc(n.narrative || "")}</div>`).join("") || '<p class="hint">No assets to explain yet.</p>';
-
-  const changePlans = await Promise.all(assetsPresent.map((name) =>
-    api("GET", "/api/copilot/change-plan/" + encodeURIComponent(name)).catch((err) => ({ asset_name: name, narrative: "Error: " + err.message, pre_change_checklist: [] }))
-  ));
-  $("demo-checklists").innerHTML = changePlans.map((c) => `
-    <div class="narrative"><strong>${esc(c.asset_name)}</strong><br>${esc(c.narrative || "")}
-    ${renderList("", c.pre_change_checklist)}</div>`).join("") || '<p class="hint">No assets to plan yet.</p>';
 }
 
-async function refreshDemoTab() {
-  setMsg("Refreshing demo status...");
-  try {
-    const status = await refreshDemoStatus();
-    await loadDemoOverview(status.assets_present);
-    setMsg("Done.");
-  } catch (err) { setMsg(err.message, true); }
+// --- Risk ---
+async function loadRiskTab() {
+  const migration = await api("GET", "/api/copilot/migration-plan");
+  const rows = (migration.waves || []).flatMap((w) => w.assets || []);
+  $("risk-table").innerHTML = rows.length
+    ? `<div class="table-scroll"><table>
+        <tr><th>Asset</th><th>Rating</th><th>Priority</th><th>Vendor blocked</th></tr>${
+          rows.map((a) => `<tr class="asset-row" data-asset="${esc(a.asset_name)}">
+            <td>${esc(a.asset_name)}</td><td>${pill(a.rating || "unknown", a.rating || "unknown")}</td>
+            <td>${a.priority_score_100 ?? "-"}</td>
+            <td>${a.vendor_blocked ? '<span class="badge-yes">yes</span>' : '<span class="badge-no">no</span>'}</td></tr>`).join("")
+        }</table></div>`
+    : '<p class="hint">No risk-scored assets yet.</p>';
+  $("risk-table").querySelectorAll(".asset-row").forEach((row) => {
+    row.addEventListener("click", () => { switchTab("assets"); showAssetDetail(row.dataset.asset); });
+  });
 }
+
+// --- Migration Plan ---
+async function loadMigrationPlanTab() {
+  const migration = await api("GET", "/api/copilot/migration-plan");
+  $("mp-narrative").innerHTML = esc(migration.narrative || "");
+  $("mp-waves").innerHTML = renderWaves(migration.waves) || '<p class="hint">No waves yet.</p>';
+  $("mp-vendor-note").innerHTML = esc((migration.vendor_readiness_context || {}).note || "");
+}
+
+// --- Reports ---
+async function loadReportsTab() {
+  const summary = await api("GET", "/api/copilot/operational-summary");
+  const platform = summary.platform || {};
+  const planning = summary.planning || {};
+  const workflow = summary.workflow || {};
+  $("rep-summary").innerHTML = [
+    stat("Assets", platform.asset_count ?? 0),
+    stat("Scans", platform.scan_count ?? 0),
+    stat("Risks", platform.risk_count ?? 0),
+    stat("Wave 1", planning.wave_1_count ?? 0),
+    stat("Wave 2", planning.wave_2_count ?? 0),
+    stat("Wave 3", planning.wave_3_count ?? 0),
+    stat("Open tasks", workflow.task_count ?? 0),
+  ].join("");
+  $("rep-result").innerHTML = `<details open><summary class="hint">Full operational summary (raw JSON)</summary><pre class="mono">${esc(JSON.stringify(summary, null, 2))}</pre></details>`;
+}
+
+// --- Tab registry: lazy-load on first visit, switchTab() for programmatic navigation ---
+function switchTab(tabId) {
+  document.querySelector(`.tab[data-tab="${tabId}"]`).click();
+}
+
+const TAB_LOADERS = {
+  dashboard: loadDashboardTab,
+  assets: loadAssetsTab,
+  findings: loadFindingsTab,
+  risk: loadRiskTab,
+  "migration-plan": loadMigrationPlanTab,
+  reports: loadReportsTab,
+};
+const tabLoaded = {};
+
+Object.keys(TAB_LOADERS).forEach((tabId) => {
+  document.querySelector(`.tab[data-tab="${tabId}"]`).addEventListener("click", () => {
+    if (tabLoaded[tabId]) return;
+    tabLoaded[tabId] = true;
+    TAB_LOADERS[tabId]().catch((err) => setMsg(err.message, true));
+  });
+});
 
 $("demo-load").addEventListener("click", async () => {
   setMsg("Loading demo dataset...");
@@ -677,20 +779,29 @@ $("demo-load").addEventListener("click", async () => {
       <td>${esc(s.asset_name || s.detail || "")}</td></tr>`).join("");
     $("demo-load-result").innerHTML = `<div class="table-scroll"><table>
       <tr><th>Step</th><th>Status</th><th>Detail</th></tr>${rows}</table></div>`;
-    await refreshDemoTab();
+
+    // Invalidate every tab so the next visit re-fetches; immediately reload the
+    // active one (a plain click() wouldn't re-fire since the tab's already active).
+    Object.keys(tabLoaded).forEach((tabId) => { tabLoaded[tabId] = false; });
+    const activeTab = document.querySelector(".tab.active")?.dataset.tab;
+    if (activeTab && TAB_LOADERS[activeTab]) {
+      tabLoaded[activeTab] = true;
+      await TAB_LOADERS[activeTab]();
+    }
     setMsg(data.overall === "ok" ? "Demo loaded." : "Demo loaded with some errors -- see the step table.");
   } catch (err) { setMsg(err.message, true); }
 });
 
-$("demo-refresh").addEventListener("click", refreshDemoTab);
-
-// Populate the Demo tab automatically the first time it's shown.
-let demoStatusLoaded = false;
-document.querySelector('.tab[data-tab="demo"]').addEventListener("click", () => {
-  if (!demoStatusLoaded) { demoStatusLoaded = true; refreshDemoTab(); }
+$("demo-refresh").addEventListener("click", async () => {
+  setMsg("Refreshing demo status...");
+  try {
+    await refreshDemoStatus();
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
 });
 
 // --- Init ---
 loadScenarios();
 loadIntegrationActions();
-refreshDemoStatus().catch(() => {});
+loadDashboardTab().catch(() => {});
+tabLoaded.dashboard = true;

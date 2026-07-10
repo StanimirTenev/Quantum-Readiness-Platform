@@ -66,41 +66,45 @@ else
     record "start_all.sh brings up the full stack" "FAIL" "start_all.sh exited non-zero"
 fi
 
-echo "== Demo tab: Load Demo button (POST /api/demo/load) =="
+echo "== Dashboard: Load Demo button (POST /api/demo/load) =="
 load_response="$(curl -sS -f -X POST "$GATEWAY_BASE/api/demo/load" 2>&1)" || true
 check_json_contains "POST /api/demo/load seeds host/network/repo/doc evidence" '"overall":"ok"' "$load_response"
 
-echo "== Demo tab: Refresh demo status (GET /api/demo/status) =="
+echo "== Dashboard: Refresh demo status (GET /api/demo/status) =="
 status_response="$(curl -sS -f "$GATEWAY_BASE/api/demo/status" 2>&1)" || true
 check_json_contains "GET /api/demo/status reports loaded" '"loaded":true' "$status_response"
 
-echo "== Demo tab: assets list =="
+echo "== Assets tab: asset list =="
 assets_response="$(curl -sS -f "$GATEWAY_BASE/api/assets" 2>&1)" || true
 check_json_contains "GET /api/assets returns the seeded assets" "qrp-linux-demo-01" "$assets_response"
 
-echo "== Demo tab: Discovery Analyst findings =="
+echo "== Findings tab: Discovery Analyst findings =="
 discover_response="$(curl -sS -f "$GATEWAY_BASE/api/copilot/discover" 2>&1)" || true
 check_json_contains "GET /api/copilot/discover returns findings" '"explicit_findings"' "$discover_response"
 
-echo "== Demo tab: Migration Planner waves =="
+echo "== Risk / Migration Plan tabs: Migration Planner waves =="
 migration_response="$(curl -sS -f "$GATEWAY_BASE/api/copilot/migration-plan" 2>&1)" || true
 check_json_contains "GET /api/copilot/migration-plan returns waves" '"waves"' "$migration_response"
 
-echo "== Demo tab: dependency graph summary =="
+echo "== Dependency graph summary (used by the graph tab) =="
 graph_summary_response="$(curl -sS -f "$GATEWAY_BASE/graph/summary" 2>&1)" || true
 check_json_contains "GET /graph/summary responds" '{' "$graph_summary_response"
 
-echo "== Demo tab: Vendor Intelligence Analyst =="
+echo "== Migration Plan tab: Vendor Intelligence Analyst =="
 vendor_response="$(curl -sS -f "$GATEWAY_BASE/api/copilot/vendor-intelligence" 2>&1)" || true
 check_json_contains "GET /api/copilot/vendor-intelligence returns readiness_matrix" '"readiness_matrix"' "$vendor_response"
 
-echo "== Demo tab: Risk Narrator per asset =="
+echo "== Asset detail: Risk Narrator per asset =="
 narrate_response="$(curl -sS -f "$GATEWAY_BASE/api/copilot/narrate/qrp-linux-demo-01" 2>&1)" || true
 check_json_contains "GET /api/copilot/narrate/{asset} returns a narrative" '"narrative"' "$narrate_response"
 
-echo "== Demo tab: Change Assistant checklist per asset =="
+echo "== Asset detail: Change Assistant checklist per asset =="
 change_plan_response="$(curl -sS -f "$GATEWAY_BASE/api/copilot/change-plan/qrp-linux-demo-01" 2>&1)" || true
 check_json_contains "GET /api/copilot/change-plan/{asset} returns a checklist" '"pre_change_checklist"' "$change_plan_response"
+
+echo "== Dashboard / Reports tabs: operational summary =="
+operational_response="$(curl -sS -f "$GATEWAY_BASE/api/copilot/operational-summary" 2>&1)" || true
+check_json_contains "GET /api/copilot/operational-summary returns platform stats" '"platform"' "$operational_response"
 
 echo "== Copilot tab: free-text query =="
 query_response="$(curl -sS -f -X POST "$GATEWAY_BASE/api/copilot/query" -H "Content-Type: application/json" -d '{"question": "what crypto dependencies did we discover?"}' 2>&1)" || true
@@ -152,7 +156,7 @@ mkdir -p "$ROOT_DIR/reports"
     echo "Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo ""
     echo "Scope: every gateway route frontend/web-ui/public/app.js calls,"
-    echo "including the demo-load/demo-status endpoints behind the Demo tab's"
+    echo "including the demo-load/demo-status endpoints behind the Dashboard's"
     echo "\"Load Demo\" / \"Refresh demo status\" buttons -- exercised on a real"
     echo "full stack with an isolated inventory DB."
     echo ""

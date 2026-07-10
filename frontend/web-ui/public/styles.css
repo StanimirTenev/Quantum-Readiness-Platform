@@ -55,12 +55,24 @@ body {
 }
 .tab:hover { color: var(--text); }
 .tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.tab-secondary { opacity: 0.65; font-size: 13px; }
+.tab-secondary:hover, .tab-secondary.active { opacity: 1; }
+.tabs-sep { width: 1px; margin: 8px 6px; background: var(--border); flex: none; }
 
 main { max-width: 980px; margin: 0 auto; padding: 24px; }
 .panel { display: none; }
 .panel.active { display: block; }
 h2 { margin: 0 0 4px; font-size: 20px; }
+h3 { margin: 24px 0 8px; font-size: 15px; }
+h4 { margin: 16px 0 6px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
 .hint { color: var(--muted); margin: 0 0 16px; font-size: 13px; }
+
+.asset-row { cursor: pointer; }
+.asset-row:hover { background: var(--panel-2); }
+.asset-detail {
+  margin-top: 20px; padding: 16px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--panel);
+}
 
 .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
 .field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }

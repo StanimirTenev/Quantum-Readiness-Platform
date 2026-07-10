@@ -23,7 +23,7 @@
 - `GET /graph/{snapshot|summary|nodes|edges|warnings}` (read-only snapshot)
 - `POST /api/demo/load`, `GET /api/demo/status` — seeds/checks the small realistic demo dataset
   (host/network/repo evidence + a vendor document, graph snapshot, doc index) the web-ui's
-  Demo tab uses. The one deliberate exception to the gateway being read-only/proxy-only:
+  Dashboard tab uses. The one deliberate exception to the gateway being read-only/proxy-only:
   writes directly, but only through the normal `/scans/ingest` contract plus a graph
   snapshot/doc index file write, same as a real collector would. Idempotent -- an asset
   already present is skipped, not re-ingested. See `demo_seed.py`.

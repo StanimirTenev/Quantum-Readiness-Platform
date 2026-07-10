@@ -88,13 +88,13 @@ started service and writes an interim smoke report showing which step was
 running, even if the script itself gets killed partway through.
 
 For an interactive demo instead of a report, start the stack
-(`scripts/start_all.sh`) and open the web-ui's **Demo** tab: click "Load
-Demo" to seed the same kind of dataset live, then browse assets, findings,
-risk, waves, the graph, vendor intelligence, and Copilot explanations
-directly in the console — see `frontend/web-ui/README.md`.
-`scripts/run_ui_endpoints_smoke.sh` exercises every endpoint that tab (and
-the rest of the console) calls, including the demo-load/status endpoints,
-on a real full stack.
+(`scripts/start_all.sh`) and open the web-ui's **Dashboard** tab: click
+"Load Demo" to seed the same kind of dataset live, then work the operator
+flow (Assets → click a row → Risk Narrator explanation → Change Assistant
+checklist → migration wave; plus Findings, Risk, Migration Plan, Copilot,
+Reports) directly in the console — see `frontend/web-ui/README.md`.
+`scripts/run_ui_endpoints_smoke.sh` exercises every endpoint the console
+calls, including the demo-load/status endpoints, on a real full stack.
 
 Known cosmetic limitation: the operator report's `persisted_risk` bundle
 shape (added for Windows hosts, see `tools/report/build_operator_report.py`)
@@ -291,12 +291,12 @@ aggregation endpoint that chains them:
 and (when `risk_factors` are supplied) a risk score, plus the list of pipeline
 services that ran. See `services/api-gateway/README.md` for the full route list.
 
-The **web-ui** console (`frontend/web-ui`) surfaces these: a Crypto Assessment
-panel (assess pipeline), Scenarios, Integrations, a Graph panel with an
-interactive SVG diagram (click a node for its blast radius), an Algorithms
-reference, and a Copilot panel over all five deterministic Copilot subagents
-(Risk Narrator, Discovery Analyst, Vendor Intelligence Analyst, Migration
-Planner, Change Assistant).
+The **web-ui** console (`frontend/web-ui`) is built around an operator
+workflow (Dashboard → Assets → Findings → Risk → Migration Plan → Copilot →
+Reports; click an asset to see its Risk Narrator explanation, Change
+Assistant checklist, and migration wave), with the deterministic-core
+testing tools (Crypto Assessment, Scenarios, Integrations, an interactive
+Graph diagram, an Algorithms reference) kept as secondary tabs.
 
 ## Crypto Fingerprint Service
 

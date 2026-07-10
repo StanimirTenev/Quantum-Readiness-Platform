@@ -1,6 +1,7 @@
 package collector
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -8,7 +9,15 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+	"time"
 )
+
+// commandTimeout bounds every subprocess call this collector makes (package
+// manager queries, `uname`, `openssl version`, ...). Without it, a stuck
+// package-manager lock (a real failure mode observed in some sandboxed/
+// containerized environments) hangs the whole agent indefinitely instead of
+// failing fast with a clear error. A var (not const) so tests can shrink it.
+var commandTimeout = 5 * time.Second
 
 var standardCertificateLocations = []string{
 	"/etc/ssl",
@@ -689,8 +698,14 @@ func isRelevantCryptoPackage(packageName string) bool {
 }
 
 func runCommand(name string, args ...string) (string, error) {
-	cmd := exec.Command(name, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, name, args...)
 	output, err := cmd.Output()
+	if ctx.Err() == context.DeadlineExceeded {
+		return "", fmt.Errorf("%s timed out after %s", name, commandTimeout)
+	}
 	if err != nil {
 		return "", err
 	}

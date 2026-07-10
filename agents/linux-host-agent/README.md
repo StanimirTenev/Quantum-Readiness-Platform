@@ -11,7 +11,7 @@
 - Main flow: `collector.Collect()` and optional `client.PostScan(...)` with `-ingest`
 
 ## Inputs / outputs
-- Input: local OS/files/package state; CLI flags (`-ingest`, `-inventory-url`).
+- Input: local OS/files/package state; CLI flags (`-ingest`, `-inventory-url`, `-timeout`).
 - Output: JSON evidence payload (stdout) or ingest response JSON.
 - Output includes `crypto_evidence.package_metadata` with best-effort crypto/security package metadata collection.
 - Output includes `crypto_evidence.cert_indicators.certificate_file_indicators` with best-effort certificate/key footprint discovery based on file names only.
@@ -29,6 +29,19 @@
 
 ## How to run tests
 - `cd agents/linux-host-agent && go test ./...`
+
+## Bounded mode (reliability hardening)
+- Every subprocess this agent shells out to (`dpkg-query`, `rpm`, `pacman`, `apk`, `uname`,
+  `openssl version`) runs under a 5-second timeout (`commandTimeout` in
+  `internal/collector/collector.go`). A stuck package-manager lock -- a real failure mode in
+  some sandboxed/containerized environments -- times out with a clear error instead of hanging
+  the whole agent forever; the failure is recorded in `package_metadata.errors`, not fatal.
+- The whole collection run is additionally bounded by `-timeout` (default 60s, seconds). If
+  collection somehow doesn't finish within that window, the agent exits 1 with a clear
+  "collector timed out" message on stderr instead of hanging indefinitely.
+- `scripts/run_product_demo.sh` passes an explicit `-timeout 30` (its own `AGENT_TIMEOUT_SEC`)
+  when invoking this agent, and additionally wraps the whole invocation in its own outer
+  `timeout` as a safety net -- see that script's "Demo Reliability Hardening" comments.
 
 ## Known limitations
 - Evidence depth depends on host permissions, installed tools, and available config paths.

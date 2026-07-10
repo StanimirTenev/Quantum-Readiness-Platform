@@ -80,7 +80,12 @@ Writes (git-ignored, regenerate any time):
 - `reports/product-demo/product-demo-smoke-report.md` — PASS/FAIL per step
 
 Exits non-zero if any step fails. Runs in CI (`product-demo` job), which also
-uploads the three reports as a build artifact.
+uploads the three reports as a build artifact. Every external command runs
+under a bounded timeout (`STEP_TIMEOUT_SEC`, default 60s) so a single stuck
+subprocess can't hang the run; a timed-out step is reported distinctly
+(`TIMEOUT`, not a plain `FAIL`), and the cleanup trap always stops every
+started service and writes an interim smoke report showing which step was
+running, even if the script itself gets killed partway through.
 
 For an interactive demo instead of a report, start the stack
 (`scripts/start_all.sh`) and open the web-ui's **Demo** tab: click "Load

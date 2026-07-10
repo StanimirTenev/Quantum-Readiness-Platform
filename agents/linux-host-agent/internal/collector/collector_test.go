@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 )
 
 func TestCollect(t *testing.T) {
@@ -407,5 +409,35 @@ func TestDiscoverConfigFileIndicatorsRespectsMaxFileLimit(t *testing.T) {
 	indicators := discoverConfigFileIndicatorsInPaths([]string{confDir}, 3)
 	if len(indicators.Files) != 3 {
 		t.Fatalf("expected 3 files due to limit, got %d", len(indicators.Files))
+	}
+}
+
+func TestRunCommandTimesOutOnAHungSubprocess(t *testing.T) {
+	original := commandTimeout
+	commandTimeout = 50 * time.Millisecond
+	defer func() { commandTimeout = original }()
+
+	start := time.Now()
+	_, err := runCommand("sleep", "5")
+	elapsed := time.Since(start)
+
+	if err == nil {
+		t.Fatal("expected a timeout error, got nil")
+	}
+	if !strings.Contains(err.Error(), "timed out") {
+		t.Fatalf("expected a timeout error message, got: %v", err)
+	}
+	if elapsed > 2*time.Second {
+		t.Fatalf("runCommand did not return promptly on timeout, took %s", elapsed)
+	}
+}
+
+func TestRunCommandSucceedsWithinTimeout(t *testing.T) {
+	output, err := runCommand("echo", "hello")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if output != "hello" {
+		t.Fatalf("expected 'hello', got %q", output)
 	}
 }

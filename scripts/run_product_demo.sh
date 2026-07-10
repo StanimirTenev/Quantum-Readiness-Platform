@@ -15,6 +15,19 @@
 # Writes reports/product-demo/{product-demo-report.md,
 # product-demo-report.json, product-demo-smoke-report.md} and exits
 # non-zero if any step fails.
+#
+# Reliability hardening ("Demo Reliability Hardening" PR): every external
+# command (go build, agent/scanner binaries, scripts, curl) runs under a
+# STEP_TIMEOUT_SEC bound (default 60s, override via env) so a single stuck
+# subprocess can't hang the whole run -- a real failure mode this hardening
+# was written to fix (a package-manager lock stuck linux-host-agent
+# indefinitely; see agents/linux-host-agent/internal/collector/collector.go's
+# commandTimeout and this script's AGENT_TIMEOUT_SEC). A step that times out
+# is recorded as TIMEOUT (distinct from FAIL) with a clear "timed out after
+# Ns" detail. The EXIT/INT/TERM trap always stops every started service and
+# writes an interim "INTERRUPTED" smoke report (showing exactly which step
+# was in progress) if the script is killed before finishing normally --
+# only an uncatchable SIGKILL can bypass this.
 set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -48,11 +61,42 @@ export PQC_READINESS_URL="http://127.0.0.1:8012"
 export GRAPH_SERVICE_URL="http://127.0.0.1:8013"
 export FINDING_ATTRIBUTION_URL="http://127.0.0.1:8014"
 
+# Per-command timeout guard (item 1 of "Demo Reliability Hardening"). Every
+# potentially-slow external command (go build, agent/scanner binaries,
+# scripts, curl) runs under this bound so a single stuck subprocess -- the
+# exact failure mode that motivated this hardening pass -- fails fast with a
+# clear message instead of hanging the whole run forever.
+STEP_TIMEOUT_SEC="${STEP_TIMEOUT_SEC:-60}"
+# The Go agents' own internal -timeout (item 2: bounded mode) gets a smaller
+# budget than STEP_TIMEOUT_SEC, so their own clear error message wins the
+# race instead of the outer `timeout` killing them first -- the outer bound
+# is a pure safety net, not the primary defense.
+AGENT_TIMEOUT_SEC="${AGENT_TIMEOUT_SEC:-30}"
+
+# Runs "$@" under STEP_TIMEOUT_SEC. Exit code 124 specifically means "timed
+# out" (GNU coreutils `timeout`'s convention) -- callers check for that to
+# produce a distinct TIMEOUT status instead of a generic FAIL.
+run_bounded() {
+    timeout --foreground --kill-after=5 "${STEP_TIMEOUT_SEC}s" "$@"
+}
+
 declare -a SERVICE_PIDS=()
 declare -a EXTRA_PIDS=()
 declare -a STEP_NAMES=()
 declare -a STEP_STATUSES=()
 declare -a STEP_DETAILS=()
+
+CURRENT_STEP=""
+REPORT_WRITTEN=false
+CLEANUP_DONE=false
+
+# Marks the start of a step (item 5: the report must show which step was
+# running even if the whole script gets killed before finishing normally).
+set_step() {
+    CURRENT_STEP="$1"
+    echo ""
+    echo "== $1 =="
+}
 
 record() {
     local name="$1" status="$2" detail="${3:-}"
@@ -62,20 +106,94 @@ record() {
     if [[ "$status" == "PASS" ]]; then
         echo "[PASS] $name"
     else
-        echo "[FAIL] $name -> $detail"
+        echo "[$status] $name -> $detail"
     fi
 }
 
+# Records a step outcome based on a captured exit code, distinguishing a
+# timeout (exit 124, or 137 if --kill-after had to SIGKILL) from a plain
+# failure -- item 3: clear error messages when something hangs.
+record_from_exit_code() {
+    local name="$1" exit_code="$2" pass_detail="${3:-}" fail_detail="${4:-command failed}"
+    if [[ "$exit_code" -eq 0 ]]; then
+        record "$name" "PASS" "$pass_detail"
+    elif [[ "$exit_code" -eq 124 || "$exit_code" -eq 137 ]]; then
+        record "$name" "TIMEOUT" "timed out after ${STEP_TIMEOUT_SEC}s -- $fail_detail"
+    else
+        record "$name" "FAIL" "$fail_detail (exit $exit_code)"
+    fi
+}
+
+# Writes whatever step data has been collected so far as an interim smoke
+# report -- item 5. Runs from cleanup() so an abrupt kill (timeout, Ctrl-C,
+# a sandbox/CI runner terminating the job) still leaves a diagnostic trace
+# showing exactly how far the run got, instead of no report at all.
+write_interim_report_if_needed() {
+    if [[ "$REPORT_WRITTEN" == "true" ]]; then
+        return
+    fi
+    mkdir -p "$OUT_DIR" 2>/dev/null || return
+    {
+        echo "# Product Demo Smoke Report (INTERRUPTED)"
+        echo ""
+        echo "Generated: $(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+        echo ""
+        echo "The run was interrupted before completing normally -- this report reflects"
+        echo "only the steps that finished before the interruption."
+        if [[ -n "$CURRENT_STEP" ]]; then
+            echo ""
+            echo "**Last step in progress when interrupted: $CURRENT_STEP**"
+        fi
+        echo ""
+        echo "| Step | Result |"
+        echo "| --- | --- |"
+        for i in "${!STEP_NAMES[@]}"; do
+            name="${STEP_NAMES[$i]}"
+            status="${STEP_STATUSES[$i]}"
+            detail="${STEP_DETAILS[$i]}"
+            if [[ -n "$detail" ]]; then
+                echo "| $name -- $detail | $status |"
+            else
+                echo "| $name | $status |"
+            fi
+        done
+        echo ""
+        echo "Result: INTERRUPTED"
+    } > "$OUT_DIR/product-demo-smoke-report.md" 2>/dev/null || true
+}
+
+# Iron-clad cleanup (item 4): explicit EXIT/INT/TERM trap, a re-entrancy
+# guard so overlapping signals can't run this twice, a SIGTERM-then-SIGKILL
+# sweep so a wedged service can't survive the run, and an interim report
+# write so an abrupt kill still leaves a diagnostic trace.
 cleanup() {
-    for pid in "${EXTRA_PIDS[@]:-}"; do
+    if [[ "$CLEANUP_DONE" == "true" ]]; then
+        return
+    fi
+    CLEANUP_DONE=true
+
+    echo ""
+    echo "== Cleaning up (stopping services, removing temp files) =="
+    for pid in "${EXTRA_PIDS[@]:-}" "${SERVICE_PIDS[@]:-}"; do
         [[ -n "$pid" ]] && kill "$pid" >/dev/null 2>&1 || true
     done
-    for pid in "${SERVICE_PIDS[@]:-}"; do
-        [[ -n "$pid" ]] && kill "$pid" >/dev/null 2>&1 || true
+    sleep 0.3
+    for pid in "${EXTRA_PIDS[@]:-}" "${SERVICE_PIDS[@]:-}"; do
+        [[ -n "$pid" ]] && kill -9 "$pid" >/dev/null 2>&1 || true
     done
+
+    write_interim_report_if_needed
     rm -rf "$RUN_DIR"
 }
+# Standard idiom: EXIT always runs cleanup exactly once, on every exit path.
+# INT/TERM must NOT also trap-call cleanup directly -- a custom trap on a
+# signal makes that signal non-fatal, so bash would just resume the script
+# after the handler returns instead of terminating it. Explicitly exiting
+# from the INT/TERM handler is what actually ends the script, which then
+# triggers the EXIT trap (and only that one) to do the real cleanup.
 trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 start_service() {
     local name="$1" workdir="$2" port="$3" target="$4"
@@ -108,7 +226,7 @@ wait_port() {
     return 1
 }
 
-echo "== Step 1: Starting isolated stack (temp DB: $INVENTORY_DB_PATH) =="
+set_step "Step 1: Starting isolated stack (temp DB: $INVENTORY_DB_PATH)"
 start_service "inventory-service" "services/inventory-service" 8001 "app.main:app"
 start_service "risk-engine" "services/risk-engine" 8002 "app.main:app"
 start_service "crypto-fingerprint-service" "services/crypto-fingerprint-service" 8003 "app.main:app"
@@ -145,46 +263,49 @@ else
 fi
 
 LINUX_ASSET=""
-echo ""
-echo "== Step 2: Linux host agent ingest =="
-if (cd "$ROOT_DIR/agents/linux-host-agent" && go build -o "$BIN_DIR/linux-host-agent" ./cmd/agent) 2>>"$LOG_DIR/linux-host-agent-build.log"; then
-    if linux_resp="$("$BIN_DIR/linux-host-agent" -ingest -inventory-url "$INVENTORY_BASE" 2>>"$LOG_DIR/linux-host-agent.log")" && echo "$linux_resp" | grep -q '"created"'; then
+set_step "Step 2: Linux host agent ingest"
+build_exit=0
+(cd "$ROOT_DIR/agents/linux-host-agent" && run_bounded go build -o "$BIN_DIR/linux-host-agent" ./cmd/agent) 2>>"$LOG_DIR/linux-host-agent-build.log" || build_exit=$?
+if [[ $build_exit -ne 0 ]]; then
+    record_from_exit_code "Step 2: linux-host-agent ingest" "$build_exit" "" "go build failed, see $LOG_DIR/linux-host-agent-build.log"
+else
+    ingest_exit=0
+    linux_resp="$(run_bounded "$BIN_DIR/linux-host-agent" -ingest -inventory-url "$INVENTORY_BASE" -timeout "$AGENT_TIMEOUT_SEC" 2>>"$LOG_DIR/linux-host-agent.log")" || ingest_exit=$?
+    if [[ $ingest_exit -eq 0 ]] && echo "$linux_resp" | grep -q '"created"'; then
         LINUX_ASSET="$(hostname)"
         record "Step 2: linux-host-agent ingest (asset: $LINUX_ASSET)" "PASS" ""
     else
-        record "Step 2: linux-host-agent ingest" "FAIL" "ingest did not return created asset(s)"
+        record_from_exit_code "Step 2: linux-host-agent ingest" "$ingest_exit" "" "ingest did not return created asset(s), see $LOG_DIR/linux-host-agent.log"
     fi
-else
-    record "Step 2: linux-host-agent ingest" "FAIL" "go build failed, see $LOG_DIR/linux-host-agent-build.log"
 fi
 
 NETWORK_ASSET=""
-echo ""
-echo "== Step 3: Network scanner (local self-signed TLS target) =="
+set_step "Step 3: Network scanner (local self-signed TLS target)"
 DEMO_TLS_PORT=9443
-openssl req -x509 -newkey rsa:2048 -keyout "$RUN_DIR/demo-key.pem" -out "$RUN_DIR/demo-cert.pem" \
+run_bounded openssl req -x509 -newkey rsa:2048 -keyout "$RUN_DIR/demo-key.pem" -out "$RUN_DIR/demo-cert.pem" \
     -days 1 -nodes -subj "/CN=qrp-demo.local" >"$LOG_DIR/openssl-req.log" 2>&1
 openssl s_server -accept "$DEMO_TLS_PORT" -cert "$RUN_DIR/demo-cert.pem" -key "$RUN_DIR/demo-key.pem" -www \
     >"$LOG_DIR/tls-demo-server.log" 2>&1 &
 EXTRA_PIDS+=("$!")
-if (cd "$ROOT_DIR/agents/network-scanner" && go build -o "$BIN_DIR/network-scanner" ./cmd/scanner) 2>>"$LOG_DIR/network-scanner-build.log"; then
-    if wait_port "$DEMO_TLS_PORT"; then
-        if network_resp="$("$BIN_DIR/network-scanner" -target "127.0.0.1:$DEMO_TLS_PORT" -insecure -ingest -inventory-url "$INVENTORY_BASE" 2>>"$LOG_DIR/network-scanner.log")" && echo "$network_resp" | grep -q '"created"'; then
-            NETWORK_ASSET="127.0.0.1:$DEMO_TLS_PORT"
-            record "Step 3: network-scanner ingest (asset: $NETWORK_ASSET)" "PASS" ""
-        else
-            record "Step 3: network-scanner ingest" "FAIL" "ingest did not return created asset(s)"
-        fi
-    else
-        record "Step 3: network-scanner ingest" "FAIL" "local TLS demo server never became reachable"
-    fi
+build_exit=0
+(cd "$ROOT_DIR/agents/network-scanner" && run_bounded go build -o "$BIN_DIR/network-scanner" ./cmd/scanner) 2>>"$LOG_DIR/network-scanner-build.log" || build_exit=$?
+if [[ $build_exit -ne 0 ]]; then
+    record_from_exit_code "Step 3: network-scanner ingest" "$build_exit" "" "go build failed, see $LOG_DIR/network-scanner-build.log"
+elif ! wait_port "$DEMO_TLS_PORT"; then
+    record "Step 3: network-scanner ingest" "FAIL" "local TLS demo server never became reachable"
 else
-    record "Step 3: network-scanner ingest" "FAIL" "go build failed, see $LOG_DIR/network-scanner-build.log"
+    ingest_exit=0
+    network_resp="$(run_bounded "$BIN_DIR/network-scanner" -target "127.0.0.1:$DEMO_TLS_PORT" -insecure -ingest -inventory-url "$INVENTORY_BASE" 2>>"$LOG_DIR/network-scanner.log")" || ingest_exit=$?
+    if [[ $ingest_exit -eq 0 ]] && echo "$network_resp" | grep -q '"created"'; then
+        NETWORK_ASSET="127.0.0.1:$DEMO_TLS_PORT"
+        record "Step 3: network-scanner ingest (asset: $NETWORK_ASSET)" "PASS" ""
+    else
+        record_from_exit_code "Step 3: network-scanner ingest" "$ingest_exit" "" "ingest did not return created asset(s), see $LOG_DIR/network-scanner.log"
+    fi
 fi
 
 REPO_ASSET=""
-echo ""
-echo "== Step 4: Repo/CI scanner (sample repo) =="
+set_step "Step 4: Repo/CI scanner (sample repo)"
 SAMPLE_REPO="$RUN_DIR/sample-vulnerable-repo"
 mkdir -p "$SAMPLE_REPO/.github/workflows"
 cat > "$SAMPLE_REPO/legacy_auth.py" <<'PY'
@@ -202,19 +323,16 @@ jobs:
     steps:
       - run: gpg --detach-sign artifact.tar.gz
 YML
-if (cd "$ROOT_DIR/agents/repo-ci-scanner" && "$PYTHON_BIN" scanner.py --repo-path "$SAMPLE_REPO" --out "$RUN_DIR/repo-ci-payload.json" --ingest "$INVENTORY_BASE" > "$RUN_DIR/repo-ci-ingest.json" 2>"$LOG_DIR/repo-ci-scanner.log"); then
-    if grep -q '"created"' "$RUN_DIR/repo-ci-ingest.json"; then
-        REPO_ASSET="sample-vulnerable-repo"
-        record "Step 4: repo-ci-scanner ingest (asset: $REPO_ASSET)" "PASS" ""
-    else
-        record "Step 4: repo-ci-scanner ingest" "FAIL" "ingest did not return created asset(s)"
-    fi
+scan_exit=0
+(cd "$ROOT_DIR/agents/repo-ci-scanner" && run_bounded "$PYTHON_BIN" scanner.py --repo-path "$SAMPLE_REPO" --out "$RUN_DIR/repo-ci-payload.json" --ingest "$INVENTORY_BASE" > "$RUN_DIR/repo-ci-ingest.json" 2>"$LOG_DIR/repo-ci-scanner.log") || scan_exit=$?
+if [[ $scan_exit -eq 0 ]] && grep -q '"created"' "$RUN_DIR/repo-ci-ingest.json" 2>/dev/null; then
+    REPO_ASSET="sample-vulnerable-repo"
+    record "Step 4: repo-ci-scanner ingest (asset: $REPO_ASSET)" "PASS" ""
 else
-    record "Step 4: repo-ci-scanner ingest" "FAIL" "scanner run failed, see $LOG_DIR/repo-ci-scanner.log"
+    record_from_exit_code "Step 4: repo-ci-scanner ingest" "$scan_exit" "" "scanner run failed or returned no created asset, see $LOG_DIR/repo-ci-scanner.log"
 fi
 
-echo ""
-echo "== Step 5: Document ingestion (sample vendor docs) =="
+set_step "Step 5: Document ingestion (sample vendor docs)"
 SAMPLE_DOCS="$RUN_DIR/sample-vendor-docs"
 mkdir -p "$SAMPLE_DOCS"
 cat > "$SAMPLE_DOCS/vendor-pqc-roadmap.md" <<'MD'
@@ -229,42 +347,39 @@ operations runbook.
 Rotate the signing certificate every 90 days. Escalate any expired
 certificate to the security team immediately.
 MD
-if (cd "$ROOT_DIR/agents/doc-ingestion" && "$PYTHON_BIN" ingest.py --docs-dir "$SAMPLE_DOCS" --out "$DOC_INDEX_PATH" 2>"$LOG_DIR/doc-ingestion.log"); then
-    if [[ -s "$DOC_INDEX_PATH" ]]; then
-        record "Step 5: doc-ingestion (sample vendor docs indexed)" "PASS" ""
-    else
-        record "Step 5: doc-ingestion (sample vendor docs indexed)" "FAIL" "no doc index produced"
-    fi
+ingest_exit=0
+(cd "$ROOT_DIR/agents/doc-ingestion" && run_bounded "$PYTHON_BIN" ingest.py --docs-dir "$SAMPLE_DOCS" --out "$DOC_INDEX_PATH" 2>"$LOG_DIR/doc-ingestion.log") || ingest_exit=$?
+if [[ $ingest_exit -eq 0 && -s "$DOC_INDEX_PATH" ]]; then
+    record "Step 5: doc-ingestion (sample vendor docs indexed)" "PASS" ""
 else
-    record "Step 5: doc-ingestion (sample vendor docs indexed)" "FAIL" "ingest run failed, see $LOG_DIR/doc-ingestion.log"
+    record_from_exit_code "Step 5: doc-ingestion (sample vendor docs indexed)" "$ingest_exit" "" "ingest run failed or produced no index, see $LOG_DIR/doc-ingestion.log"
 fi
 
-echo ""
-echo "== Step 6: Building dependency graph snapshot =="
-if (cd "$ROOT_DIR" && "$PYTHON_BIN" tools/graph_projection/project_stage2_fixtures.py \
+set_step "Step 6: Building dependency graph snapshot"
+graph_exit=0
+(cd "$ROOT_DIR" && run_bounded "$PYTHON_BIN" tools/graph_projection/project_stage2_fixtures.py \
     --host "services/inventory-service/tests/fixtures/stage2_evidence/host_enriched_ingest.json" \
     --network "services/inventory-service/tests/fixtures/stage2_evidence/network_enriched_ingest.json" \
     --snapshot-out "reports/graph/latest/graph-snapshot.json" \
-    --report-out "$RUN_DIR/graph-projection-report.md" >"$LOG_DIR/graph-projection.log" 2>&1); then
+    --report-out "$RUN_DIR/graph-projection-report.md" >"$LOG_DIR/graph-projection.log" 2>&1) || graph_exit=$?
+if [[ $graph_exit -eq 0 ]]; then
     cp "$ROOT_DIR/reports/graph/latest/graph-snapshot.json" "$GRAPH_SNAPSHOT_PATH"
     record "Step 6: dependency graph snapshot built" "PASS" ""
 else
-    record "Step 6: dependency graph snapshot built" "FAIL" "see $LOG_DIR/graph-projection.log"
+    record_from_exit_code "Step 6: dependency graph snapshot built" "$graph_exit" "" "see $LOG_DIR/graph-projection.log"
 fi
 
-echo ""
-echo "== Step 7: Retrieval search =="
-retrieval_resp="$(curl -sS -X POST "$RETRIEVAL_BASE/search" -H "Content-Type: application/json" -d '{"query": "roadmap"}' 2>>"$LOG_DIR/retrieval-search.log")" || true
+set_step "Step 7: Retrieval search"
+retrieval_resp="$(curl -sS --max-time "$STEP_TIMEOUT_SEC" -X POST "$RETRIEVAL_BASE/search" -H "Content-Type: application/json" -d '{"query": "roadmap"}' 2>>"$LOG_DIR/retrieval-search.log")" || true
 if echo "$retrieval_resp" | grep -q "vendor-pqc-roadmap"; then
     record "Step 7: retrieval search finds the ingested vendor doc" "PASS" ""
 else
     record "Step 7: retrieval search finds the ingested vendor doc" "FAIL" "vendor doc not found in search results"
 fi
 
-echo ""
-echo "== Step 8: Risk Narrator =="
+set_step "Step 8: Risk Narrator"
 narrate() {
-    curl -sS "$COPILOT_BASE/narrate/$1" 2>>"$LOG_DIR/narrate.log" | "$PYTHON_BIN" -c "import json,sys
+    curl -sS --max-time "$STEP_TIMEOUT_SEC" "$COPILOT_BASE/narrate/$1" 2>>"$LOG_DIR/narrate.log" | "$PYTHON_BIN" -c "import json,sys
 try:
     print(json.load(sys.stdin).get('narrative',''))
 except Exception:
@@ -284,23 +399,22 @@ else
     record "Step 8: Risk Narrator explains every ingested asset" "FAIL" "at least one asset got an empty narrative"
 fi
 
-echo ""
-echo "== Step 8b-8e: the other four Copilot subagents =="
-discover_resp="$(curl -sS "$COPILOT_BASE/discover" 2>>"$LOG_DIR/discover.log")" || true
+set_step "Step 8b-8e: the other four Copilot subagents"
+discover_resp="$(curl -sS --max-time "$STEP_TIMEOUT_SEC" "$COPILOT_BASE/discover" 2>>"$LOG_DIR/discover.log")" || true
 if echo "$discover_resp" | grep -q '"narrative"'; then
     record "Step 8b: Discovery Analyst summarizes discovered dependencies" "PASS" ""
 else
     record "Step 8b: Discovery Analyst summarizes discovered dependencies" "FAIL" "no narrative in response"
 fi
 
-vendor_resp="$(curl -sS "$COPILOT_BASE/vendor-intelligence" 2>>"$LOG_DIR/vendor-intelligence.log")" || true
+vendor_resp="$(curl -sS --max-time "$STEP_TIMEOUT_SEC" "$COPILOT_BASE/vendor-intelligence" 2>>"$LOG_DIR/vendor-intelligence.log")" || true
 if echo "$vendor_resp" | grep -q '"narrative"'; then
     record "Step 8c: Vendor Intelligence Analyst extracts readiness claims" "PASS" ""
 else
     record "Step 8c: Vendor Intelligence Analyst extracts readiness claims" "FAIL" "no narrative in response"
 fi
 
-migration_resp="$(curl -sS "$COPILOT_BASE/migration-plan" 2>>"$LOG_DIR/migration-plan.log")" || true
+migration_resp="$(curl -sS --max-time "$STEP_TIMEOUT_SEC" "$COPILOT_BASE/migration-plan" 2>>"$LOG_DIR/migration-plan.log")" || true
 if echo "$migration_resp" | grep -q '"narrative"'; then
     record "Step 8d: Migration Planner explains the wave plan" "PASS" ""
 else
@@ -310,7 +424,7 @@ fi
 change_plan_ok=true
 for asset in "$LINUX_ASSET" "$NETWORK_ASSET" "$REPO_ASSET"; do
     [[ -z "$asset" ]] && continue
-    change_resp="$(curl -sS "$COPILOT_BASE/change-plan/$asset" 2>>"$LOG_DIR/change-plan.log")" || true
+    change_resp="$(curl -sS --max-time "$STEP_TIMEOUT_SEC" "$COPILOT_BASE/change-plan/$asset" 2>>"$LOG_DIR/change-plan.log")" || true
     if ! echo "$change_resp" | grep -q '"pre_change_checklist"'; then
         change_plan_ok=false
     fi
@@ -321,10 +435,10 @@ else
     record "Step 8e: Change Assistant drafts a checklist for every ingested asset" "FAIL" "at least one asset got no checklist"
 fi
 
-echo ""
-echo "== Step 9: Building operator report =="
+set_step "Step 9: Building operator report"
 OPERATOR_REPORT="$OUT_DIR/product-demo-operator-report.md"
-if (cd "$ROOT_DIR" && "$PYTHON_BIN" - "$INVENTORY_BASE" "$OPERATOR_REPORT" "$LINUX_ASSET" "$NETWORK_ASSET" "$REPO_ASSET" <<'PY' 2>"$LOG_DIR/operator-report.log"
+operator_exit=0
+(cd "$ROOT_DIR" && run_bounded "$PYTHON_BIN" - "$INVENTORY_BASE" "$OPERATOR_REPORT" "$LINUX_ASSET" "$NETWORK_ASSET" "$REPO_ASSET" <<'PY' 2>"$LOG_DIR/operator-report.log"
 import json
 import sys
 import urllib.request
@@ -369,14 +483,14 @@ with open(out_path, "w", encoding="utf-8") as f:
 
 print(f"entries: {len(entries)}")
 PY
-); then
+) || operator_exit=$?
+if [[ $operator_exit -eq 0 ]]; then
     record "Step 9: operator report generated" "PASS" ""
 else
-    record "Step 9: operator report generated" "FAIL" "see $LOG_DIR/operator-report.log"
+    record_from_exit_code "Step 9: operator report generated" "$operator_exit" "" "see $LOG_DIR/operator-report.log"
 fi
 
-echo ""
-echo "== Step 10: Stopping services and cleaning up (handled on exit) =="
+set_step "Step 10: Stopping services and cleaning up (handled on exit)"
 record "Step 10: services stopped, temp files cleaned on exit" "PASS" ""
 
 passed=0
@@ -384,7 +498,7 @@ failed=0
 for status in "${STEP_STATUSES[@]:-}"; do
     if [[ "$status" == "PASS" ]]; then
         passed=$((passed + 1))
-    elif [[ "$status" == "FAIL" ]]; then
+    elif [[ "$status" == "FAIL" || "$status" == "TIMEOUT" ]]; then
         failed=$((failed + 1))
     fi
 done
@@ -415,7 +529,7 @@ now_iso="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
         name="${STEP_NAMES[$i]}"
         status="${STEP_STATUSES[$i]}"
         detail="${STEP_DETAILS[$i]}"
-        if [[ "$status" == "FAIL" && -n "$detail" ]]; then
+        if [[ ("$status" == "FAIL" || "$status" == "TIMEOUT") && -n "$detail" ]]; then
             echo "| $name -- $detail | $status |"
         else
             echo "| $name | $status |"
@@ -424,8 +538,12 @@ now_iso="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
     echo ""
     echo "Result: $overall"
 } > "$OUT_DIR/product-demo-smoke-report.md"
+# From here on the real smoke report exists on disk -- if anything below
+# times out or gets interrupted, cleanup() must not overwrite it with an
+# interim "INTERRUPTED" version (item 5).
+REPORT_WRITTEN=true
 
-"$PYTHON_BIN" - "$OUT_DIR" "$INVENTORY_BASE" "$RETRIEVAL_BASE" "$LINUX_ASSET" "$NETWORK_ASSET" "$REPO_ASSET" "$now_iso" "$overall" "$OPERATOR_REPORT" <<'PY'
+run_bounded "$PYTHON_BIN" - "$OUT_DIR" "$INVENTORY_BASE" "$RETRIEVAL_BASE" "$LINUX_ASSET" "$NETWORK_ASSET" "$REPO_ASSET" "$now_iso" "$overall" "$OPERATOR_REPORT" <<'PY'
 import json
 import sys
 import urllib.request

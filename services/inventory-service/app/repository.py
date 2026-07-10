@@ -65,7 +65,8 @@ class AssetRepository:
                     scanned_at TEXT NOT NULL,
                     host_inventory TEXT,
                     crypto_evidence TEXT,
-                    tls_evidence TEXT
+                    tls_evidence TEXT,
+                    ssh_evidence TEXT
                 )
                 """
             )
@@ -131,6 +132,8 @@ class AssetRepository:
         }
         if "workspace_id" not in columns:
             connection.execute("ALTER TABLE scans ADD COLUMN workspace_id TEXT")
+        if "ssh_evidence" not in columns:
+            connection.execute("ALTER TABLE scans ADD COLUMN ssh_evidence TEXT")
 
     @staticmethod
     def _ensure_asset_columns(connection: sqlite3.Connection) -> None:
@@ -311,8 +314,8 @@ class AssetRepository:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO scans (id, source, scanned_at, workspace_id, host_inventory, crypto_evidence, tls_evidence)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO scans (id, source, scanned_at, workspace_id, host_inventory, crypto_evidence, tls_evidence, ssh_evidence)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     scan_id,
@@ -322,6 +325,7 @@ class AssetRepository:
                     self._json_or_none(payload.host_inventory.model_dump() if payload.host_inventory else None),
                     self._json_or_none(payload.crypto_evidence.model_dump() if payload.crypto_evidence else None),
                     self._json_or_none(payload.tls_evidence.model_dump() if payload.tls_evidence else None),
+                    self._json_or_none(payload.ssh_evidence.model_dump() if payload.ssh_evidence else None),
                 ),
             )
             connection.commit()
@@ -438,6 +442,7 @@ class AssetRepository:
             host_inventory=self._parse_json(row["host_inventory"]),
             crypto_evidence=self._parse_json(row["crypto_evidence"]),
             tls_evidence=self._parse_json(row["tls_evidence"]),
+            ssh_evidence=self._parse_json(row["ssh_evidence"]),
         )
 
     def _row_to_risk(self, row: sqlite3.Row) -> RiskRecord:

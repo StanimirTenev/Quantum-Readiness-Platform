@@ -346,12 +346,26 @@ class TLSEvidence(BaseModel):
             raise ValueError("tls_evidence.port must be a number")
         return value
 
+class SSHEvidence(BaseModel):
+    """Deliberately permissive (extra="allow"): unlike TLSEvidence, no
+    downstream risk signal reads specific fields yet, so this just captures
+    whatever network-scanner's SSH_MSG_KEXINIT parsing reports (target, port,
+    collected, server_banner, kex_algorithms, server_host_key_algorithms,
+    encryption_algorithms_*, mac_algorithms_*, errors) without a rigid schema."""
+
+    model_config = ConfigDict(extra="allow")
+
+    target: Optional[str] = None
+    collected: Optional[bool] = None
+
+
 class ScanIngestRequest(BaseModel):
     source: Literal["host", "network", "repo", "manual"]
     assets: list[AssetCreate]
     host_inventory: Optional[HostInventory] = None
     crypto_evidence: Optional[CryptoEvidence] = None
     tls_evidence: Optional[TLSEvidence] = Field(default=None, validation_alias=AliasChoices("tls_evidence", "tls_metadata"), serialization_alias="tls_evidence")
+    ssh_evidence: Optional[SSHEvidence] = Field(default=None, validation_alias=AliasChoices("ssh_evidence", "ssh_metadata"), serialization_alias="ssh_evidence")
     stage2_notes: Optional[str] = None
 
 
@@ -371,6 +385,7 @@ class ScanRecord(BaseModel):
     host_inventory: Optional[dict[str, Any]] = None
     crypto_evidence: Optional[dict[str, Any]] = None
     tls_evidence: Optional[dict[str, Any]] = None
+    ssh_evidence: Optional[dict[str, Any]] = None
 
 
 class WorkspaceCreate(BaseModel):

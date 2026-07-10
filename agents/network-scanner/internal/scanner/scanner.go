@@ -40,7 +40,8 @@ func ScanTLS(target string, insecure bool, timeoutSeconds int) (ScanOutput, erro
 			CertificateChain: unavailableCertificateChainSummary("chain details unavailable"),
 			Errors:          []string{},
 		},
-		Assets: buildAssets(target),
+		SSHMetadata: emptySSHMetadata(),
+		Assets:      buildAssets(target),
 	}
 
 	dialer := &net.Dialer{
@@ -160,6 +161,30 @@ func certificateChainSummary(peerCertificates []*x509.Certificate) TLSCertificat
 		Length:       len(certificates),
 		Certificates: certificates,
 		Errors:       []string{},
+	}
+}
+
+func emptySSHMetadata() SSHMetadata {
+	return SSHMetadata{
+		Collected:                          false,
+		KexAlgorithms:                      []string{},
+		ServerHostKeyAlgorithms:            []string{},
+		EncryptionAlgorithmsClientToServer: []string{},
+		EncryptionAlgorithmsServerToClient: []string{},
+		MACAlgorithmsClientToServer:        []string{},
+		MACAlgorithmsServerToClient:        []string{},
+		Errors:                             []string{},
+	}
+}
+
+func emptyTLSMetadata(host string, port int) TLSMetadata {
+	return TLSMetadata{
+		Collected:        false,
+		Target:           host,
+		Port:             port,
+		ServerName:       host,
+		CertificateChain: unavailableCertificateChainSummary("chain details unavailable"),
+		Errors:           []string{},
 	}
 }
 

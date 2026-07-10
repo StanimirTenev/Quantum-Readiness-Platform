@@ -3,19 +3,24 @@
 ## What this service does
 - Performs TLS endpoint scans and builds network evidence payloads.
 - Collects richer `tls_metadata` for negotiated protocol/cipher details and leaf certificate properties.
+- Performs SSH algorithm-negotiation scans: reads the server's identification banner and its
+  `SSH_MSG_KEXINIT` packet (both sent in plaintext before any key exchange, per RFC 4253) to
+  report which key-exchange, host-key, encryption, and MAC algorithms it offers -- no
+  authentication or key exchange is attempted.
 
 ## Current role in the prototype
 - Working prototype agent for network-side evidence collection and optional ingest into `inventory-service`.
 
 ## Main endpoints or functions
 - CLI entrypoint: `cmd/scanner/main.go`
-- Main flow: `scanner.ScanTLS(target, insecure, timeout)` and optional `client.PostScan(...)`
+- Main flow: `scanner.ScanTLS(target, insecure, timeout)` or `scanner.ScanSSH(target, timeout)`
+  (selected via `-protocol`), and optional `client.PostScan(...)`
 
 ## Inputs / outputs
-- Input: CLI flags (`-target`, `-insecure`, `-timeout`, optional `-ingest`, optional
-  `-workspace-id` to group this scan under an existing workspace -- see
-  `services/inventory-service/README.md`'s workspace model).
-- Output: JSON TLS evidence (stdout) or ingest response JSON.
+- Input: CLI flags (`-target`, `-protocol` [`tls` default or `ssh`], `-insecure` [tls only],
+  `-timeout`, optional `-ingest`, optional `-workspace-id` to group this scan under an
+  existing workspace -- see `services/inventory-service/README.md`'s workspace model).
+- Output: JSON TLS or SSH evidence (stdout) or ingest response JSON.
 
 ## TLS Evidence Output Contract
 `tls_metadata` is always present in output JSON.
@@ -57,8 +62,36 @@ Fields are best-effort. When TLS collection fails, output remains stable with `c
 
 `certificate_chain` is a summary of certificates presented by the peer TLS connection state only. It is not a full trust validation result, does not fetch missing intermediates, and does not perform OCSP/AIA lookups.
 
+## SSH Evidence Output Contract
+`ssh_metadata` is always present in output JSON (with `collected=false` on a TLS-mode scan, or
+when an SSH-mode scan fails).
+
+Canonical shape:
+- `ssh_metadata`
+  - `collected`
+  - `target`
+  - `port`
+  - `server_banner` (the server's SSH identification string, e.g. `SSH-2.0-OpenSSH_9.6`)
+  - `kex_algorithms`
+  - `server_host_key_algorithms`
+  - `encryption_algorithms_client_to_server`
+  - `encryption_algorithms_server_to_client`
+  - `mac_algorithms_client_to_server`
+  - `mac_algorithms_server_to_client`
+  - `errors` (`[]` when no errors)
+
+These are the algorithm name-lists the server offers in its `SSH_MSG_KEXINIT` packet -- what it
+is willing to negotiate, not what a completed session would actually use. The scanner reports
+them as neutral facts (mirroring how `tls_metadata` reports `signature_algorithm`/
+`public_key_algorithm` without judging them); classifying an offered algorithm as
+quantum-vulnerable or weak is a downstream deterministic-analysis-layer concern, not this
+collector's job.
+
 ## Timeout and scanning behavior
-- The scanner remains non-aggressive and uses a single TLS dial attempt with configurable timeout (`-timeout`, default `5s`).
+- The scanner remains non-aggressive: a single TLS dial attempt, or for SSH a single TCP
+  connection followed by one identification-banner read and one `SSH_MSG_KEXINIT` packet read
+  -- no authentication or key exchange completion is attempted. Configurable timeout
+  (`-timeout`, default `5s`) applies to both.
 - No async or parallel scanning behavior is introduced.
 
 ## Sample output (success)
@@ -114,11 +147,51 @@ Fields are best-effort. When TLS collection fails, output remains stable with `c
 }
 ```
 
+## Sample output (SSH success)
+```json
+{
+  "source": "network",
+  "ssh_metadata": {
+    "collected": true,
+    "target": "10.0.0.5",
+    "port": 22,
+    "server_banner": "SSH-2.0-OpenSSH_9.6",
+    "kex_algorithms": ["curve25519-sha256", "diffie-hellman-group14-sha256"],
+    "server_host_key_algorithms": ["rsa-sha2-512", "ssh-ed25519"],
+    "encryption_algorithms_client_to_server": ["chacha20-poly1305@openssh.com", "aes256-gcm@openssh.com"],
+    "encryption_algorithms_server_to_client": ["chacha20-poly1305@openssh.com", "aes256-gcm@openssh.com"],
+    "mac_algorithms_client_to_server": ["hmac-sha2-256"],
+    "mac_algorithms_server_to_client": ["hmac-sha2-256"],
+    "errors": []
+  },
+  "assets": [
+    {
+      "asset_type": "endpoint",
+      "name": "10.0.0.5:22",
+      "criticality": 3,
+      "environment": "unknown",
+      "lifecycle_years": 3
+    }
+  ]
+}
+```
+
 ## Current status
-- Working prototype service.
+- Working prototype service. SSH scanning verified live against a real `sshd` (this machine's
+  own, including a real post-quantum-hybrid KEX algorithm,
+  `sntrup761x25519-sha512@openssh.com`, correctly captured) and ingested end to end through
+  `inventory-service` (`ssh_evidence` on the scan record).
 
 ## How to run tests
 - `cd agents/network-scanner && go test ./...`
 
 ## Known limitations
-- Current implementation is TLS-focused; SSH/VPN scanning is not implemented.
+- IPsec/VPN scanning is still not implemented -- SSH closes the gap noted in the previous
+  version of this doc, but VPN protocols remain out of scope.
+- `ssh_metadata`'s algorithm lists are ingested and persisted (`inventory-service`'s
+  `ssh_evidence`) but not yet wired into any risk-engine signal -- unlike `tls_metadata`'s
+  `weak_public_key_detected`, there is no equivalent "weak SSH algorithm" risk rationale flag
+  yet. Evidence-only for now, a natural follow-up.
+- Not exercised in `scripts/run_product_demo.sh` (that script's own bash/openssl-based fixture
+  setup can't easily fake a real SSH server); covered instead by Go unit tests against a
+  scripted fake SSH server plus manual live verification against this machine's real `sshd`.

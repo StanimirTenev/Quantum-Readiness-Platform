@@ -49,6 +49,11 @@
   so `weak_public_key_detected` could never fire from a real Stage-2-shaped network scan).
 - `tls_metadata.collected` is inferred `true` when a `certificate` block is present but no
   explicit `collected` flag was sent (fixed 2026-07-08, same date/reason as above).
+- `ssh_metadata` (alias `ssh_evidence`) is also accepted and persisted, as emitted by
+  `network-scanner`'s SSH scan mode (`-protocol ssh`) -- server banner, offered
+  kex/host-key/encryption/MAC algorithm lists. Deliberately permissive (`extra="allow"`, no
+  rigid schema): unlike `tls_metadata`, no risk-engine signal reads it yet, so it is stored
+  and returned on the scan record as-is (evidence-only for now).
 
 ### Sample ingest payload snippet
 ```json

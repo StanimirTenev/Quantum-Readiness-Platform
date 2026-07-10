@@ -105,9 +105,24 @@ type AssetPayload struct {
 	LifecycleYears *int    `json:"lifecycle_years,omitempty"`
 }
 
+type SSHMetadata struct {
+	Collected                          bool     `json:"collected"`
+	Target                             string   `json:"target"`
+	Port                               int      `json:"port"`
+	ServerBanner                       string   `json:"server_banner"`
+	KexAlgorithms                      []string `json:"kex_algorithms"`
+	ServerHostKeyAlgorithms            []string `json:"server_host_key_algorithms"`
+	EncryptionAlgorithmsClientToServer []string `json:"encryption_algorithms_client_to_server"`
+	EncryptionAlgorithmsServerToClient []string `json:"encryption_algorithms_server_to_client"`
+	MACAlgorithmsClientToServer        []string `json:"mac_algorithms_client_to_server"`
+	MACAlgorithmsServerToClient        []string `json:"mac_algorithms_server_to_client"`
+	Errors                             []string `json:"errors"`
+}
+
 type ScanOutput struct {
 	Source      string         `json:"source"`
 	TLSEvidence *TLSEvidence   `json:"tls_evidence,omitempty"`
 	TLSMetadata TLSMetadata    `json:"tls_metadata"`
+	SSHMetadata SSHMetadata    `json:"ssh_metadata"`
 	Assets      []AssetPayload `json:"assets"`
 }

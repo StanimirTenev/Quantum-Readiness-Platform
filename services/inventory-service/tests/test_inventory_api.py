@@ -84,6 +84,53 @@ def test_scan_ingest_and_list_scans(client: TestClient, monkeypatch) -> None:
     assert risks[0]["contract_version"] == "stage1-v1"
 
 
+def test_scan_ingest_persists_ssh_evidence(client: TestClient, monkeypatch) -> None:
+    def fake_score(self, payload):
+        return {
+            "contract_version": payload["contract_version"],
+            "asset_name": payload["asset_name"],
+            "scenario": payload["scenario"],
+            "scenario_multiplier": 1.0,
+            "base_score": 3.4,
+            "final_score": 3.4,
+            "normalized_score_100": 68.0,
+            "rating": "high",
+            "dependency_count": payload["dependency_count"],
+            "vendor_blocked": payload["vendor_blocked"],
+            "rationale": payload,
+        }
+
+    monkeypatch.setattr("app.clients.risk_engine.RiskEngineClient.score", fake_score)
+
+    ingest_response = client.post(
+        "/scans/ingest",
+        json={
+            "source": "network",
+            "assets": [
+                {"asset_type": "endpoint", "name": "10.0.0.5:22", "criticality": 3, "environment": "unknown", "lifecycle_years": 3},
+            ],
+            "ssh_metadata": {
+                "collected": True,
+                "target": "10.0.0.5",
+                "port": 22,
+                "server_banner": "SSH-2.0-OpenSSH_9.6",
+                "kex_algorithms": ["curve25519-sha256", "diffie-hellman-group1-sha1"],
+                "server_host_key_algorithms": ["ssh-rsa", "ssh-ed25519"],
+                "errors": [],
+            },
+        },
+    )
+    assert ingest_response.status_code == 201
+
+    scans_response = client.get("/scans")
+    assert scans_response.status_code == 200
+    scan = scans_response.json()[0]
+    assert scan["ssh_evidence"]["target"] == "10.0.0.5"
+    assert scan["ssh_evidence"]["collected"] is True
+    assert scan["ssh_evidence"]["kex_algorithms"] == ["curve25519-sha256", "diffie-hellman-group1-sha1"]
+    assert scan["ssh_evidence"]["server_host_key_algorithms"] == ["ssh-rsa", "ssh-ed25519"]
+
+
 def test_scan_ingest_accepts_stage2_evidence_shape(client: TestClient, monkeypatch) -> None:
     def fake_score(self, payload):
         return {

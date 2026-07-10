@@ -14,6 +14,7 @@ class TaskCreate(BaseModel):
     priority: TaskPriority
     description: str = Field(..., min_length=3)
     recommended_action: Optional[str] = None
+    requested_by: str = Field(..., min_length=1, max_length=255)
 
 
 class Task(TaskCreate):

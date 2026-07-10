@@ -16,6 +16,7 @@ workflow = WorkflowClient()
 class ExportRequest(BaseModel):
     waves: list[Literal["wave_1", "wave_2", "wave_3"]] = Field(default_factory=lambda: ["wave_1"])
     auto_submit: bool = False
+    requested_by: str = Field(..., min_length=1, max_length=255)
 
 
 @app.get("/health")
@@ -69,6 +70,7 @@ def export_tasks(payload: ExportRequest) -> dict:
                 "priority": priority,
                 "description": f"Planned remediation for {item['asset_name']} in {wave_name}.",
                 "recommended_action": item.get("recommended_action"),
+                "requested_by": payload.requested_by,
             }
 
             try:

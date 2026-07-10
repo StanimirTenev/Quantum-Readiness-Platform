@@ -11,7 +11,9 @@
 - `POST /export-tasks`
 
 ## Inputs / outputs
-- Input: inventory/risk data from upstream services and export options (`waves`, `auto_submit`).
+- Input: inventory/risk data from upstream services and export options (`waves`, `auto_submit`,
+  `requested_by` -- required, threaded into each created workflow task so it can enforce
+  segregation of duties at approval time).
 - Output: JSON plan summaries and created workflow task payloads.
 
 ## Current status

@@ -31,7 +31,8 @@ class WorkflowRepository:
                     priority TEXT NOT NULL,
                     description TEXT NOT NULL,
                     recommended_action TEXT,
-                    status TEXT NOT NULL
+                    status TEXT NOT NULL,
+                    requested_by TEXT NOT NULL DEFAULT 'unknown'
                 )
                 """
             )
@@ -46,7 +47,19 @@ class WorkflowRepository:
                 )
                 """
             )
+            self._ensure_task_columns(connection)
             connection.commit()
+
+    @staticmethod
+    def _ensure_task_columns(connection: sqlite3.Connection) -> None:
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(tasks)").fetchall()
+        }
+        if "requested_by" not in columns:
+            connection.execute(
+                "ALTER TABLE tasks ADD COLUMN requested_by TEXT NOT NULL DEFAULT 'unknown'"
+            )
 
     def _find_existing_task(self, payload: TaskCreate) -> Task | None:
         with self._connect() as connection:
@@ -71,9 +84,9 @@ class WorkflowRepository:
             connection.execute(
                 """
                 INSERT INTO tasks (
-                    id, title, asset_name, wave, priority, description, recommended_action, status
+                    id, title, asset_name, wave, priority, description, recommended_action, status, requested_by
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task_id,
@@ -84,6 +97,7 @@ class WorkflowRepository:
                     payload.description,
                     payload.recommended_action,
                     "draft",
+                    payload.requested_by,
                 ),
             )
             connection.commit()
@@ -132,6 +146,8 @@ class WorkflowRepository:
             return None
         if task.status != "pending_approval":
             raise ValueError("Task must be in pending_approval status before an approval decision")
+        if approver == task.requested_by:
+            raise ValueError("Approver must not be the same person who requested the task (segregation of duties)")
 
         approval_id = str(uuid.uuid4())
         with self._connect() as connection:

@@ -53,8 +53,20 @@ def test_export_tasks(monkeypatch) -> None:
     ])
     monkeypatch.setattr("app.main.workflow.create_task", lambda payload: {"id": "task-1", **payload})
 
-    response = client.post("/export-tasks", json={"waves": ["wave_1", "wave_2"]})
+    response = client.post(
+        "/export-tasks",
+        json={"waves": ["wave_1", "wave_2"], "requested_by": "security-lead"},
+    )
     assert response.status_code == 200
     data = response.json()
     assert data["created_count"] == 2
     assert len(data["tasks"]) == 2
+    assert all(task["requested_by"] == "security-lead" for task in data["tasks"])
+
+
+def test_export_tasks_requires_requested_by(monkeypatch) -> None:
+    monkeypatch.setattr("app.main.inventory.get_assets", lambda: [])
+    monkeypatch.setattr("app.main.inventory.get_risks", lambda: [])
+
+    response = client.post("/export-tasks", json={"waves": ["wave_1"]})
+    assert response.status_code == 422

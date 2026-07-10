@@ -28,6 +28,7 @@ def test_task_lifecycle(client: TestClient) -> None:
             "priority": "high",
             "description": "Review TLS configuration and migration path.",
             "recommended_action": "Review TLS configuration, certificate algorithms, and PQC migration path.",
+            "requested_by": "planner-service",
         },
     )
     assert create_response.status_code == 201
@@ -62,6 +63,7 @@ def test_cleanup_duplicates(client: TestClient) -> None:
         "priority": "high",
         "description": "Review TLS configuration and migration path.",
         "recommended_action": "Review TLS configuration, certificate algorithms, and PQC migration path.",
+        "requested_by": "planner-service",
     }
 
     first = client.post("/tasks", json=payload)
@@ -82,6 +84,7 @@ def test_update_status_returns_conflict_for_invalid_transition(client: TestClien
             "priority": "high",
             "description": "Task should not skip approval.",
             "recommended_action": "Follow workflow lifecycle.",
+            "requested_by": "planner-service",
         },
     )
     task_id = create_response.json()["id"]
@@ -89,3 +92,37 @@ def test_update_status_returns_conflict_for_invalid_transition(client: TestClien
     status_response = client.post(f"/tasks/{task_id}/status", json={"status": "in_progress"})
     assert status_response.status_code == 409
     assert "Invalid task status transition" in status_response.json()["detail"]
+
+
+def test_approve_rejects_same_person_as_requester(client: TestClient) -> None:
+    create_response = client.post(
+        "/tasks",
+        json={
+            "title": "Review google endpoint",
+            "asset_name": "google.com:443",
+            "wave": "wave_1",
+            "priority": "high",
+            "description": "Review TLS configuration and migration path.",
+            "recommended_action": "Review TLS configuration, certificate algorithms, and PQC migration path.",
+            "requested_by": "alice",
+        },
+    )
+    task_id = create_response.json()["id"]
+    client.post(f"/tasks/{task_id}/submit")
+
+    approve_response = client.post(
+        f"/tasks/{task_id}/approve",
+        json={"approver": "alice", "decision": "approved", "note": "Proceed"},
+    )
+    assert approve_response.status_code == 409
+    assert "segregation of duties" in approve_response.json()["detail"]
+
+    get_response = client.get(f"/tasks/{task_id}")
+    assert get_response.json()["status"] == "pending_approval"
+
+    approve_response = client.post(
+        f"/tasks/{task_id}/approve",
+        json={"approver": "bob", "decision": "approved", "note": "Proceed"},
+    )
+    assert approve_response.status_code == 200
+    assert approve_response.json()["decision"] == "approved"

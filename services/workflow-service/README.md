@@ -13,11 +13,12 @@
 - `GET /approvals`, `POST /admin/cleanup-duplicates`
 
 ## Inputs / outputs
-- Input: task creation payloads and approval/status update requests.
+- Input: task creation payloads (require `requested_by`) and approval/status update requests.
 - Output: JSON task objects, approval records, and cleanup counters.
 
 ## Current status
-- Working prototype service.
+- Working prototype service. Enforces segregation of duties: `POST /tasks/{task_id}/approve`
+  rejects (409) when `approver` matches the task's `requested_by`.
 
 ## How to run tests
 - `pytest services/workflow-service/tests`

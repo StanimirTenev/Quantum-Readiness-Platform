@@ -6,7 +6,16 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Iterable
 
-from .models import Asset, AssetCreate, AssetUpdate, RiskRecord, ScanIngestRequest, ScanRecord
+from .models import (
+    Asset,
+    AssetCreate,
+    AssetUpdate,
+    ReportRecord,
+    RiskRecord,
+    ScanIngestRequest,
+    ScanRecord,
+    Workspace,
+)
 
 # INVENTORY_DB_PATH lets a caller (e.g. the local flow runner) point the store at
 # an isolated database so a demonstration run does not accumulate into the dev DB.
@@ -25,6 +34,15 @@ class AssetRepository:
 
     def _ensure_schema(self) -> None:
         with self._connect() as connection:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS workspaces (
+                    id TEXT PRIMARY KEY,
+                    source TEXT,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
             connection.execute(
                 """
                 CREATE TABLE IF NOT EXISTS assets (
@@ -70,7 +88,20 @@ class AssetRepository:
                 )
                 """
             )
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS reports (
+                    id TEXT PRIMARY KEY,
+                    workspace_id TEXT NOT NULL,
+                    report_type TEXT NOT NULL,
+                    generated_at TEXT NOT NULL,
+                    content TEXT NOT NULL
+                )
+                """
+            )
             self._ensure_risk_result_columns(connection)
+            self._ensure_scan_columns(connection)
+            self._ensure_asset_columns(connection)
             connection.commit()
 
     @staticmethod
@@ -91,6 +122,87 @@ class AssetRepository:
             connection.execute(
                 "ALTER TABLE risk_results ADD COLUMN vendor_blocked INTEGER NOT NULL DEFAULT 0"
             )
+
+    @staticmethod
+    def _ensure_scan_columns(connection: sqlite3.Connection) -> None:
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(scans)").fetchall()
+        }
+        if "workspace_id" not in columns:
+            connection.execute("ALTER TABLE scans ADD COLUMN workspace_id TEXT")
+
+    @staticmethod
+    def _ensure_asset_columns(connection: sqlite3.Connection) -> None:
+        columns = {
+            row["name"]
+            for row in connection.execute("PRAGMA table_info(assets)").fetchall()
+        }
+        if "created_at" not in columns:
+            connection.execute("ALTER TABLE assets ADD COLUMN created_at TEXT")
+        if "workspace_id" not in columns:
+            connection.execute("ALTER TABLE assets ADD COLUMN workspace_id TEXT")
+
+    def create_workspace(self, source: str | None) -> Workspace:
+        workspace_id = str(uuid.uuid4())
+        created_at = datetime.now(UTC).isoformat()
+        with self._connect() as connection:
+            connection.execute(
+                "INSERT INTO workspaces (id, source, created_at) VALUES (?, ?, ?)",
+                (workspace_id, source, created_at),
+            )
+            connection.commit()
+        return Workspace(id=workspace_id, source=source, created_at=created_at)
+
+    def get_workspace(self, workspace_id: str) -> Workspace | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM workspaces WHERE id = ?", (workspace_id,)).fetchone()
+        return Workspace(**dict(row)) if row else None
+
+    def list_workspaces(self) -> list[Workspace]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT * FROM workspaces ORDER BY created_at DESC").fetchall()
+        return [Workspace(**dict(row)) for row in rows]
+
+    def create_report(self, workspace_id: str, report_type: str, content: str) -> ReportRecord:
+        report_id = str(uuid.uuid4())
+        generated_at = datetime.now(UTC).isoformat()
+        with self._connect() as connection:
+            connection.execute(
+                """
+                INSERT INTO reports (id, workspace_id, report_type, generated_at, content)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (report_id, workspace_id, report_type, generated_at, content),
+            )
+            connection.commit()
+        return ReportRecord(
+            id=report_id, workspace_id=workspace_id, report_type=report_type,
+            generated_at=generated_at, content=content,
+        )
+
+    def get_report(self, report_id: str) -> ReportRecord | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM reports WHERE id = ?", (report_id,)).fetchone()
+        return ReportRecord(**dict(row)) if row else None
+
+    def list_reports(self, workspace_id: str | None = None) -> list[ReportRecord]:
+        query = "SELECT * FROM reports"
+        params: tuple[Any, ...] = ()
+        if workspace_id is not None:
+            query += " WHERE workspace_id = ?"
+            params = (workspace_id,)
+        query += " ORDER BY generated_at DESC"
+        with self._connect() as connection:
+            rows = connection.execute(query, params).fetchall()
+        return [ReportRecord(**dict(row)) for row in rows]
+
+    def list_scans_by_workspace(self, workspace_id: str) -> list[ScanRecord]:
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT * FROM scans WHERE workspace_id = ? ORDER BY scanned_at ASC", (workspace_id,)
+            ).fetchall()
+        return [self._row_to_scan(row) for row in rows]
 
     def _find_existing_asset(self, payload: AssetCreate) -> Asset | None:
         with self._connect() as connection:
@@ -115,17 +227,23 @@ class AssetRepository:
             row = connection.execute("SELECT * FROM assets WHERE id = ?", (asset_id,)).fetchone()
         return Asset(**dict(row)) if row else None
 
-    def create_asset(self, payload: AssetCreate) -> Asset:
+    def create_asset(self, payload: AssetCreate, workspace_id: str | None = None) -> Asset:
+        """workspace_id is only recorded when the asset is actually created --
+        it marks "first discovered in this workspace"; reusing an existing
+        asset (matched by name+type) in a later workspace's scan does not
+        change its workspace_id, matching created_at's immutable-on-creation
+        semantics."""
         existing = self._find_existing_asset(payload)
         if existing is not None:
             return existing
 
         asset_id = str(uuid.uuid4())
+        created_at = datetime.now(UTC).isoformat()
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO assets (id, asset_type, name, owner, criticality, environment, vendor, lifecycle_years)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO assets (id, asset_type, name, owner, criticality, environment, vendor, lifecycle_years, created_at, workspace_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     asset_id,
@@ -136,6 +254,8 @@ class AssetRepository:
                     payload.environment,
                     payload.vendor,
                     payload.lifecycle_years,
+                    created_at,
+                    workspace_id,
                 ),
             )
             connection.commit()
@@ -143,8 +263,8 @@ class AssetRepository:
         assert created is not None
         return created
 
-    def create_many(self, payloads: Iterable[AssetCreate]) -> list[Asset]:
-        return [self.create_asset(payload) for payload in payloads]
+    def create_many(self, payloads: Iterable[AssetCreate], workspace_id: str | None = None) -> list[Asset]:
+        return [self.create_asset(payload, workspace_id=workspace_id) for payload in payloads]
 
     def update_asset(self, asset_id: str, payload: AssetUpdate) -> Asset | None:
         existing = self.get_asset(asset_id)
@@ -178,26 +298,34 @@ class AssetRepository:
             connection.commit()
         return cursor.rowcount > 0
 
-    def create_scan(self, payload: ScanIngestRequest) -> str:
+    def create_scan(self, payload: ScanIngestRequest, workspace_id: str | None = None) -> tuple[str, str]:
+        """Returns (scan_id, workspace_id). Hybrid workspace model: if the
+        caller doesn't pass workspace_id, a new single-scan workspace is
+        auto-created (source = this scan's source) so every scan always
+        belongs to some workspace, no caller changes required."""
+        if workspace_id is None:
+            workspace_id = self.create_workspace(source=payload.source).id
+
         scan_id = str(uuid.uuid4())
         scanned_at = datetime.now(UTC).isoformat()
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO scans (id, source, scanned_at, host_inventory, crypto_evidence, tls_evidence)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO scans (id, source, scanned_at, workspace_id, host_inventory, crypto_evidence, tls_evidence)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     scan_id,
                     payload.source,
                     scanned_at,
+                    workspace_id,
                     self._json_or_none(payload.host_inventory.model_dump() if payload.host_inventory else None),
                     self._json_or_none(payload.crypto_evidence.model_dump() if payload.crypto_evidence else None),
                     self._json_or_none(payload.tls_evidence.model_dump() if payload.tls_evidence else None),
                 ),
             )
             connection.commit()
-        return scan_id
+        return scan_id, workspace_id
 
     def list_scans(self) -> list[ScanRecord]:
         with self._connect() as connection:
@@ -306,6 +434,7 @@ class AssetRepository:
             id=row["id"],
             source=row["source"],
             scanned_at=row["scanned_at"],
+            workspace_id=row["workspace_id"],
             host_inventory=self._parse_json(row["host_inventory"]),
             crypto_evidence=self._parse_json(row["crypto_evidence"]),
             tls_evidence=self._parse_json(row["tls_evidence"]),

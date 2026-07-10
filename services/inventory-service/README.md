@@ -1,7 +1,32 @@
 # Inventory Service
 
 ## What this service does
-- Stores assets, ingested scan events, and related risk records.
+- Stores assets, ingested scan events, related risk records, and (see below) a lightweight
+  workspace/report model tying them together.
+
+## Workspace model (lightweight, not multi-tenancy)
+- A workspace groups "this is scan run X" (its scans), "these are findings from it" (their
+  risk records), and "this is a report tied to it" (persisted reports) -- just logical
+  grouping, no auth/tenancy semantics.
+- Hybrid creation: `POST /workspaces` (optional `{"source": "..."}`) creates one explicitly --
+  pass its `id` as `?workspace_id=` on subsequent `/scans/ingest` calls to group multiple scans
+  under it. If a caller omits `workspace_id`, a new single-scan workspace is auto-created
+  transparently (`source` = the scan's own source) -- every scan always belongs to some
+  workspace, and no existing caller needs to change.
+- `GET /workspaces/{id}` returns a rollup: `{workspace, scans, risks, reports}`.
+- `POST /workspaces/{id}/reports` (optional `{"report_type": "..."}`, defaults to `"operator"`)
+  builds an operator report (`tools/report/build_operator_report`, the same logic
+  `scripts/run_product_demo.sh` and `run_report.sh` use) from the workspace's own scans/risks
+  -- one highest-scoring risk record per asset name -- and persists it.
+  `GET /reports/{report_id}` fetches it back; `GET /reports?workspace_id=` lists/filters.
+- An asset's `workspace_id` records which workspace *first discovered* it (set once, at
+  creation, like `created_at`); reusing an existing asset (matched by name+type) in a later
+  workspace's scan does not move it -- an asset can legitimately be touched by scans in
+  multiple workspaces over time.
+- Deliberately not wired into `scripts/run_product_demo.sh`, the demo-seed endpoint, or the
+  web-ui yet -- this PR is the backend model itself; every existing caller keeps working
+  unchanged via the auto-workspace fallback. Wiring explicit workspace grouping into those is
+  natural follow-up work, not done here.
 
 ## Stage 2 enriched evidence ingest
 - `POST /scans/ingest` now accepts optional Stage 2 enriched evidence blocks while remaining backward compatible with existing Stage 1 payloads.
@@ -67,8 +92,10 @@
 - `GET /health`
 - `GET/POST/PUT/DELETE /assets` and `/assets/{asset_id}`
 - `GET /assets/{asset_id}/history`
-- `POST /scans/ingest`, `POST /scans/ingest/windows`, `GET /scans`, `GET /scans/{scan_id}`
+- `POST /scans/ingest` (accepts `?workspace_id=`), `POST /scans/ingest/windows`, `GET /scans`, `GET /scans/{scan_id}`
 - `GET /risks`, `POST /admin/cleanup-assets`
+- `POST /workspaces`, `GET /workspaces`, `GET /workspaces/{workspace_id}`
+- `POST /workspaces/{workspace_id}/reports`, `GET /reports/{report_id}`, `GET /reports`
 
 ## How to run tests
 - `pytest services/inventory-service/tests`

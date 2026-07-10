@@ -101,7 +101,7 @@ def test_scan_and_risk_persistence(tmp_path: Path) -> None:
         ),
     )
 
-    scan_id = repo.create_scan(payload)
+    scan_id, _workspace_id = repo.create_scan(payload)
     created_assets = repo.create_many(payload.assets)
 
     assert scan_id

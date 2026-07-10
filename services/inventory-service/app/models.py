@@ -92,6 +92,8 @@ class AssetUpdate(BaseModel):
 
 class Asset(AssetBase):
     id: str
+    created_at: Optional[str] = None
+    workspace_id: Optional[str] = None
 
 
 class HostInventory(BaseModel):
@@ -358,15 +360,39 @@ class ScanIngestResponse(BaseModel):
     created: int
     asset_ids: list[str]
     scan_id: str
+    workspace_id: str
 
 
 class ScanRecord(BaseModel):
     id: str
     source: str
     scanned_at: str
+    workspace_id: Optional[str] = None
     host_inventory: Optional[dict[str, Any]] = None
     crypto_evidence: Optional[dict[str, Any]] = None
     tls_evidence: Optional[dict[str, Any]] = None
+
+
+class WorkspaceCreate(BaseModel):
+    source: Optional[str] = Field(default=None, max_length=255)
+
+
+class Workspace(BaseModel):
+    id: str
+    source: Optional[str] = None
+    created_at: str
+
+
+class ReportCreate(BaseModel):
+    report_type: str = Field(default="operator", max_length=100)
+
+
+class ReportRecord(BaseModel):
+    id: str
+    workspace_id: str
+    report_type: str
+    generated_at: str
+    content: str
 
 
 class RiskRecord(BaseModel):
@@ -383,6 +409,17 @@ class RiskRecord(BaseModel):
     dependency_count: int = 0
     vendor_blocked: bool = False
     rationale: dict[str, Any]
+
+
+class WorkspaceBundle(BaseModel):
+    """A workspace's scan run(s), the findings from them, and any reports
+    generated for it -- the "this is scan run X / these are its findings /
+    this is its report" grouping the lightweight workspace model exists for."""
+
+    workspace: Workspace
+    scans: list[ScanRecord]
+    risks: list[RiskRecord]
+    reports: list[ReportRecord]
 
 
 class ScanWithRisk(BaseModel):

@@ -1,3 +1,6 @@
+import sys
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from fastapi import Body, FastAPI, HTTPException, Query, status
@@ -9,15 +12,28 @@ from .models import (
     AssetRiskHistory,
     AssetRiskHistoryPoint,
     AssetUpdate,
+    ReportCreate,
+    ReportRecord,
     RiskRecord,
     ScanIngestRequest,
     ScanIngestResponse,
     ScanRecord,
     ScanWithRisk,
+    Workspace,
+    WorkspaceBundle,
+    WorkspaceCreate,
 )
 from .repository import AssetRepository
 from .risk_mapper import build_risk_payload
 from .windows_evidence import build_ingest_request
+
+# tools/report is a repo-level utility (also imported this way by
+# api-gateway's demo_seed.py) -- reused here so a workspace's report is
+# built from the same deterministic logic as the file-based demo reports.
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+from tools.report.build_operator_report import build_report  # noqa: E402
 
 app = FastAPI(title="Inventory Service", version="0.4.0")
 repository = AssetRepository()
@@ -100,9 +116,17 @@ def _persist_scan(
     payload: ScanIngestRequest,
     auto_score: bool,
     scenario: str,
+    workspace_id: str | None = None,
 ) -> ScanIngestResponse:
-    scan_id = repository.create_scan(payload)
-    created = repository.create_many(payload.assets)
+    """workspace_id is the hybrid workspace model's entry point (see
+    Workspace/POST /workspaces): pass an existing workspace_id to group this
+    scan under it, or omit it and a new single-scan workspace is
+    auto-created -- every scan always ends up in some workspace."""
+    if workspace_id is not None and repository.get_workspace(workspace_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+
+    scan_id, resolved_workspace_id = repository.create_scan(payload, workspace_id=workspace_id)
+    created = repository.create_many(payload.assets, workspace_id=resolved_workspace_id)
 
     if auto_score:
         for asset in created:
@@ -115,6 +139,7 @@ def _persist_scan(
         created=len(created),
         asset_ids=[asset.id for asset in created],
         scan_id=scan_id,
+        workspace_id=resolved_workspace_id,
     )
 
 
@@ -123,8 +148,9 @@ def ingest_scan(
     payload: ScanIngestRequest,
     auto_score: bool = Query(default=True),
     scenario: str = Query(default="public_timeline"),
+    workspace_id: str | None = Query(default=None),
 ) -> ScanIngestResponse:
-    return _persist_scan(payload, auto_score=auto_score, scenario=scenario)
+    return _persist_scan(payload, auto_score=auto_score, scenario=scenario, workspace_id=workspace_id)
 
 
 @app.post(
@@ -136,6 +162,7 @@ def ingest_windows_evidence(
     document: dict[str, Any] = Body(...),
     auto_score: bool = Query(default=True),
     scenario: str = Query(default="public_timeline"),
+    workspace_id: str | None = Query(default=None),
 ) -> ScanIngestResponse:
     """Persist a Windows host evidence document (from the windows-host-agent).
 
@@ -150,7 +177,7 @@ def ingest_windows_evidence(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=f"invalid windows evidence document: {exc}",
         ) from exc
-    return _persist_scan(payload, auto_score=auto_score, scenario=scenario)
+    return _persist_scan(payload, auto_score=auto_score, scenario=scenario, workspace_id=workspace_id)
 
 
 @app.get("/scans", response_model=list[ScanRecord])
@@ -175,3 +202,83 @@ def list_risks(scan_id: str | None = None) -> list[RiskRecord]:
 @app.post("/admin/cleanup-assets")
 def cleanup_assets() -> dict[str, int]:
     return repository.cleanup_duplicate_assets()
+
+
+# --- Workspace model (PR: Project/Workspace Model) ---
+# Lightweight grouping, not multi-tenancy: a workspace ties together "this is
+# scan run X" (its scans), "these are findings from it" (their risk
+# records), and "this is a report tied to it" (persisted reports). Hybrid
+# creation: POST /workspaces first for explicit grouping across multiple
+# scans, or omit workspace_id on /scans/ingest and one is auto-created.
+
+@app.post("/workspaces", response_model=Workspace, status_code=status.HTTP_201_CREATED)
+def create_workspace(payload: WorkspaceCreate) -> Workspace:
+    return repository.create_workspace(source=payload.source)
+
+
+@app.get("/workspaces", response_model=list[Workspace])
+def list_workspaces() -> list[Workspace]:
+    return repository.list_workspaces()
+
+
+@app.get("/workspaces/{workspace_id}", response_model=WorkspaceBundle)
+def get_workspace(workspace_id: str) -> WorkspaceBundle:
+    workspace = repository.get_workspace(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+
+    scans = repository.list_scans_by_workspace(workspace_id)
+    risks = [risk for scan in scans for risk in repository.list_risk_results(scan_id=scan.id)]
+    reports = repository.list_reports(workspace_id=workspace_id)
+    return WorkspaceBundle(workspace=workspace, scans=scans, risks=risks, reports=reports)
+
+
+@app.post("/workspaces/{workspace_id}/reports", response_model=ReportRecord, status_code=status.HTTP_201_CREATED)
+def create_workspace_report(workspace_id: str, payload: ReportCreate = ReportCreate()) -> ReportRecord:
+    """Builds an operator report (tools/report/build_operator_report) from
+    this workspace's own scans/risks -- one highest-scoring risk record per
+    asset_name, matching the persisted_risk bundle shape -- and persists it
+    so it's fetchable later via GET /reports/{report_id}."""
+    workspace = repository.get_workspace(workspace_id)
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+
+    scans = repository.list_scans_by_workspace(workspace_id)
+    best_risk_by_asset: dict[str, tuple[RiskRecord, str]] = {}
+    for scan in scans:
+        for risk in repository.list_risk_results(scan_id=scan.id):
+            current = best_risk_by_asset.get(risk.asset_name)
+            if current is None or risk.normalized_score_100 > current[0].normalized_score_100:
+                best_risk_by_asset[risk.asset_name] = (risk, scan.source)
+
+    bundle = {
+        "generated_at": datetime.now(UTC).isoformat(),
+        "environment": f"workspace {workspace_id}",
+        "assets": [
+            {
+                "asset_name": asset_name,
+                "application": source,
+                "persisted_risk": {
+                    "rating": risk.rating,
+                    "normalized_score_100": risk.normalized_score_100,
+                    "rationale": risk.rationale,
+                },
+            }
+            for asset_name, (risk, source) in best_risk_by_asset.items()
+        ],
+    }
+    content = build_report(bundle)
+    return repository.create_report(workspace_id, report_type=payload.report_type, content=content)
+
+
+@app.get("/reports/{report_id}", response_model=ReportRecord)
+def get_report(report_id: str) -> ReportRecord:
+    report = repository.get_report(report_id)
+    if report is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Report not found")
+    return report
+
+
+@app.get("/reports", response_model=list[ReportRecord])
+def list_reports(workspace_id: str | None = None) -> list[ReportRecord]:
+    return repository.list_reports(workspace_id=workspace_id)

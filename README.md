@@ -54,6 +54,21 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 | dashboard-ui | ✅ Working prototype | — |
 | web-ui | ✅ Working prototype (buildless) | ✅ Build + JS syntax check |
 
+## Local packaging (Makefile shortcuts)
+
+Thin `make` wrappers over the scripts below, for a quicker local dev loop:
+
+```bash
+make dev-up     # scripts/start_all.sh   -- start the persistent local stack
+make dev-down   # scripts/stop_all.sh    -- stop it
+make demo       # scripts/run_product_demo.sh -- isolated stack + temp DB, full walkthrough
+make test       # every service/tool/agent unit+API test suite, plus web-ui JS syntax check
+```
+
+`dev-up`/`dev-down` operate on the same persistent dev DB and PID files `start_all.sh`/
+`stop_all.sh` always have; `demo` is fully self-contained (its own temp stack and DB, always
+cleaned up on exit) and safe to run at any time, including while `dev-up`'s stack is running.
+
 ## One-command product demo (Linux)
 
 The fastest way to see the whole product work end to end:

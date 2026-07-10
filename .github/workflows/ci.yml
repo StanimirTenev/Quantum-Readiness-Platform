@@ -180,6 +180,24 @@ jobs:
           path: reports/product-demo/
           if-no-files-found: ignore
 
+  web-ui:
+    name: Web UI build + JS syntax check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: JS syntax check
+        run: node --check frontend/web-ui/public/app.js
+
+      - name: Build
+        working-directory: frontend/web-ui
+        run: npm run build
+
   go-agents:
     name: Go agents build / test
     runs-on: ubuntu-latest

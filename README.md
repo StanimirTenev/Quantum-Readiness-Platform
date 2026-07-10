@@ -278,8 +278,10 @@ services that ran. See `services/api-gateway/README.md` for the full route list.
 
 The **web-ui** console (`frontend/web-ui`) surfaces these: a Crypto Assessment
 panel (assess pipeline), Scenarios, Integrations, a Graph panel with an
-interactive SVG diagram (click a node for its blast radius), and an Algorithms
-reference.
+interactive SVG diagram (click a node for its blast radius), an Algorithms
+reference, and a Copilot panel over all five deterministic Copilot subagents
+(Risk Narrator, Discovery Analyst, Vendor Intelligence Analyst, Migration
+Planner, Change Assistant).
 
 ## Crypto Fingerprint Service
 

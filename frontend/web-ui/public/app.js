@@ -456,6 +456,135 @@ document.querySelector('.tab[data-tab="graph"]').addEventListener("click", () =>
   if (!graphNodesLoaded) { graphNodesLoaded = true; loadGraphNodes(); loadGraphData(); }
 });
 
+// --- Copilot ---
+// A single result renderer handles all five subagents plus /query: show the
+// plain-language narrative prominently, a few known list/table fields
+// readably, and the raw JSON underneath so nothing is hidden.
+function findingLine(item) {
+  if (typeof item === "string") return item;
+  if (item && typeof item === "object") {
+    return item.finding || item.note || item.narrative || item.detail || JSON.stringify(item);
+  }
+  return String(item ?? "");
+}
+
+function renderList(title, items) {
+  if (!items || !items.length) return "";
+  const lis = items.map((item) => `<li>${esc(findingLine(item))}</li>`).join("");
+  return `<div class="stat" style="min-width:100%;"><div class="k">${esc(title)}</div>
+    <ul class="readiness-reasons">${lis}</ul></div>`;
+}
+
+function renderReadinessMatrix(matrix) {
+  if (!matrix || !matrix.length) return "";
+  const rows = matrix.map((m) => `
+    <tr><td>${esc(m.product_hint || m.doc_id)}</td>
+    <td>${pill(String(m.claimed_readiness || "unknown").replace(/_/g, " "), readinessKind(m.claimed_readiness))}</td>
+    <td>${esc(m.confidence)}</td>
+    <td>${m.has_migration_blocker ? '<span class="badge-yes">yes</span>' : '<span class="badge-no">no</span>'}</td>
+    <td>${m.claim_count ?? 0}</td></tr>`).join("");
+  return `<div class="table-scroll"><table>
+    <tr><th>Product / doc</th><th>Claimed readiness</th><th>Confidence</th><th>Blocker</th><th>Claims</th></tr>
+    ${rows}</table></div>`;
+}
+
+function renderWaves(waves) {
+  if (!waves || !waves.length) return "";
+  return waves.map((w) => {
+    if (!w.assets || !w.assets.length) return `<p class="hint">${esc(w.summary)}</p>`;
+    const rows = w.assets.map((a) => `
+      <tr><td>${esc(a.asset_name)}</td><td>${pill(a.rating, a.rating)}</td>
+      <td>${a.priority_score_100 ?? "-"}</td>
+      <td>${a.vendor_blocked ? '<span class="badge-yes">yes</span>' : '<span class="badge-no">no</span>'}</td></tr>`).join("");
+    return `<p class="hint">${esc(w.summary)}</p><div class="table-scroll"><table>
+      <tr><th>Asset</th><th>Rating</th><th>Priority</th><th>Vendor blocked</th></tr>${rows}</table></div>`;
+  }).join("");
+}
+
+function renderCopilotResult(intentLabel, data) {
+  const parts = [];
+  if (intentLabel) parts.push(`<p class="hint">Intent: <span class="mono">${esc(intentLabel)}</span></p>`);
+  $("cp-narrative").innerHTML = esc(data.narrative || "");
+
+  parts.push(renderList("Explicit findings", data.explicit_findings));
+  parts.push(renderList("Inferred context", data.inferred_context));
+  parts.push(renderList("Evidence gaps", data.evidence_gaps));
+  parts.push(renderList("Claims", data.claims));
+  parts.push(renderReadinessMatrix(data.readiness_matrix));
+  parts.push(renderList("Pre-change checklist", data.pre_change_checklist));
+  parts.push(renderWaves(data.waves));
+  if (data.risk) parts.push(renderList("Risk rationale", [JSON.stringify(data.risk)]));
+
+  parts.push(`<details><summary class="hint">Raw JSON</summary><pre class="mono">${esc(JSON.stringify(data, null, 2))}</pre></details>`);
+  $("cp-result").innerHTML = parts.filter(Boolean).join("");
+}
+
+function cpAsset() {
+  const name = $("cp-asset").value.trim();
+  if (!name) setMsg("Enter an asset name first.", true);
+  return name;
+}
+
+$("cp-ask").addEventListener("click", async () => {
+  const question = $("cp-question").value.trim();
+  if (!question) return setMsg("Enter a question first.", true);
+  setMsg("Asking Copilot...");
+  try {
+    const data = await api("POST", "/api/copilot/query", { question });
+    renderCopilotResult(data.intent, data.result || {});
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
+$("cp-narrate").addEventListener("click", async () => {
+  const asset = cpAsset();
+  if (!asset) return;
+  setMsg("Asking Risk Narrator...");
+  try {
+    const data = await api("GET", "/api/copilot/narrate/" + encodeURIComponent(asset));
+    renderCopilotResult("narrate_asset", data);
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
+$("cp-change-plan").addEventListener("click", async () => {
+  const asset = cpAsset();
+  if (!asset) return;
+  setMsg("Asking Change Assistant...");
+  try {
+    const data = await api("GET", "/api/copilot/change-plan/" + encodeURIComponent(asset));
+    renderCopilotResult("change_plan", data);
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
+$("cp-discover").addEventListener("click", async () => {
+  setMsg("Asking Discovery Analyst...");
+  try {
+    const data = await api("GET", "/api/copilot/discover");
+    renderCopilotResult("discover", data);
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
+$("cp-vendor").addEventListener("click", async () => {
+  setMsg("Asking Vendor Intelligence Analyst...");
+  try {
+    const data = await api("GET", "/api/copilot/vendor-intelligence");
+    renderCopilotResult("vendor_intelligence", data);
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
+$("cp-migration").addEventListener("click", async () => {
+  setMsg("Asking Migration Planner...");
+  try {
+    const data = await api("GET", "/api/copilot/migration-plan");
+    renderCopilotResult("migration_plan", data);
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
+
 // --- Init ---
 loadScenarios();
 loadIntegrationActions();

@@ -29,6 +29,7 @@
       <button class="tab" data-tab="integrations">Integrations</button>
       <button class="tab" data-tab="graph">Graph</button>
       <button class="tab" data-tab="algorithms">Algorithms</button>
+      <button class="tab" data-tab="copilot">Copilot</button>
     </nav>
 
     <main>
@@ -158,6 +159,38 @@ dev-box = 1.0</textarea>
         <p class="hint">The deterministic knowledge base used for classification.</p>
         <button id="al-load" class="primary" type="button">Load algorithms</button>
         <div id="al-result" class="result"></div>
+      </section>
+
+      <!-- Copilot -->
+      <section id="copilot" class="panel">
+        <h2>Copilot</h2>
+        <p class="hint">Deterministic, template-based subagents over platform evidence &mdash;
+          no external LLM call is ever made. Ask a question, or run a subagent directly.</p>
+
+        <div class="grid">
+          <label class="field field-wide">
+            <span>Ask a question</span>
+            <textarea id="cp-question" rows="2" placeholder="e.g. why is asset payments-api risky? / what is the migration plan? / show the vendor readiness matrix">what crypto dependencies did we discover?</textarea>
+          </label>
+        </div>
+        <button id="cp-ask" class="primary" type="button">Ask Copilot</button>
+
+        <div class="grid" style="margin-top:20px;">
+          <label class="field">
+            <span>Asset name (for per-asset subagents)</span>
+            <input id="cp-asset" type="text" placeholder="e.g. payments-api" />
+          </label>
+        </div>
+        <div class="btnrow">
+          <button id="cp-narrate" type="button">Explain risk (Risk Narrator)</button>
+          <button id="cp-change-plan" type="button">Change plan (Change Assistant)</button>
+          <button id="cp-discover" type="button">Discover dependencies (Discovery Analyst)</button>
+          <button id="cp-vendor" type="button">Vendor readiness (Vendor Intelligence Analyst)</button>
+          <button id="cp-migration" type="button">Migration plan (Migration Planner)</button>
+        </div>
+
+        <div id="cp-narrative" class="narrative"></div>
+        <div id="cp-result" class="result"></div>
       </section>
     </main>
 

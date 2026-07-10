@@ -5,7 +5,7 @@ no `node_modules` — just `public/index.html`, `styles.css`, and `app.js`. It t
 to the gateway with `fetch` and is theme-aware (light/dark).
 
 ## What it does
-Four panels over the gateway's routes:
+Six panels over the gateway's routes:
 - **Fingerprint** — classify algorithms / a TLS certificate (`POST /api/fingerprint`);
   colour-coded findings + a readiness summary.
 - **Scenarios** — re-score assets under a quantum-risk scenario (`POST /api/scenarios/run`).
@@ -14,6 +14,12 @@ Four panels over the gateway's routes:
 - **Graph** — traverse the dependency snapshot: blast radius, trust chain,
   neighbours (`GET /graph/nodes` to pick a node, `POST /api/graph/*`).
 - **Algorithms** — the deterministic knowledge base (`GET /api/algorithms`).
+- **Copilot** — free-text `POST /api/copilot/query`, plus a direct button per subagent:
+  Risk Narrator and Change Assistant (need an asset name), Discovery Analyst, Vendor
+  Intelligence Analyst, and Migration Planner (platform-wide, no input needed). Renders the
+  plain-language narrative plus known structured fields (findings, checklist, readiness
+  matrix, waves) readably, with the raw JSON always available underneath. All five subagents
+  are deterministic — no external LLM call is ever made; see `services/copilot-service/README.md`.
 
 The gateway URL is editable in the header; **Check** hits `GET /health`.
 

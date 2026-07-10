@@ -596,6 +596,7 @@ function renderDemoStatus(status) {
     stat("Total assets", status.asset_count_total ?? 0),
     stat("Graph snapshot", status.graph_snapshot_present ? pill("present", "ok") : pill("missing", "muted")),
     stat("Doc index", status.doc_index_present ? pill("present", "ok") : pill("missing", "muted")),
+    stat("Workspace", status.workspace_id ? `<span class="mono">${esc(status.workspace_id.slice(0, 8))}</span>` : pill("none", "muted")),
   ].join("");
   return status;
 }
@@ -729,8 +730,13 @@ async function loadMigrationPlanTab() {
 }
 
 // --- Reports ---
+let currentWorkspaceId = null;
+
 async function loadReportsTab() {
-  const summary = await api("GET", "/api/copilot/operational-summary");
+  const [summary, demoStatus] = await Promise.all([
+    api("GET", "/api/copilot/operational-summary"),
+    api("GET", "/api/demo/status").catch(() => null),
+  ]);
   const platform = summary.platform || {};
   const planning = summary.planning || {};
   const workflow = summary.workflow || {};
@@ -744,7 +750,25 @@ async function loadReportsTab() {
     stat("Open tasks", workflow.task_count ?? 0),
   ].join("");
   $("rep-result").innerHTML = `<details open><summary class="hint">Full operational summary (raw JSON)</summary><pre class="mono">${esc(JSON.stringify(summary, null, 2))}</pre></details>`;
+
+  currentWorkspaceId = demoStatus && demoStatus.workspace_id;
+  $("rep-workspace-note").textContent = currentWorkspaceId
+    ? `Current demo workspace: ${currentWorkspaceId}`
+    : "No workspace yet -- load the demo dataset from the Dashboard first.";
+  $("rep-generate").disabled = !currentWorkspaceId;
 }
+
+$("rep-generate").addEventListener("click", async () => {
+  if (!currentWorkspaceId) return setMsg("No workspace to report on -- load the demo dataset first.", true);
+  setMsg("Generating workspace report...");
+  try {
+    const report = await api("POST", `/api/workspaces/${encodeURIComponent(currentWorkspaceId)}/reports`);
+    $("rep-workspace-result").innerHTML =
+      `<p class="hint">Report <span class="mono">${esc(report.id)}</span>, generated ${esc(report.generated_at)}</p>
+       <pre class="mono">${esc(report.content)}</pre>`;
+    setMsg("Done.");
+  } catch (err) { setMsg(err.message, true); }
+});
 
 // --- Tab registry: lazy-load on first visit, switchTab() for programmatic navigation ---
 function switchTab(tabId) {

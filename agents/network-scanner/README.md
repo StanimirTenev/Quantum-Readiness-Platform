@@ -12,7 +12,9 @@
 - Main flow: `scanner.ScanTLS(target, insecure, timeout)` and optional `client.PostScan(...)`
 
 ## Inputs / outputs
-- Input: CLI flags (`-target`, `-insecure`, `-timeout`, optional `-ingest`).
+- Input: CLI flags (`-target`, `-insecure`, `-timeout`, optional `-ingest`, optional
+  `-workspace-id` to group this scan under an existing workspace -- see
+  `services/inventory-service/README.md`'s workspace model).
 - Output: JSON TLS evidence (stdout) or ingest response JSON.
 
 ## TLS Evidence Output Contract

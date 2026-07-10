@@ -26,7 +26,14 @@
   Dashboard tab uses. The one deliberate exception to the gateway being read-only/proxy-only:
   writes directly, but only through the normal `/scans/ingest` contract plus a graph
   snapshot/doc index file write, same as a real collector would. Idempotent -- an asset
-  already present is skipped, not re-ingested. See `demo_seed.py`.
+  already present is skipped, not re-ingested. Creates a workspace (see below) only when
+  there's actually something new to ingest. See `demo_seed.py`.
+- `POST /api/workspaces`, `GET /api/workspaces`, `GET /api/workspaces/{workspace_id}` (rollup:
+  scans/risks/reports), `POST /api/workspaces/{workspace_id}/reports`,
+  `GET /api/reports/{report_id}`, `GET /api/reports` (optional `?workspace_id=`) — proxy the
+  lightweight workspace/report model; see `services/inventory-service/README.md`.
+  `POST /api/scans/{host|network|repo}` and `/api/demo/load` also accept `?workspace_id=` to
+  group a scan under an existing workspace.
 
 ## Inputs / outputs
 - Input: JSON payloads for scans, scenario runs, and copilot requests.

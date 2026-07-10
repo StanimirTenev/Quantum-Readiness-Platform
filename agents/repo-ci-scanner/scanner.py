@@ -31,11 +31,16 @@ def build_ingest_payload(scan_result: dict[str, Any], repo_name: str) -> dict[st
     }
 
 
-def post_ingest(inventory_url: str, payload: dict[str, Any]) -> dict[str, Any]:
+def post_ingest(inventory_url: str, payload: dict[str, Any], workspace_id: str | None = None) -> dict[str, Any]:
+    """workspace_id is optional (the workspace model's hybrid creation mode
+    -- see services/inventory-service/README.md): pass one to group this
+    scan under an existing workspace, or omit it and inventory-service
+    auto-creates a single-scan workspace for it."""
     import httpx
 
     endpoint = f"{inventory_url.rstrip('/')}/scans/ingest"
-    response = httpx.post(endpoint, json=payload, timeout=10.0)
+    params = {"workspace_id": workspace_id} if workspace_id else None
+    response = httpx.post(endpoint, json=payload, params=params, timeout=10.0)
     response.raise_for_status()
     return response.json()
 
@@ -47,6 +52,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo-path", required=True, help="Path to the repository to scan.")
     parser.add_argument("--out", help="Write JSON payload to this file instead of stdout.")
     parser.add_argument("--ingest", help="inventory-service base URL, e.g. http://127.0.0.1:8001")
+    parser.add_argument("--workspace-id", help="Group this scan under an existing workspace (POST /workspaces); omit to auto-create one")
     args = parser.parse_args(argv)
 
     repo_path = Path(args.repo_path).resolve()
@@ -64,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         print(output_text)
 
     if args.ingest:
-        response = post_ingest(args.ingest, payload)
+        response = post_ingest(args.ingest, payload, workspace_id=args.workspace_id)
         print(json.dumps(response, indent=2))
 
     return 0

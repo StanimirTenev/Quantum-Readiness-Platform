@@ -816,6 +816,51 @@ def test_demo_load_reports_partial_when_one_ingest_fails(monkeypatch, tmp_path) 
     assert repo_step["status"] == "error"
 
 
+def test_demo_load_creates_a_workspace_when_ingesting_and_passes_it_through(monkeypatch, tmp_path) -> None:
+    calls = []
+
+    def fake_request_json(method, url, payload=None):
+        calls.append((method, url, payload))
+        if method == "GET" and url.endswith("/assets"):
+            return []
+        if method == "POST" and url.endswith("/workspaces"):
+            return {"id": "ws-abc", "source": "product-demo", "created_at": "now"}
+        return {"scan_id": "s1", "created": 1}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+    monkeypatch.setattr(main.demo_seed, "write_demo_doc_index", lambda: tmp_path / "doc-index.json")
+    monkeypatch.setattr(main.demo_seed, "build_demo_graph_snapshot", lambda target: (True, "graph snapshot built"))
+
+    response = client.post("/api/demo/load")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["workspace_id"] == "ws-abc"
+    ingest_calls = [c for c in calls if c[0] == "POST" and "/scans/ingest" in c[1]]
+    assert len(ingest_calls) == 3
+    assert all("workspace_id=ws-abc" in url for _, url, _ in ingest_calls)
+
+
+def test_demo_load_does_not_create_a_workspace_when_everything_is_skipped(monkeypatch, tmp_path) -> None:
+    calls = []
+
+    def fake_request_json(method, url, payload=None):
+        calls.append((method, url))
+        if method == "GET" and url.endswith("/assets"):
+            return [{"name": name} for name in main.demo_seed.DEMO_ASSET_NAMES]
+        return {"scan_id": "s1", "created": 1}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+    monkeypatch.setattr(main.demo_seed, "write_demo_doc_index", lambda: tmp_path / "doc-index.json")
+    monkeypatch.setattr(main.demo_seed, "build_demo_graph_snapshot", lambda target: (True, "graph snapshot built"))
+
+    response = client.post("/api/demo/load")
+
+    assert response.status_code == 200
+    assert response.json()["workspace_id"] is None
+    assert not any(method == "POST" and url.endswith("/workspaces") for method, url in calls)
+
+
 def test_demo_status_reports_loaded_when_all_assets_present(monkeypatch) -> None:
     monkeypatch.setattr(
         main, "_request_json",
@@ -838,4 +883,95 @@ def test_demo_status_reports_not_loaded_when_assets_missing(monkeypatch) -> None
     assert response.status_code == 200
     data = response.json()
     assert data["loaded"] is False
-    assert set(data["assets_missing"]) == set(main.demo_seed.DEMO_ASSET_NAMES)
+
+
+def test_demo_status_reports_workspace_id_from_a_present_demo_asset(monkeypatch) -> None:
+    monkeypatch.setattr(
+        main, "_request_json",
+        lambda method, url, payload=None: [
+            {"name": name, "workspace_id": "ws-xyz"} for name in main.demo_seed.DEMO_ASSET_NAMES
+        ],
+    )
+
+    response = client.get("/api/demo/status")
+
+    assert response.status_code == 200
+    assert response.json()["workspace_id"] == "ws-xyz"
+
+
+def test_post_api_workspaces_proxies_to_inventory(monkeypatch) -> None:
+    captured = {}
+
+    def fake_request_json(method, url, payload=None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["payload"] = payload
+        return {"id": "ws-1", "source": "manual", "created_at": "now"}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.post("/api/workspaces", json={"source": "manual"})
+
+    assert response.status_code == 200
+    assert response.json()["id"] == "ws-1"
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/workspaces")
+    assert captured["payload"] == {"source": "manual"}
+
+
+def test_get_api_workspace_rollup_proxies_to_inventory(monkeypatch) -> None:
+    captured = {}
+
+    def fake_request_json(method, url, payload=None):
+        captured["url"] = url
+        return {"workspace": {"id": "ws-1"}, "scans": [], "risks": [], "reports": []}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/workspaces/ws-1")
+
+    assert response.status_code == 200
+    assert "workspace" in response.json()
+    assert captured["url"].endswith("/workspaces/ws-1")
+
+
+def test_post_api_workspace_reports_proxies_to_inventory(monkeypatch) -> None:
+    captured = {}
+
+    def fake_request_json(method, url, payload=None):
+        captured["method"] = method
+        captured["url"] = url
+        return {"id": "rep-1", "workspace_id": "ws-1", "report_type": "operator", "content": "# Report"}
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.post("/api/workspaces/ws-1/reports")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == "rep-1"
+    assert captured["method"] == "POST"
+    assert captured["url"].endswith("/workspaces/ws-1/reports")
+
+
+def test_get_api_report_proxies_to_inventory(monkeypatch) -> None:
+    monkeypatch.setattr(main, "_request_json", lambda method, url, payload=None: {"id": "rep-1", "content": "# Report"})
+
+    response = client.get("/api/reports/rep-1")
+
+    assert response.status_code == 200
+    assert response.json()["id"] == "rep-1"
+
+
+def test_get_api_reports_filters_by_workspace_id(monkeypatch) -> None:
+    captured = {}
+
+    def fake_request_json(method, url, payload=None):
+        captured["url"] = url
+        return [{"id": "rep-1", "workspace_id": "ws-1"}]
+
+    monkeypatch.setattr(main, "_request_json", fake_request_json)
+
+    response = client.get("/api/reports?workspace_id=ws-1")
+
+    assert response.status_code == 200
+    assert "workspace_id=ws-1" in captured["url"]

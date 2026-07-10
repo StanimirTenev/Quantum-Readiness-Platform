@@ -41,12 +41,36 @@ func TestPostScan(t *testing.T) {
 				Name:      "google.com:443",
 			},
 		},
-	})
+	}, "")
 	if err != nil {
 		t.Fatalf("PostScan returned error: %v", err)
 	}
 
 	if response.Created != 1 {
 		t.Fatalf("expected 1 created asset, got %d", response.Created)
+	}
+}
+
+func TestPostScanWithWorkspaceIDAppendsQueryParam(t *testing.T) {
+	var capturedQuery string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		capturedQuery = r.URL.RawQuery
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(IngestResponse{Source: "network", Created: 1, WorkspaceID: "ws-456"})
+	}))
+	defer server.Close()
+
+	response, err := PostScan(server.URL, scanner.ScanOutput{
+		Source: "network",
+		Assets: []scanner.AssetPayload{{AssetType: "endpoint", Name: "google.com:443"}},
+	}, "ws-456")
+	if err != nil {
+		t.Fatalf("PostScan returned error: %v", err)
+	}
+	if capturedQuery != "workspace_id=ws-456" {
+		t.Fatalf("expected workspace_id query param, got %q", capturedQuery)
+	}
+	if response.WorkspaceID != "ws-456" {
+		t.Fatalf("expected response.WorkspaceID to round-trip, got %q", response.WorkspaceID)
 	}
 }

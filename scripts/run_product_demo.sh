@@ -5,12 +5,14 @@
 # repo, synthetic sample vendor docs, and this machine's own real host
 # evidence), on an isolated stack + temp DB.
 #
-# Steps: start isolated stack -> linux-host-agent ingest -> network-scanner
-# ingest (local TLS target) -> repo-ci-scanner ingest (sample repo) ->
-# doc-ingestion (sample vendor docs) -> graph snapshot -> retrieval search ->
-# all five Copilot subagents (Risk Narrator, Discovery Analyst, Vendor
-# Intelligence Analyst, Migration Planner, Change Assistant) -> operator
-# report -> stop + clean up.
+# Steps: start isolated stack -> create a workspace (project/workspace model,
+# groups this run's scans/findings/report) -> linux-host-agent ingest ->
+# network-scanner ingest (local TLS target) -> repo-ci-scanner ingest (sample
+# repo) -> doc-ingestion (sample vendor docs) -> graph snapshot -> retrieval
+# search -> all five Copilot subagents (Risk Narrator, Discovery Analyst,
+# Vendor Intelligence Analyst, Migration Planner, Change Assistant) ->
+# operator report (persisted via POST /workspaces/{id}/reports) -> stop +
+# clean up.
 #
 # Writes reports/product-demo/{product-demo-report.md,
 # product-demo-report.json, product-demo-smoke-report.md} and exits
@@ -262,6 +264,20 @@ else
     record "Step 1: full stack started (15 services, isolated DB)" "FAIL" "one or more services failed health check"
 fi
 
+set_step "Step 1b: Creating a workspace to group this run's scans"
+WORKSPACE_ID=""
+workspace_resp="$(curl -sS --max-time "$STEP_TIMEOUT_SEC" -X POST "$INVENTORY_BASE/workspaces" -H "Content-Type: application/json" -d '{"source":"product-demo"}' 2>>"$LOG_DIR/workspace-create.log")" || true
+WORKSPACE_ID="$(echo "$workspace_resp" | "$PYTHON_BIN" -c "import json,sys
+try:
+    print(json.load(sys.stdin).get('id',''))
+except Exception:
+    print('')" 2>/dev/null)"
+if [[ -n "$WORKSPACE_ID" ]]; then
+    record "Step 1b: workspace created ($WORKSPACE_ID)" "PASS" ""
+else
+    record "Step 1b: workspace created" "FAIL" "no workspace id in response, see $LOG_DIR/workspace-create.log"
+fi
+
 LINUX_ASSET=""
 set_step "Step 2: Linux host agent ingest"
 build_exit=0
@@ -270,7 +286,7 @@ if [[ $build_exit -ne 0 ]]; then
     record_from_exit_code "Step 2: linux-host-agent ingest" "$build_exit" "" "go build failed, see $LOG_DIR/linux-host-agent-build.log"
 else
     ingest_exit=0
-    linux_resp="$(run_bounded "$BIN_DIR/linux-host-agent" -ingest -inventory-url "$INVENTORY_BASE" -timeout "$AGENT_TIMEOUT_SEC" 2>>"$LOG_DIR/linux-host-agent.log")" || ingest_exit=$?
+    linux_resp="$(run_bounded "$BIN_DIR/linux-host-agent" -ingest -inventory-url "$INVENTORY_BASE" -timeout "$AGENT_TIMEOUT_SEC" -workspace-id "$WORKSPACE_ID" 2>>"$LOG_DIR/linux-host-agent.log")" || ingest_exit=$?
     if [[ $ingest_exit -eq 0 ]] && echo "$linux_resp" | grep -q '"created"'; then
         LINUX_ASSET="$(hostname)"
         record "Step 2: linux-host-agent ingest (asset: $LINUX_ASSET)" "PASS" ""
@@ -295,7 +311,7 @@ elif ! wait_port "$DEMO_TLS_PORT"; then
     record "Step 3: network-scanner ingest" "FAIL" "local TLS demo server never became reachable"
 else
     ingest_exit=0
-    network_resp="$(run_bounded "$BIN_DIR/network-scanner" -target "127.0.0.1:$DEMO_TLS_PORT" -insecure -ingest -inventory-url "$INVENTORY_BASE" 2>>"$LOG_DIR/network-scanner.log")" || ingest_exit=$?
+    network_resp="$(run_bounded "$BIN_DIR/network-scanner" -target "127.0.0.1:$DEMO_TLS_PORT" -insecure -ingest -inventory-url "$INVENTORY_BASE" -workspace-id "$WORKSPACE_ID" 2>>"$LOG_DIR/network-scanner.log")" || ingest_exit=$?
     if [[ $ingest_exit -eq 0 ]] && echo "$network_resp" | grep -q '"created"'; then
         NETWORK_ASSET="127.0.0.1:$DEMO_TLS_PORT"
         record "Step 3: network-scanner ingest (asset: $NETWORK_ASSET)" "PASS" ""
@@ -324,7 +340,7 @@ jobs:
       - run: gpg --detach-sign artifact.tar.gz
 YML
 scan_exit=0
-(cd "$ROOT_DIR/agents/repo-ci-scanner" && run_bounded "$PYTHON_BIN" scanner.py --repo-path "$SAMPLE_REPO" --out "$RUN_DIR/repo-ci-payload.json" --ingest "$INVENTORY_BASE" > "$RUN_DIR/repo-ci-ingest.json" 2>"$LOG_DIR/repo-ci-scanner.log") || scan_exit=$?
+(cd "$ROOT_DIR/agents/repo-ci-scanner" && run_bounded "$PYTHON_BIN" scanner.py --repo-path "$SAMPLE_REPO" --out "$RUN_DIR/repo-ci-payload.json" --ingest "$INVENTORY_BASE" --workspace-id "$WORKSPACE_ID" > "$RUN_DIR/repo-ci-ingest.json" 2>"$LOG_DIR/repo-ci-scanner.log") || scan_exit=$?
 if [[ $scan_exit -eq 0 ]] && grep -q '"created"' "$RUN_DIR/repo-ci-ingest.json" 2>/dev/null; then
     REPO_ASSET="sample-vulnerable-repo"
     record "Step 4: repo-ci-scanner ingest (asset: $REPO_ASSET)" "PASS" ""
@@ -435,57 +451,23 @@ else
     record "Step 8e: Change Assistant drafts a checklist for every ingested asset" "FAIL" "at least one asset got no checklist"
 fi
 
-set_step "Step 9: Building operator report"
+set_step "Step 9: Building operator report (persisted workspace report)"
 OPERATOR_REPORT="$OUT_DIR/product-demo-operator-report.md"
 operator_exit=0
-(cd "$ROOT_DIR" && run_bounded "$PYTHON_BIN" - "$INVENTORY_BASE" "$OPERATOR_REPORT" "$LINUX_ASSET" "$NETWORK_ASSET" "$REPO_ASSET" <<'PY' 2>"$LOG_DIR/operator-report.log"
-import json
-import sys
-import urllib.request
-from datetime import datetime, timezone
-
-inventory_base, out_path, *asset_names = sys.argv[1:]
-asset_names = [a for a in asset_names if a]
-
-scans = json.loads(urllib.request.urlopen(f"{inventory_base}/scans", timeout=10).read())
-
-entries = []
-for name in asset_names:
-    # find the asset's most recent scan by matching on persisted risk asset_name via /scans/{id}
-    for scan in scans:
-        detail = json.loads(urllib.request.urlopen(f"{inventory_base}/scans/{scan['id']}", timeout=10).read())
-        risks = [r for r in detail.get("risks", []) if r.get("asset_name") == name]
-        if risks:
-            risk = max(risks, key=lambda r: r.get("normalized_score_100", 0))
-            entries.append({
-                "asset_name": name,
-                "application": scan.get("source"),
-                "persisted_risk": {
-                    "rating": risk.get("rating"),
-                    "normalized_score_100": risk.get("normalized_score_100"),
-                    "rationale": risk.get("rationale") or {},
-                },
-            })
-            break
-
-bundle = {
-    "generated_at": datetime.now(timezone.utc).isoformat(),
-    "environment": "product-demo (isolated stack, temp DB)",
-    "assets": entries,
-}
-
-sys.path.insert(0, ".")
-from tools.report.build_operator_report import build_report
-
-report_text = build_report(bundle)
-with open(out_path, "w", encoding="utf-8") as f:
-    f.write(report_text)
-
-print(f"entries: {len(entries)}")
-PY
-) || operator_exit=$?
+# Exercises the workspace model's report persistence (POST /workspaces/{id}/reports) --
+# same build_operator_report logic the old ad-hoc bundle-building here used to
+# duplicate, now the backend's own job. See services/inventory-service/README.md.
+report_resp="$(curl -sS --max-time "$STEP_TIMEOUT_SEC" -X POST "$INVENTORY_BASE/workspaces/$WORKSPACE_ID/reports" 2>"$LOG_DIR/operator-report.log")" || operator_exit=$?
 if [[ $operator_exit -eq 0 ]]; then
-    record "Step 9: operator report generated" "PASS" ""
+    echo "$report_resp" | "$PYTHON_BIN" -c "import json, sys
+try:
+    data = json.load(sys.stdin)
+    sys.stdout.write(data.get('content', ''))
+except Exception:
+    pass" > "$OPERATOR_REPORT" 2>>"$LOG_DIR/operator-report.log" || operator_exit=$?
+fi
+if [[ $operator_exit -eq 0 && -s "$OPERATOR_REPORT" ]]; then
+    record "Step 9: operator report generated (persisted, workspace $WORKSPACE_ID)" "PASS" ""
 else
     record_from_exit_code "Step 9: operator report generated" "$operator_exit" "" "see $LOG_DIR/operator-report.log"
 fi
@@ -543,12 +525,12 @@ now_iso="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 # interim "INTERRUPTED" version (item 5).
 REPORT_WRITTEN=true
 
-run_bounded "$PYTHON_BIN" - "$OUT_DIR" "$INVENTORY_BASE" "$RETRIEVAL_BASE" "$LINUX_ASSET" "$NETWORK_ASSET" "$REPO_ASSET" "$now_iso" "$overall" "$OPERATOR_REPORT" <<'PY'
+run_bounded "$PYTHON_BIN" - "$OUT_DIR" "$INVENTORY_BASE" "$RETRIEVAL_BASE" "$LINUX_ASSET" "$NETWORK_ASSET" "$REPO_ASSET" "$now_iso" "$overall" "$OPERATOR_REPORT" "$WORKSPACE_ID" <<'PY'
 import json
 import sys
 import urllib.request
 
-out_dir, inventory_base, retrieval_base, linux_asset, network_asset, repo_asset, now_iso, overall, operator_report_path = sys.argv[1:10]
+out_dir, inventory_base, retrieval_base, linux_asset, network_asset, repo_asset, now_iso, overall, operator_report_path, workspace_id = sys.argv[1:11]
 asset_names = [a for a in (linux_asset, network_asset, repo_asset) if a]
 
 
@@ -596,6 +578,7 @@ except OSError:
 result = {
     "generated_at": now_iso,
     "result": overall,
+    "workspace_id": workspace_id,
     "assets_discovered": asset_names,
     "retrieval_overview": {
         "asset_count": overview.get("asset_count"),
@@ -629,6 +612,8 @@ lines = [
     "> temporary database; nothing here touches persistent state.",
     "",
     f"## Result: {overall}",
+    "",
+    f"Workspace: `{workspace_id}` (see `GET /workspaces/{workspace_id}` for the persisted rollup)" if workspace_id else "Workspace: (not created)",
     "",
     "## Assets Discovered",
     "",

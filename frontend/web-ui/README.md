@@ -14,8 +14,10 @@ Operator workflow:
   the running stack, without touching any script or service directly. "Refresh demo status"
   re-checks (`GET /api/demo/status`) without re-seeding. `POST /api/demo/load` is idempotent:
   an asset already present is skipped, not re-ingested, so clicking twice never creates
-  duplicates. Also shows a platform overview and clickable top-risk rows
-  (`GET /api/copilot/operational-summary`).
+  duplicates. Also shows a platform overview, clickable top-risk rows
+  (`GET /api/copilot/operational-summary`), and the current demo workspace (project/workspace
+  model -- see `services/inventory-service/README.md`): a workspace is created only when
+  there's something new to seed, and all of that click's scans join it.
 - **Assets** — every asset (`GET /api/assets`) with its rating, as a clickable table. Clicking
   a row opens **Asset detail**: Risk Narrator's explanation, Change Assistant's checklist, and
   the asset's migration wave — the core click-through flow (asset row → narrative → checklist →
@@ -33,9 +35,11 @@ Operator workflow:
   plain-language narrative plus known structured fields (findings, checklist, readiness
   matrix, waves) readably, with the raw JSON always available underneath. All five subagents
   are deterministic — no external LLM call is ever made; see `services/copilot-service/README.md`.
-- **Reports** — the live operational summary (`GET /api/copilot/operational-summary`); the
-  full file-based demo reports written by `scripts/run_product_demo.sh` live under
-  `reports/product-demo/` on disk (not served over HTTP).
+- **Reports** — the live operational summary (`GET /api/copilot/operational-summary`), plus a
+  "Generate workspace report" button that persists a real operator report for the current demo
+  workspace (`POST /api/workspaces/{id}/reports`) and renders it inline. The full file-based
+  demo reports written by `scripts/run_product_demo.sh` live under `reports/product-demo/` on
+  disk (not served over HTTP).
 
 Deterministic core (secondary tabs):
 - **Fingerprint** — classify algorithms / a TLS certificate (`POST /api/fingerprint`);

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -12,9 +13,11 @@ import (
 )
 
 type IngestResponse struct {
-	Source   string   `json:"source"`
-	Created  int      `json:"created"`
-	AssetIDs []string `json:"asset_ids"`
+	Source      string   `json:"source"`
+	Created     int      `json:"created"`
+	AssetIDs    []string `json:"asset_ids"`
+	ScanID      string   `json:"scan_id"`
+	WorkspaceID string   `json:"workspace_id"`
 }
 
 type ingestCryptoEvidence struct {
@@ -31,9 +34,16 @@ type ingestScanPayload struct {
 	Assets         []collector.AssetPayload `json:"assets"`
 }
 
-func PostScan(baseURL string, payload collector.ScanOutput) (IngestResponse, error) {
+// workspaceID is optional (the workspace model's hybrid creation mode --
+// see services/inventory-service/README.md): pass one to group this scan
+// under an existing workspace, or leave it empty and inventory-service
+// auto-creates a single-scan workspace for it.
+func PostScan(baseURL string, payload collector.ScanOutput, workspaceID string) (IngestResponse, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
 	endpoint := baseURL + "/scans/ingest"
+	if workspaceID != "" {
+		endpoint += "?workspace_id=" + url.QueryEscape(workspaceID)
+	}
 
 	ingestPayload := ingestScanPayload{
 		Source:        payload.Source,

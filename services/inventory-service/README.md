@@ -23,10 +23,14 @@
   creation, like `created_at`); reusing an existing asset (matched by name+type) in a later
   workspace's scan does not move it -- an asset can legitimately be touched by scans in
   multiple workspaces over time.
-- Deliberately not wired into `scripts/run_product_demo.sh`, the demo-seed endpoint, or the
-  web-ui yet -- this PR is the backend model itself; every existing caller keeps working
-  unchanged via the auto-workspace fallback. Wiring explicit workspace grouping into those is
-  natural follow-up work, not done here.
+- Wired end to end: `scripts/run_product_demo.sh` creates one workspace and groups all three
+  of its agent scans under it, then persists its operator report via
+  `POST /workspaces/{id}/reports` instead of building one ad hoc; the linux-host-agent,
+  network-scanner, and repo-ci-scanner CLIs all take a `-workspace-id`/`--workspace-id` flag;
+  the web-ui's "Load Demo" creates a workspace (only when there's actually something new to
+  ingest, so idempotent re-clicks don't leave empty ones behind) and the Dashboard/Reports tabs
+  show it and can generate its persisted report. Every existing caller that doesn't pass
+  `workspace_id` still works unchanged via the auto-workspace fallback.
 
 ## Stage 2 enriched evidence ingest
 - `POST /scans/ingest` now accepts optional Stage 2 enriched evidence blocks while remaining backward compatible with existing Stage 1 payloads.

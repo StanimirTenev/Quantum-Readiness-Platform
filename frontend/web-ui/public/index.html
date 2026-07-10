@@ -117,11 +117,18 @@
       <!-- Reports -->
       <section id="reports" class="panel">
         <h2>Reports</h2>
-        <p class="hint">Live operational summary from the running stack. The full file-based
-          demo reports (written by <code>scripts/run_product_demo.sh</code>) live under
+        <p class="hint">Live operational summary from the running stack, plus a persisted
+          operator report for the current demo workspace (project/workspace model -- see
+          <code>services/inventory-service/README.md</code>). The full file-based demo reports
+          (written by <code>scripts/run_product_demo.sh</code>) live under
           <code>reports/product-demo/</code> on disk.</p>
         <div id="rep-summary" class="summary"></div>
         <div id="rep-result" class="result"></div>
+
+        <h3>Workspace Report</h3>
+        <div id="rep-workspace-note" class="hint"></div>
+        <button id="rep-generate" type="button">Generate workspace report</button>
+        <div id="rep-workspace-result" class="result"></div>
       </section>
 
       <!-- Fingerprint -->

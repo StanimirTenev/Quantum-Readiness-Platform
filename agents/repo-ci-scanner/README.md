@@ -21,7 +21,9 @@
 - Detection logic: `detectors.py` (`scan_repo`, `scan_source_file`, `scan_ci_file`)
 
 ## Inputs / outputs
-- Input: CLI flags (`--repo-path`, optional `--out`, optional `--ingest`).
+- Input: CLI flags (`--repo-path`, optional `--out`, optional `--ingest`, optional
+  `--workspace-id` to group this scan under an existing workspace -- see
+  `services/inventory-service/README.md`'s workspace model).
 - Output: JSON ingest payload (stdout or `--out` file), or ingest response
   JSON when `--ingest <inventory-service base URL>` is given.
 

@@ -16,6 +16,7 @@ func main() {
 	timeoutSeconds := flag.Int("timeout", 5, "Connection timeout in seconds")
 	ingest := flag.Bool("ingest", false, "Post collected data to inventory-service")
 	inventoryURL := flag.String("inventory-url", "http://127.0.0.1:8001", "Inventory service base URL")
+	workspaceID := flag.String("workspace-id", "", "Group this scan under an existing workspace (POST /workspaces); omit to auto-create a single-scan workspace")
 	flag.Parse()
 
 	if *target == "" {
@@ -30,7 +31,7 @@ func main() {
 	}
 
 	if *ingest {
-		response, err := client.PostScan(*inventoryURL, result)
+		response, err := client.PostScan(*inventoryURL, result, *workspaceID)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "ingest error: %v\n", err)
 			os.Exit(1)

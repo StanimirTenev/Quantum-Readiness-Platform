@@ -62,16 +62,20 @@ The fastest way to see the whole product work end to end:
 bash scripts/run_product_demo.sh
 ```
 
-Starts an isolated 15-service stack on a temp database, then walks the full
-pipeline against real self-contained evidence: `linux-host-agent` collects
-this machine's own real host evidence; `network-scanner` scans a local
+Starts an isolated 15-service stack on a temp database, creates a workspace
+(project/workspace model -- groups this run's scans/findings/report, see
+`services/inventory-service/README.md`), then walks the full pipeline
+against real self-contained evidence: `linux-host-agent` collects this
+machine's own real host evidence; `network-scanner` scans a local
 self-signed TLS endpoint it spins up itself; `repo-ci-scanner` scans a small
-sample repo with a deliberately weak-crypto file; `doc-ingestion` indexes a
+sample repo with a deliberately weak-crypto file -- all three join the
+workspace via `-workspace-id`/`--workspace-id`; `doc-ingestion` indexes a
 sample vendor PQC-roadmap doc; a dependency graph snapshot is built;
 `retrieval-service` searches the indexed doc; all five Copilot subagents
 (Risk Narrator, Discovery Analyst, Vendor Intelligence Analyst, Migration
 Planner, Change Assistant) explain the evidence in plain language; and an
-operator/exec migration report is generated from everything. Stops all
+operator/exec migration report is generated and persisted for the workspace
+(`POST /workspaces/{id}/reports`). Stops all
 services and deletes the temp DB/binaries on exit, success or failure.
 
 Writes (git-ignored, regenerate any time):

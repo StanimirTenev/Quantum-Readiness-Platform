@@ -11,7 +11,10 @@
 - Main flow: `collector.Collect()` and optional `client.PostScan(...)` with `-ingest`
 
 ## Inputs / outputs
-- Input: local OS/files/package state; CLI flags (`-ingest`, `-inventory-url`, `-timeout`).
+- Input: local OS/files/package state; CLI flags (`-ingest`, `-inventory-url`, `-timeout`,
+  `-workspace-id`). `-workspace-id` groups this scan under an existing workspace (see
+  `services/inventory-service/README.md`'s workspace model); omit it and inventory-service
+  auto-creates a single-scan workspace.
 - Output: JSON evidence payload (stdout) or ingest response JSON.
 - Output includes `crypto_evidence.package_metadata` with best-effort crypto/security package metadata collection.
 - Output includes `crypto_evidence.cert_indicators.certificate_file_indicators` with best-effort certificate/key footprint discovery based on file names only.

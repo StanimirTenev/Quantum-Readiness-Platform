@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from scanner import build_ingest_payload, main
+from scanner import build_ingest_payload, main, post_ingest
 
 
 def test_build_ingest_payload_shape():
@@ -45,3 +45,47 @@ def test_main_errors_on_missing_repo_path(tmp_path: Path, capsys):
 
     assert exit_code == 1
     assert "not found" in capsys.readouterr().err
+
+
+def test_post_ingest_passes_workspace_id_as_query_param(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"created": 1, "workspace_id": "ws-789"}
+
+    def fake_post(url, json=None, params=None, timeout=None):
+        captured["url"] = url
+        captured["params"] = params
+        return FakeResponse()
+
+    monkeypatch.setattr("httpx.post", fake_post)
+
+    result = post_ingest("http://127.0.0.1:8001", {"source": "repo"}, workspace_id="ws-789")
+
+    assert captured["params"] == {"workspace_id": "ws-789"}
+    assert result["workspace_id"] == "ws-789"
+
+
+def test_post_ingest_omits_params_without_workspace_id(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            pass
+
+        def json(self):
+            return {"created": 1}
+
+    def fake_post(url, json=None, params=None, timeout=None):
+        captured["params"] = params
+        return FakeResponse()
+
+    monkeypatch.setattr("httpx.post", fake_post)
+
+    post_ingest("http://127.0.0.1:8001", {"source": "repo"})
+
+    assert captured["params"] is None

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from urllib import error, parse, request
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -54,18 +54,18 @@ def health() -> dict[str, str]:
 
 
 @app.post("/api/scans/host")
-def ingest_host_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline")) -> dict[str, Any]:
-    return _ingest_scan("host", payload, scenario)
+def ingest_host_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None)) -> dict[str, Any]:
+    return _ingest_scan("host", payload, scenario, workspace_id=workspace_id)
 
 
 @app.post("/api/scans/network")
-def ingest_network_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline")) -> dict[str, Any]:
-    return _ingest_scan("network", payload, scenario)
+def ingest_network_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None)) -> dict[str, Any]:
+    return _ingest_scan("network", payload, scenario, workspace_id=workspace_id)
 
 
 @app.post("/api/scans/repo")
-def ingest_repo_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline")) -> dict[str, Any]:
-    return _ingest_scan("repo", payload, scenario)
+def ingest_repo_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None)) -> dict[str, Any]:
+    return _ingest_scan("repo", payload, scenario, workspace_id=workspace_id)
 
 
 @app.post("/api/scans/windows")
@@ -85,7 +85,13 @@ def demo_load() -> dict[str, Any]:
     "Load Demo" button. See demo_seed.py. Best-effort: each step is recorded
     independently so a single failure doesn't hide the others. Idempotent:
     an asset that's already present is skipped rather than re-ingested, so
-    clicking "Load Demo" twice doesn't create duplicate scans/findings."""
+    clicking "Load Demo" twice doesn't create duplicate scans/findings.
+
+    Uses the workspace model (services/inventory-service/README.md): a new
+    workspace is created only if there's actually something new to ingest
+    (so idempotent re-clicks that skip everything don't leave empty
+    workspaces behind), and all newly-ingested scans join it, so the demo's
+    findings and report are all groupable under one workspace_id."""
     steps: list[dict[str, Any]] = []
 
     try:
@@ -94,12 +100,23 @@ def demo_load() -> dict[str, Any]:
         existing_assets = []
     existing_names = {a.get("name") for a in existing_assets} if isinstance(existing_assets, list) else set()
 
-    for source, asset_name, payload in demo_seed.load_demo_scan_payloads():
+    payloads = demo_seed.load_demo_scan_payloads()
+    needs_ingest = any(asset_name not in existing_names for _, asset_name, _ in payloads)
+
+    workspace_id: str | None = None
+    if needs_ingest:
+        try:
+            workspace = _request_json("POST", f"{INVENTORY_BASE_URL}/workspaces", payload={"source": "product-demo"})
+            workspace_id = workspace.get("id")
+        except HTTPException:
+            workspace_id = None  # fall back to per-scan auto-workspace if this fails
+
+    for source, asset_name, payload in payloads:
         if asset_name in existing_names:
             steps.append({"step": f"ingest_{source}", "status": "skipped", "asset_name": asset_name, "detail": "already loaded"})
             continue
         try:
-            _ingest_scan(source, payload, "public_timeline")
+            _ingest_scan(source, payload, "public_timeline", workspace_id=workspace_id)
             steps.append({"step": f"ingest_{source}", "status": "ok", "asset_name": asset_name})
         except HTTPException as exc:
             steps.append({"step": f"ingest_{source}", "status": "error", "asset_name": asset_name, "detail": str(exc.detail)})
@@ -115,7 +132,7 @@ def demo_load() -> dict[str, Any]:
     steps.append({"step": "graph_snapshot", "status": "ok" if graph_ok else "error", "detail": graph_message})
 
     overall = "ok" if all(s["status"] in ("ok", "skipped") for s in steps) else "partial"
-    return {"overall": overall, "steps": steps}
+    return {"overall": overall, "steps": steps, "workspace_id": workspace_id}
 
 
 @app.get("/api/demo/status")
@@ -127,9 +144,15 @@ def demo_status() -> dict[str, Any]:
         assets = _request_json("GET", f"{INVENTORY_BASE_URL}/assets")
     except HTTPException:
         assets = []
-    asset_names = {a.get("name") for a in assets} if isinstance(assets, list) else set()
+    assets_by_name = {a.get("name"): a for a in assets} if isinstance(assets, list) else {}
+    asset_names = set(assets_by_name)
     present = [name for name in demo_seed.DEMO_ASSET_NAMES if name in asset_names]
     missing = [name for name in demo_seed.DEMO_ASSET_NAMES if name not in asset_names]
+
+    # Representative workspace_id for the demo dataset: the first present
+    # demo asset's workspace_id (they all join the same workspace when
+    # seeded together by one /api/demo/load call).
+    workspace_id = next((assets_by_name[name].get("workspace_id") for name in present if assets_by_name[name].get("workspace_id")), None)
 
     graph_path = Path(os.getenv("GRAPH_SNAPSHOT_PATH", demo_seed.GRAPH_SNAPSHOT_DEFAULT_PATH))
     return {
@@ -139,6 +162,7 @@ def demo_status() -> dict[str, Any]:
         "asset_count_total": len(asset_names),
         "graph_snapshot_present": graph_path.exists(),
         "doc_index_present": demo_seed.DOC_INDEX_DEFAULT_PATH.exists(),
+        "workspace_id": workspace_id,
     }
 
 
@@ -156,6 +180,41 @@ def get_asset(asset_id: str) -> dict[str, Any]:
 def get_asset_history(asset_id: str) -> dict[str, Any]:
     """Chronological risk trend for an asset across persisted scans."""
     return _request_json("GET", f"{INVENTORY_BASE_URL}/assets/{asset_id}/history")
+
+
+# --- Workspace model (services/inventory-service/README.md) ---
+@app.post("/api/workspaces")
+def create_workspace(payload: dict[str, Any] = Body(default_factory=dict)) -> dict[str, Any]:
+    return _request_json("POST", f"{INVENTORY_BASE_URL}/workspaces", payload=payload)
+
+
+@app.get("/api/workspaces")
+def list_workspaces() -> list[dict[str, Any]]:
+    return _request_json("GET", f"{INVENTORY_BASE_URL}/workspaces")
+
+
+@app.get("/api/workspaces/{workspace_id}")
+def get_workspace(workspace_id: str) -> dict[str, Any]:
+    """Rollup: the workspace plus its scans, risks (findings), and reports."""
+    return _request_json("GET", f"{INVENTORY_BASE_URL}/workspaces/{workspace_id}")
+
+
+@app.post("/api/workspaces/{workspace_id}/reports")
+def create_workspace_report(workspace_id: str, payload: dict[str, Any] = Body(default_factory=dict)) -> dict[str, Any]:
+    return _request_json("POST", f"{INVENTORY_BASE_URL}/workspaces/{workspace_id}/reports", payload=payload)
+
+
+@app.get("/api/reports/{report_id}")
+def get_report(report_id: str) -> dict[str, Any]:
+    return _request_json("GET", f"{INVENTORY_BASE_URL}/reports/{report_id}")
+
+
+@app.get("/api/reports")
+def list_reports(workspace_id: str | None = Query(default=None)) -> list[dict[str, Any]]:
+    endpoint = f"{INVENTORY_BASE_URL}/reports"
+    if workspace_id:
+        endpoint += f"?{parse.urlencode({'workspace_id': workspace_id})}"
+    return _request_json("GET", endpoint)
 
 
 @app.get("/api/assets/{asset_id}/risk")
@@ -399,10 +458,13 @@ def _load_graph_snapshot_or_raise() -> dict[str, Any]:
         raise HTTPException(status_code=400, detail={"error": exc.code}) from exc
 
 
-def _ingest_scan(source: str, payload: dict[str, Any], scenario: str) -> dict[str, Any]:
+def _ingest_scan(source: str, payload: dict[str, Any], scenario: str, workspace_id: str | None = None) -> dict[str, Any]:
     request_payload = dict(payload)
     request_payload["source"] = source
-    endpoint = f"{INVENTORY_BASE_URL}/scans/ingest?{parse.urlencode({'scenario': scenario, 'auto_score': 'true'})}"
+    query = {"scenario": scenario, "auto_score": "true"}
+    if workspace_id:
+        query["workspace_id"] = workspace_id
+    endpoint = f"{INVENTORY_BASE_URL}/scans/ingest?{parse.urlencode(query)}"
     return _request_json("POST", endpoint, payload=request_payload)
 
 

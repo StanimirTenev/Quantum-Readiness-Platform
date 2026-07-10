@@ -74,6 +74,29 @@ echo "== Dashboard: Refresh demo status (GET /api/demo/status) =="
 status_response="$(curl -sS -f "$GATEWAY_BASE/api/demo/status" 2>&1)" || true
 check_json_contains "GET /api/demo/status reports loaded" '"loaded":true' "$status_response"
 
+echo "== Dashboard/Reports: workspace model (project/workspace) =="
+WORKSPACE_ID="$(echo "$status_response" | python3 -c "import json,sys
+try:
+    print(json.load(sys.stdin).get('workspace_id',''))
+except Exception:
+    print('')" 2>/dev/null)"
+if [[ -n "$WORKSPACE_ID" ]]; then
+    record "GET /api/demo/status reports a workspace_id" "PASS" ""
+else
+    record "GET /api/demo/status reports a workspace_id" "FAIL" "no workspace_id in response"
+fi
+workspace_response="$(curl -sS -f "$GATEWAY_BASE/api/workspaces/$WORKSPACE_ID" 2>&1)" || true
+check_json_contains "GET /api/workspaces/{id} returns the rollup (scans/risks/reports)" '"scans"' "$workspace_response"
+report_response="$(curl -sS -f -X POST "$GATEWAY_BASE/api/workspaces/$WORKSPACE_ID/reports" 2>&1)" || true
+check_json_contains "POST /api/workspaces/{id}/reports persists an operator report" '"content"' "$report_response"
+REPORT_ID="$(echo "$report_response" | python3 -c "import json,sys
+try:
+    print(json.load(sys.stdin).get('id',''))
+except Exception:
+    print('')" 2>/dev/null)"
+fetched_report_response="$(curl -sS -f "$GATEWAY_BASE/api/reports/$REPORT_ID" 2>&1)" || true
+check_json_contains "GET /api/reports/{id} fetches the persisted report back" '"content"' "$fetched_report_response"
+
 echo "== Assets tab: asset list =="
 assets_response="$(curl -sS -f "$GATEWAY_BASE/api/assets" 2>&1)" || true
 check_json_contains "GET /api/assets returns the seeded assets" "qrp-linux-demo-01" "$assets_response"

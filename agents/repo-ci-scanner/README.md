@@ -10,6 +10,10 @@
   `signtool sign`, `jarsigner`, `codesign`) in CI/CD configs
   (`.github/workflows/*.yml`, `.gitlab-ci.yml`, `Jenkinsfile`,
   `azure-pipelines.yml`, `.circleci/config.yml`).
+- Detects IaC-declared key algorithms (Terraform `tls_private_key`/`aws_kms_key`-style
+  `algorithm`/`customer_master_key_spec` attributes, cert-manager `Certificate` manifests) in
+  `*.tf`/`*.tfvars` files and content-sniffed Kubernetes manifests (`.yaml`/`.yml` with both
+  `apiVersion:` and `kind:`), plus embedded PEM private key blocks in either.
 
 ## Current role in the prototype
 - Working prototype agent. Emits evidence in the standard ingest contract
@@ -18,7 +22,8 @@
 
 ## Main endpoints or functions
 - CLI entrypoint: `scanner.py`
-- Detection logic: `detectors.py` (`scan_repo`, `scan_source_file`, `scan_ci_file`)
+- Detection logic: `detectors.py` (`scan_repo`, `scan_source_file`, `scan_ci_file`,
+  `scan_iac_file`)
 
 ## Inputs / outputs
 - Input: CLI flags (`--repo-path`, optional `--out`, optional `--ingest`, optional
@@ -35,12 +40,18 @@
   "crypto_evidence": {
     "known_crypto_files": ["<path>", "..."],
     "repo_scan": {
-      "files_scanned": {"source": 0, "ci_config": 0},
+      "files_scanned": {"source": 0, "ci_config": 0, "iac": 0},
       "source_code_findings": [
         {"path": "app/crypto.py", "line": 3, "algorithm": "RSA", "description": "RSA usage", "excerpt": "..."}
       ],
       "ci_pipeline_findings": [
         {"path": ".github/workflows/release.yml", "line": 2, "command_type": "gpg_sign", "excerpt": "..."}
+      ],
+      "iac_findings": [
+        {"path": "main.tf", "line": 2, "algorithm": "RSA", "description": "RSA key algorithm declared in IaC", "excerpt": "..."}
+      ],
+      "embedded_key_findings": [
+        {"path": "k8s/tls-secret.yaml", "line": 6, "description": "Embedded private key material", "excerpt": "..."}
       ],
       "detected_algorithms": ["RSA"]
     }
@@ -69,8 +80,16 @@ python3 scanner.py --repo-path /path/to/repo --ingest http://127.0.0.1:8001
 - Detection is regex/line-based, not AST-based — no cross-line or
   string-concatenation detection, and no distinction between real usage and
   comments/string literals.
-- No IaC (Terraform/CloudFormation/Kubernetes manifests) scanning yet — only
-  source code and CI/CD pipeline configs, per the current architecture scope.
+- IaC coverage is Terraform (`.tf`/`.tfvars`) and Kubernetes manifests only, and only for
+  the algorithm-declaration and embedded-PEM-key patterns above — no CloudFormation, no
+  Helm templating awareness, no cross-referencing a Terraform variable's actual value.
+- `iac_findings` feed into `detected_algorithms`/`package_metadata.packages` like source
+  findings do (so they can trigger the existing `crypto_packages_detected` risk signal), but
+  `embedded_key_findings` are evidence-only for now -- they are not wired into
+  risk-engine's `private_key_files_detected` signal, since that signal's shape
+  (`cert_indicators.certificate_file_indicators.counts`) models host filesystem cert/key
+  stores, not repo findings; a dedicated risk signal for embedded credentials would be a
+  separate follow-up.
 - No inventory/risk-engine wiring beyond the generic `crypto_evidence`
   contract (unlike the Windows host evidence vertical, there is no dedicated
   risk-mapper signal family for repo findings yet).

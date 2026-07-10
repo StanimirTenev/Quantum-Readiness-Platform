@@ -27,6 +27,26 @@ def test_build_ingest_payload_shape():
     assert payload["crypto_evidence"]["package_metadata"]["packages"] == [{"name": "RSA"}]
 
 
+def test_build_ingest_payload_includes_iac_and_embedded_key_findings():
+    scan_result = {
+        "files_scanned": {"source": 0, "ci_config": 0, "iac": 1},
+        "source_code_findings": [],
+        "ci_pipeline_findings": [],
+        "iac_findings": [
+            {"path": "main.tf", "line": 2, "algorithm": "ECDSA", "description": "...", "excerpt": "..."},
+        ],
+        "embedded_key_findings": [
+            {"path": "k8s/tls-secret.yaml", "line": 6, "description": "...", "excerpt": "..."},
+        ],
+        "detected_algorithms": ["ECDSA"],
+    }
+
+    payload = build_ingest_payload(scan_result, "my-repo")
+
+    assert payload["crypto_evidence"]["known_crypto_files"] == ["k8s/tls-secret.yaml", "main.tf"]
+    assert payload["crypto_evidence"]["package_metadata"]["packages"] == [{"name": "ECDSA"}]
+
+
 def test_main_writes_output_file(tmp_path: Path):
     (tmp_path / "crypto.py").write_text("from Crypto.PublicKey import RSA\n", encoding="utf-8")
     out_file = tmp_path / "out.json"

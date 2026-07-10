@@ -14,7 +14,12 @@ from detectors import scan_repo
 def build_ingest_payload(scan_result: dict[str, Any], repo_name: str) -> dict[str, Any]:
     known_files = sorted({
         finding["path"]
-        for finding in scan_result["source_code_findings"] + scan_result["ci_pipeline_findings"]
+        for finding in (
+            scan_result["source_code_findings"]
+            + scan_result["ci_pipeline_findings"]
+            + scan_result.get("iac_findings", [])
+            + scan_result.get("embedded_key_findings", [])
+        )
     })
     # Map detected algorithms into the package_metadata.packages shape
     # risk-engine's stage2 evidence extraction already reads (crypto_packages_detected),

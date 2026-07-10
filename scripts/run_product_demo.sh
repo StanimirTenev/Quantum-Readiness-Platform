@@ -339,6 +339,12 @@ jobs:
     steps:
       - run: gpg --detach-sign artifact.tar.gz
 YML
+cat > "$SAMPLE_REPO/main.tf" <<'TF'
+resource "tls_private_key" "legacy" {
+  algorithm = "RSA"
+  rsa_bits  = 2048
+}
+TF
 scan_exit=0
 (cd "$ROOT_DIR/agents/repo-ci-scanner" && run_bounded "$PYTHON_BIN" scanner.py --repo-path "$SAMPLE_REPO" --out "$RUN_DIR/repo-ci-payload.json" --ingest "$INVENTORY_BASE" --workspace-id "$WORKSPACE_ID" > "$RUN_DIR/repo-ci-ingest.json" 2>"$LOG_DIR/repo-ci-scanner.log") || scan_exit=$?
 if [[ $scan_exit -eq 0 ]] && grep -q '"created"' "$RUN_DIR/repo-ci-ingest.json" 2>/dev/null; then

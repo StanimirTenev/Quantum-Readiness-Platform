@@ -44,9 +44,6 @@ jobs:
       - name: Doc ingestion tests
         run: cd agents/doc-ingestion && PYTHONPATH=. python -m pytest -q
 
-      - name: TRL7 evidence bundle consistency (LF integrity guard)
-        run: python tools/evidence_pack/validate_trl7_evidence_bundle_consistency.py --repo-root .
-
   windows-evidence-smoke:
     name: Windows evidence smoke (fixture-based)
     runs-on: ubuntu-latest

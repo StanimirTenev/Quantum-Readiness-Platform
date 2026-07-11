@@ -6,7 +6,7 @@ QRP is designed for internal/customer-controlled deployment with local-first evi
 
 Note: the legacy demo (`docs/demo/qrp_demo_legacy.html`) has external LLM calls disabled to preserve the local-first/privacy boundary.
 
-Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning. Current status: QRP has a passing TRL6 readiness validation package in a local relevant-environment simulation. TRL 6 achieved is not claimed until relevant-environment demo execution and operator review/sign-off are completed.
+Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning.
 
 ## Modules
 - API Gateway
@@ -51,7 +51,6 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 | repo-ci-scanner | ✅ Working prototype | ✅ Unit tests |
 | doc-ingestion | ✅ Working prototype | ✅ Unit tests |
 | integration-service | 🟨 Safe dry-run skeleton | ✅ Unit + API tests |
-| dashboard-ui | 🟨 Legacy, superseded by web-ui (not started by any script) | — |
 | web-ui | ✅ Working prototype (buildless) | ✅ Build + JS syntax check |
 
 ## Local packaging (Makefile shortcuts)
@@ -370,16 +369,6 @@ Wired into the flow: `start_all.sh` starts it and the API Gateway exposes it as
 - Graph Snapshot Loader Design: `docs/graph-snapshot-loader-design.md`
 - Graph API Read-only Freeze Status: `docs/graph-api-readonly-freeze-status.md`
 - Repository checkpoint added: `docs/repository-checkpoint-current-status.md`
-- TRL 6 Readiness Plan: `docs/trl6-readiness-plan.md`
-- TRL7 Operational Readiness Plan: `docs/trl7-operational-readiness-plan.md`
-- TRL7 Operational Pilot Checklist template: `reports/trl7/trl7-operational-pilot-checklist.md`
-- TRL7 Operational Evidence Bundle Design: `docs/trl7-operational-evidence-bundle-design.md`
-- TRL7 Operational Readiness Report template: `reports/trl7/trl7-operational-readiness-report.md`
-- TRL7 Operational Dry-Run Review Report: `reports/trl7/trl7-operational-dry-run-review-report.md`
-- TRL7 External Pilot Package: `reports/trl7/trl7-external-pilot-package.md`
-- TRL7 Static External Pilot Export Manifest: `reports/trl7/trl7-static-external-pilot-export-manifest.md`
-- Operational Evidence Safety Scan Review: `reports/trl7/operational-evidence-safety-scan-review.md`
-- Operational Evidence Safety LOW Findings Triage: `reports/trl7/operational-evidence-safety-low-findings-triage.md`
 - Cross-Platform Agent Design: `docs/cross-platform-agent-design.md`
 - Windows Evidence Fixture Contract: `docs/windows-evidence-fixture-contract.md`
 - Inventory Windows Evidence Acceptance Design: `docs/inventory-windows-evidence-acceptance-design.md`
@@ -462,48 +451,6 @@ Output:
 
 reports/graph/latest/graph-snapshot.json
 reports/graph/latest/graph-projection-report.md
-
-## TRL7 Operational Dry-Run (Orchestration/Reporting)
-
-Run:
-
-```bash
-bash scripts/run_trl7_operational_dry_run.sh
-```
-
-This dry-run now includes deterministic preflight checks and records preflight results in the generated TRL7 dry-run report.
-
-## TRL7 Operational Evidence Bundle Smoke
-
-Run:
-
-```bash
-bash scripts/run_trl7_operational_evidence_bundle_smoke.sh
-bash scripts/run_trl7_evidence_bundle_consistency_check.sh
-```
-
-## TRL 6 Operator Review / Demo Sign-off Package
-
-Validation/status artifacts:
-- `reports/trl6/operator-review-summary.md`
-- `reports/trl6/operator-demo-checklist.md`
-- `docs/trl6-readiness-plan.md`
-- `docs/trl6-operator-review-boundary.md`
-- `reports/trl6/demo-bundle/trl6-demo-bundle-index.md`
-- `reports/trl6/demo-bundle/trl6-demo-bundle-smoke-report.md`
-- `reports/trl6/operator-review-execution-record.md`
-- `reports/trl6/relevant-environment-demo-evidence.md`
-- `reports/trl6/relevant-environment-demo-execution-summary.md`
-- `reports/trl6/relevant-environment-demo-run-instructions.md`
-- `reports/trl6/trl6-claim-review-readiness-checklist.md`
-- `reports/trl6/final-trl6-claim-review-decision.md`
-- `reports/trl6/conservative-trl6-claim-approval-record.md`
-- `reports/trl6/limited-trl6-demonstrated-approval-record.md`
-- `reports/external-review/partner-handoff-pack.md`
-- `reports/external-review/stravixlab-review-result.md`
-- `reports/external-review/stravixlab-follow-up-action-plan.md`
-- `reports/external-review/stravixlab-trl7-review-result.md`
-- `reports/external-review/stravixlab-trl7-follow-up-action-plan.md`
 
 ## Stage 2 documentation update (current code + fixtures)
 
@@ -594,8 +541,6 @@ The TRL validation run now generates an Evidence Package v1 with sanitized input
 - Regenerate: `bash scripts/run_trl_validation.sh`
 - Operator checklist: `docs/operator-validation-checklist.md`
 - Evidence Pack Index helper: `bash scripts/run_evidence_pack_index.sh`
-- TRL6 Demo Evidence Bundle helper: `bash scripts/run_trl6_demo_bundle.sh`
-- TRL7 Operational Evidence Bundle helper: `bash scripts/run_trl7_operational_evidence_bundle.sh`
 - Outputs: `reports/evidence-pack/evidence-pack-index.json`, `reports/evidence-pack/evidence-pack-index.md`
 - Indexes existing local validation artifacts; does not run tests or imply production readiness.
 - Supports TRL 5 candidate status by proving a repeatable local validation run with persisted evidence artifacts.
@@ -693,13 +638,6 @@ Output:
 reports/copilot/offline-smoke-report.md
 
 - Copilot Safety Contract Smoke: `bash scripts/run_copilot_safety_contract_smoke.sh` (report: `reports/copilot/safety-contract-smoke-report.md`)
-
-## TRL 6 readiness validation
-
-```bash
-bash scripts/run_trl6_readiness_validation.sh
-bash scripts/run_trl6_demo_bundle_smoke.sh
-```
 
 ## Local Validation Prerequisites
 

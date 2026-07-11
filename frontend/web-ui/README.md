@@ -51,7 +51,12 @@ Deterministic core (secondary tabs):
   neighbours (`GET /graph/nodes` to pick a node, `POST /api/graph/*`).
 - **Algorithms** — the deterministic knowledge base (`GET /api/algorithms`).
 
-The gateway URL is editable in the header; **Check** hits `GET /health`.
+The gateway URL is editable in the header; **Check** hits `GET /health`. An **API Key** field
+next to it attaches `X-API-Key` on every request when the gateway requires one
+(`QRP_API_KEY` -- see `services/api-gateway/README.md`); a page-load health check (and every
+successful **Check** click) also reads `GET /health`'s `demo_mode` flag and shows a banner
+across the top of the page when the gateway is running in Public Demo Safety Mode
+(`QRP_DEMO_MODE=true` -- scanning and other mutations return `403` in that mode).
 
 ## Run
 

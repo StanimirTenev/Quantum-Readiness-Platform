@@ -1016,3 +1016,64 @@ def test_api_key_enabled_still_allows_health_without_key(monkeypatch) -> None:
     monkeypatch.setattr(main, "QRP_API_KEY", "secret-key")
     response = client.get("/health")
     assert response.status_code == 200
+
+
+def test_health_reports_demo_mode_flag(monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_DEMO_MODE", False)
+    assert client.get("/health").json()["demo_mode"] is False
+
+    monkeypatch.setattr(main, "QRP_DEMO_MODE", True)
+    assert client.get("/health").json()["demo_mode"] is True
+
+
+def test_demo_mode_disabled_by_default_allows_scans() -> None:
+    assert main.QRP_DEMO_MODE is False
+
+
+def test_demo_mode_blocks_arbitrary_scan_ingest(monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_DEMO_MODE", True)
+    response = client.post(
+        "/api/scans/host",
+        json={"assets": [{"asset_type": "server", "name": "attacker-host"}], "source": "manual"},
+    )
+    assert response.status_code == 403
+
+
+def test_demo_mode_blocks_workspace_creation(monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_DEMO_MODE", True)
+    response = client.post("/api/workspaces", json={})
+    assert response.status_code == 403
+
+
+def test_demo_mode_allows_get_routes(monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_DEMO_MODE", True)
+    monkeypatch.setattr(main, "_request_json", lambda method, url, payload=None: [])
+    response = client.get("/api/assets")
+    assert response.status_code == 200
+
+
+def test_demo_mode_allows_demo_load(monkeypatch) -> None:
+    # demo_seed's own internals aren't mocked here -- asserting only that the
+    # request clears the demo-mode gate (not blocked with 403), independent of
+    # whatever demo_seed itself does downstream.
+    monkeypatch.setattr(main, "QRP_DEMO_MODE", True)
+    response = client.post("/api/demo/load")
+    assert response.status_code != 403
+
+
+def test_demo_mode_allows_stateless_compute_routes(monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_DEMO_MODE", True)
+    monkeypatch.setattr(main, "_request_json", lambda method, url, payload=None: {"multiplier": 1.0})
+    response = client.post("/api/scenarios/run", json={"scenario": "public_timeline", "base_score": 1.0})
+    assert response.status_code == 200
+
+
+def test_demo_mode_403_still_carries_cors_header(monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_DEMO_MODE", True)
+    response = client.post(
+        "/api/scans/host",
+        json={"assets": [], "source": "manual"},
+        headers={"Origin": "http://127.0.0.1:5173"},
+    )
+    assert response.status_code == 403
+    assert response.headers.get("access-control-allow-origin") == "*"

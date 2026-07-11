@@ -56,6 +56,15 @@ document.querySelectorAll(".tab").forEach((tab) => {
 });
 
 // --- Connection check ---
+function updateDemoBanner(demoMode) {
+  $("demo-mode-banner").hidden = !demoMode;
+}
+
+// Silent check on page load so the demo banner (and anyone relying on it to
+// know scanning is disabled) shows up without requiring a manual "Check"
+// click first.
+api("GET", "/health").then((data) => updateDemoBanner(!!data.demo_mode)).catch(() => {});
+
 $("check-conn").addEventListener("click", async () => {
   const status = $("conn-status");
   status.className = "pill pill-muted";
@@ -64,6 +73,7 @@ $("check-conn").addEventListener("click", async () => {
     const data = await api("GET", "/health");
     status.className = "pill pill-ok";
     status.textContent = data.status === "ok" ? "connected" : "unknown";
+    updateDemoBanner(!!data.demo_mode);
     setMsg("Gateway healthy: " + (data.service || ""));
     // Retry anything that failed to load before the API key was entered --
     // the dashboard/scenarios/integrations loaders fire eagerly on page load,

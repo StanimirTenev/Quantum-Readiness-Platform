@@ -59,6 +59,11 @@ docker compose down -v       # also drop the persisted inventory-service volume
    multi-tenant deployment. See `services/api-gateway/README.md`.
 5. Postgres credentials default to `qrp`/`qrp`/`qrp` -- fine for `docker compose up` with no
    profile, but change `POSTGRES_PASSWORD` in `.env` before using the `public` profile.
+6. For an unattended public demo instance visitors browse without needing a key, set
+   `QRP_DEMO_MODE=true` (independent of `QRP_API_KEY` -- a deployment can use either, both, or
+   neither) -- restricts the gateway to browsing plus the built-in demo dataset, blocking
+   arbitrary scan ingest and other mutations (`403`). The console shows a visible banner
+   whenever this is on. See `services/api-gateway/README.md`.
 
 Without `--profile public` (plain `docker compose up`), Caddy never starts at all -- this is
 the default local/CI path, fully unaffected by any of the above.

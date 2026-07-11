@@ -64,6 +64,48 @@ async def require_api_key(request: Request, call_next):
     return await call_next(request)
 
 
+# Public Demo Safety Mode: for a live demo reachable by anyone (not just
+# operators holding QRP_API_KEY), restrict the gateway to a fixed allowlist so
+# visitors can browse/seed the canned demo dataset but can't ingest arbitrary
+# scans or otherwise mutate persisted state. Disabled by default -- unrelated
+# to and independent of QRP_API_KEY (a deployment can use either, both, or
+# neither). GET/HEAD are always allowed (every gateway GET route is read-only,
+# confirmed by inspection -- no route mutates state on GET); POST is allowed
+# only for this explicit list of routes that either don't persist anything
+# (stateless compute/query endpoints) or are the controlled, idempotent,
+# bounded demo-seeding endpoint itself -- not "arbitrary" ingest.
+QRP_DEMO_MODE = os.getenv("QRP_DEMO_MODE", "").strip().lower() in ("1", "true", "yes")
+
+DEMO_MODE_ALLOWED_POST_PATHS = {
+    "/api/demo/load",
+    "/api/copilot/query",
+    "/api/scenarios/run",
+    "/api/policies/evaluate",
+    "/api/fingerprint",
+    "/api/normalize",
+    "/api/pqc-readiness",
+    "/api/assess",
+    "/api/attribute",
+    "/api/graph/blast-radius",
+    "/api/graph/trust-chain",
+    "/api/graph/neighbors",
+    "/api/graph/evidence-path",
+    "/api/integrations/dry-run",
+}
+
+
+@app.middleware("http")
+async def enforce_demo_mode_allowlist(request: Request, call_next):
+    if QRP_DEMO_MODE and request.method not in ("GET", "HEAD", "OPTIONS"):
+        if request.url.path not in DEMO_MODE_ALLOWED_POST_PATHS:
+            return JSONResponse(
+                status_code=403,
+                content={"detail": "This route is disabled in public demo mode"},
+                headers=_cors_headers(request),
+            )
+    return await call_next(request)
+
+
 INVENTORY_BASE_URL = os.getenv("INVENTORY_SERVICE_URL", "http://inventory-service:8000")
 RISK_BASE_URL = os.getenv("RISK_ENGINE_URL", "http://risk-engine:8000")
 COPILOT_BASE_URL = os.getenv("COPILOT_SERVICE_URL", "http://copilot-service:8000")
@@ -79,8 +121,8 @@ GRAPH_SNAPSHOT_DEFAULT_PATH = "reports/graph/latest/graph-snapshot.json"
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
-    return {"status": "ok", "service": "api-gateway"}
+def health() -> dict[str, Any]:
+    return {"status": "ok", "service": "api-gateway", "demo_mode": QRP_DEMO_MODE}
 
 
 @app.post("/api/scans/host")

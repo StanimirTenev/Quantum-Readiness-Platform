@@ -214,6 +214,11 @@ services:
       # Defaults to "*" (unset here) for local dev; set CORS_ALLOW_ORIGINS in
       # .env to the real domain(s) once one is in use -- see .env.example.
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
+      # Public Demo Safety Mode -- set QRP_DEMO_MODE=true in .env to restrict the
+      # gateway to a fixed allowlist (browsing + the built-in demo dataset only,
+      # no arbitrary scan ingest or other mutations). Independent of QRP_API_KEY --
+      # see services/api-gateway/README.md.
+      QRP_DEMO_MODE: ${QRP_DEMO_MODE:-}
     # Read-write (unlike the other services' :ro mounts of the same host
     # paths): POST /api/demo/load's demo_seed.py writes the graph snapshot
     # and doc index here (via the same REPO_ROOT-relative defaults every

@@ -48,6 +48,12 @@ body {
 .gateway label { font-size: 12px; color: var(--muted); }
 .gateway input { width: 190px; }
 
+.demo-banner {
+  padding: 8px 24px; font-size: 13px; font-weight: 600; text-align: center;
+  background: var(--med); color: #1a1e27;
+}
+.demo-banner[hidden] { display: none; }
+
 .tabs { display: flex; gap: 4px; padding: 0 24px; border-bottom: 1px solid var(--border); background: var(--panel); overflow-x: auto; }
 .tab {
   background: none; border: none; color: var(--muted); cursor: pointer;

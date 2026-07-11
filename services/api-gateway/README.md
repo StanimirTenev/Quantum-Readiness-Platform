@@ -51,6 +51,23 @@
   profile (Caddy reverse proxy, automatic HTTPS) before exposing this stack anywhere the key
   could be intercepted in transit. See `infra/docker/README.md`.
 
+## Public Demo Safety Mode (optional)
+- Set `QRP_DEMO_MODE=true` to restrict the gateway to a fixed allowlist -- every `GET`/`HEAD`
+  route (all read-only) plus a short list of `POST` routes that either don't persist anything
+  (`/api/copilot/query`, `/api/scenarios/run`, `/api/policies/evaluate`, `/api/fingerprint`,
+  `/api/normalize`, `/api/pqc-readiness`, `/api/assess`, `/api/attribute`,
+  `/api/graph/blast-radius`, `/api/graph/trust-chain`, `/api/graph/neighbors`,
+  `/api/graph/evidence-path`, `/api/integrations/dry-run`) or are the controlled, idempotent,
+  bounded demo-seeding endpoint itself (`/api/demo/load`) -- not "arbitrary" ingest. Every other
+  `POST` (`/api/scans/{host,network,repo,windows}`, `/api/workspaces`,
+  `/api/workspaces/{id}/reports`) returns `403`.
+- Independent of `QRP_API_KEY` -- a deployment can use either, both, or neither. Meant for an
+  unattended public demo instance visitors browse (and click "Load Demo" on) without needing a
+  key, while still being unable to ingest arbitrary scans or otherwise mutate persisted state.
+- `GET /health` includes a `demo_mode` boolean so the web-ui can show a visible banner -- see
+  `frontend/web-ui/README.md`.
+- Disabled by default (unset), so local dev/CI need no changes.
+
 ## Current status
 - Partially implemented integration gateway.
 

@@ -261,7 +261,12 @@ jobs:
           curl -fsS -X POST http://127.0.0.1:8000/api/scans/host \
             -H "Content-Type: application/json" \
             -d '{"assets":[{"asset_type":"server","name":"ci-docker-host","criticality":4,"environment":"production","lifecycle_years":3}],"crypto_evidence":{"package_metadata":{"packages":[{"name":"openssl","algorithm":"RSA","key_size":1024}]}}}'
-          curl -fsS http://127.0.0.1:8000/api/copilot/narrate/ci-docker-host | grep -q '"narrative"'
+          # Capture the body before grepping it -- piping curl straight into
+          # `grep -q` lets grep exit (and close the pipe) as soon as it finds a
+          # match, which can SIGPIPE curl mid-write and fail the whole step with
+          # a misleading error, even though the request itself succeeded.
+          narrate_body="$(curl -fsS http://127.0.0.1:8000/api/copilot/narrate/ci-docker-host)"
+          echo "$narrate_body" | grep -q '"narrative"'
 
       - name: Wait for web-ui health
         run: |
@@ -275,9 +280,14 @@ jobs:
       - name: Smoke -- web-ui reachable and serves the console, Load Demo works end to end
         run: |
           set -euo pipefail
-          curl -fsS http://127.0.0.1:5173/ | grep -q "Quantum Readiness Console"
+          # Capture each body before grepping it -- see the comment on the
+          # earlier "ingest through gateway" step for why (SIGPIPE race on
+          # `curl | grep -q`, not a real failure).
+          index_body="$(curl -fsS http://127.0.0.1:5173/)"
+          echo "$index_body" | grep -q "Quantum Readiness Console"
           curl -fsS http://127.0.0.1:5173/app.js >/dev/null
-          curl -fsS -X POST http://127.0.0.1:8000/api/demo/load | grep -q '"overall":"ok"'
+          demo_body="$(curl -fsS -X POST http://127.0.0.1:8000/api/demo/load)"
+          echo "$demo_body" | grep -q '"overall":"ok"'
 
       - name: Compose logs (on failure)
         if: failure()

@@ -31,6 +31,19 @@ Network TLS evidence-derived signals (`tls_metadata`):
 - `expiring_certificate_detected` when `certificate.not_after` is within 90 days (`+8`)
 - `certificate_chain_available` when `certificate_chain.available == true` and `length > 0` (`+2`)
 
+Network SSH evidence-derived signals (`ssh_metadata`, from network-scanner's `-protocol ssh`
+handshake -- see `agents/network-scanner/README.md`). The scanner reports offered algorithms
+as neutral facts; the weak/legacy judgment happens here:
+- `weak_ssh_kex_detected` when `kex_algorithms` includes a SHA-1-based Diffie-Hellman group (`+6`)
+- `legacy_ssh_host_key_detected` when `server_host_key_algorithms` includes `ssh-rsa` or `ssh-dss` (`+8`)
+- `weak_ssh_cipher_detected` when either encryption algorithm direction includes a legacy cipher
+  (3DES, RC4/arcfour, Blowfish, CAST128, DES) (`+4`)
+- `weak_ssh_mac_detected` when either MAC algorithm direction includes `hmac-md5*` or `hmac-sha1*` (`+3`)
+
+Repo evidence-derived signal (`crypto_evidence.repo_scan`, from repo-ci-scanner's IaC
+scanning -- see `agents/repo-ci-scanner/README.md`):
+- `embedded_private_key_in_repo_detected` when `repo_scan.embedded_key_findings` is non-empty (`+12`)
+
 Additional existing deterministic hints:
 - `vendor_blocked` (`+0.20`)
 - `high_dependency_pressure` for `dependency_count >= 10` (`+0.15`)
@@ -45,10 +58,10 @@ Safety behavior:
 ## Stage 3 Risk Dimensions and Confidence
 - Stage 3 is additive and backward-compatible: existing score fields, normalized score, rating, rationale, `stage2_signals`, and `stage2_adjustment` remain available.
 - `confidence_score` (`0..100`) is always returned and represents deterministic confidence based on evidence completeness (criticality/environment/evidence presence).
-- `risk_dimensions.exposure` (`0..100`) captures quantum exposure with additive TLS/config evidence hints.
+- `risk_dimensions.exposure` (`0..100`) captures quantum exposure with additive TLS/config/SSH evidence hints (`weak_ssh_kex_detected`, `legacy_ssh_host_key_detected`).
 - `risk_dimensions.impact` (`0..100`) is primarily driven by criticality, with production environment lift.
-- `risk_dimensions.urgency` (`0..100`) reflects immediate certificate/key urgency signals (expiring certs, weak keys, private key indicators).
-- `risk_dimensions.migration_complexity` (`0..100`) reflects dependencies plus migration blockers (certificate/private key artifacts, vendor blocked).
+- `risk_dimensions.urgency` (`0..100`) reflects immediate certificate/key urgency signals (expiring certs, weak keys, private key indicators, `embedded_private_key_in_repo_detected`).
+- `risk_dimensions.migration_complexity` (`0..100`) reflects dependencies plus migration blockers (certificate/private key artifacts, `embedded_private_key_in_repo_detected`, vendor blocked).
 - This stage is not dependency graph scoring yet; dimension logic is deterministic and local to risk-engine.
 
 ## Current status

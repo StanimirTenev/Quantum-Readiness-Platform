@@ -35,7 +35,29 @@ EVIDENCE_SIGNAL_WEIGHTS: dict[str, float] = {
     "weak_public_key_detected": 15.0,
     "expiring_certificate_detected": 8.0,
     "certificate_chain_available": 2.0,
+    "weak_ssh_kex_detected": 6.0,
+    "legacy_ssh_host_key_detected": 8.0,
+    "weak_ssh_cipher_detected": 4.0,
+    "weak_ssh_mac_detected": 3.0,
+    "embedded_private_key_in_repo_detected": 12.0,
 }
+
+# SSH_MSG_KEXINIT algorithm names considered weak/legacy -- classical SHA-1-based
+# Diffie-Hellman groups, classical RSA/DSA host key signatures (the quantum-vulnerable
+# primitives, mirroring the platform's RSA/DSA/DH/ECDSA framing), and symmetric
+# ciphers/MACs long deprecated by OpenSSH hardening guidance. This judgment lives here
+# (deterministic analysis layer), not in network-scanner (collection layer), which only
+# reports what a server offers without judging it -- see agents/network-scanner/README.md.
+WEAK_SSH_KEX_ALGORITHMS = {
+    "diffie-hellman-group1-sha1",
+    "diffie-hellman-group14-sha1",
+    "diffie-hellman-group-exchange-sha1",
+}
+LEGACY_SSH_HOST_KEY_ALGORITHMS = {"ssh-rsa", "ssh-dss"}
+WEAK_SSH_CIPHERS = {
+    "3des-cbc", "des-cbc", "arcfour", "arcfour128", "arcfour256", "blowfish-cbc", "cast128-cbc",
+}
+WEAK_SSH_MACS = {"hmac-md5", "hmac-md5-96", "hmac-sha1", "hmac-sha1-96"}
 
 # Aggregate Windows host signals (from inventory's windows_normalized_signals).
 # Treated as a parallel evidence family to the Linux/network signals above.
@@ -66,6 +88,7 @@ class RiskInput(BaseModel):
     stage2_notes: str | None = None
     crypto_evidence: dict[str, Any] | None = None
     tls_metadata: dict[str, Any] | None = None
+    ssh_metadata: dict[str, Any] | None = None
     windows_signals: dict[str, Any] | None = None
 
 
@@ -113,6 +136,31 @@ def extract_windows_signals(data: RiskInput) -> dict[str, bool]:
         >= WINDOWS_LARGE_ESTATE_THRESHOLD,
         "windows_crypto_services_present": _safe_int(windows.get("crypto_relevant_services_count")) > 0,
     }
+
+
+def extract_ssh_signals(data: RiskInput) -> dict[str, bool]:
+    ssh = data.ssh_metadata if isinstance(data.ssh_metadata, dict) else {}
+    kex = ssh.get("kex_algorithms") or []
+    host_keys = ssh.get("server_host_key_algorithms") or []
+    ciphers = list(ssh.get("encryption_algorithms_client_to_server") or []) + list(
+        ssh.get("encryption_algorithms_server_to_client") or []
+    )
+    macs = list(ssh.get("mac_algorithms_client_to_server") or []) + list(
+        ssh.get("mac_algorithms_server_to_client") or []
+    )
+
+    return {
+        "weak_ssh_kex_detected": any(a in WEAK_SSH_KEX_ALGORITHMS for a in kex),
+        "legacy_ssh_host_key_detected": any(a in LEGACY_SSH_HOST_KEY_ALGORITHMS for a in host_keys),
+        "weak_ssh_cipher_detected": any(a in WEAK_SSH_CIPHERS for a in ciphers),
+        "weak_ssh_mac_detected": any(a in WEAK_SSH_MACS for a in macs),
+    }
+
+
+def extract_embedded_key_signal(data: RiskInput) -> bool:
+    repo_scan = ((data.crypto_evidence or {}).get("repo_scan") or {})
+    findings = repo_scan.get("embedded_key_findings")
+    return isinstance(findings, list) and len(findings) > 0
 
 
 def extract_stage2_signals(data: RiskInput) -> dict[str, bool | int | dict[str, bool]]:
@@ -163,6 +211,8 @@ def extract_stage2_signals(data: RiskInput) -> dict[str, bool | int | dict[str, 
         "certificate_chain_available": bool(
             certificate_chain.get("available") is True and _safe_int(certificate_chain.get("length")) > 0
         ),
+        **extract_ssh_signals(data),
+        "embedded_private_key_in_repo_detected": extract_embedded_key_signal(data),
     }
 
     return {
@@ -260,6 +310,10 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
         exposure += 8.0
     if bool(evidence.get("ssh_config_detected")):
         exposure += 6.0
+    if bool(evidence.get("weak_ssh_kex_detected")):
+        exposure += 8.0
+    if bool(evidence.get("legacy_ssh_host_key_detected")):
+        exposure += 8.0
     if bool(windows.get("windows_domain_controller")):
         exposure += 10.0
 
@@ -276,6 +330,8 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
         urgency += 30.0
     if bool(evidence.get("private_key_files_detected")):
         urgency += 25.0
+    if bool(evidence.get("embedded_private_key_in_repo_detected")):
+        urgency += 25.0
     if bool(windows.get("windows_expired_certificates")):
         urgency += 40.0
     if bool(windows.get("windows_weak_signature_certificates")):
@@ -285,6 +341,8 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
     if bool(evidence.get("certificate_files_detected")):
         migration_complexity += 10.0
     if bool(evidence.get("private_key_files_detected")):
+        migration_complexity += 15.0
+    if bool(evidence.get("embedded_private_key_in_repo_detected")):
         migration_complexity += 15.0
     if data.vendor_blocked:
         migration_complexity += 20.0
@@ -369,6 +427,13 @@ def score(data: RiskInput) -> RiskOutput:
             "weak_public_key_detected": bool(stage2_signals["evidence_signals"].get("weak_public_key_detected")),
             "expiring_certificate_detected": bool(stage2_signals["evidence_signals"].get("expiring_certificate_detected")),
             "certificate_chain_available": bool(stage2_signals["evidence_signals"].get("certificate_chain_available")),
+            "weak_ssh_kex_detected": bool(stage2_signals["evidence_signals"].get("weak_ssh_kex_detected")),
+            "legacy_ssh_host_key_detected": bool(stage2_signals["evidence_signals"].get("legacy_ssh_host_key_detected")),
+            "weak_ssh_cipher_detected": bool(stage2_signals["evidence_signals"].get("weak_ssh_cipher_detected")),
+            "weak_ssh_mac_detected": bool(stage2_signals["evidence_signals"].get("weak_ssh_mac_detected")),
+            "embedded_private_key_in_repo_detected": bool(
+                stage2_signals["evidence_signals"].get("embedded_private_key_in_repo_detected")
+            ),
             "confidence_score_computed": "yes",
             "risk_dimensions_computed": "yes",
             "exposure_dimension_from_tls": bool(stage2_signals["evidence_signals"].get("tls_detected")),

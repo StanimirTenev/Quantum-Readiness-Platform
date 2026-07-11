@@ -1,4 +1,4 @@
-from app.models import AssetCreate, CryptoEvidence, ScanIngestRequest, TLSEvidence
+from app.models import AssetCreate, CryptoEvidence, ScanIngestRequest, SSHEvidence, TLSEvidence
 from app.risk_mapper import build_risk_payload
 
 
@@ -97,6 +97,39 @@ def test_build_risk_payload_forwards_tls_evidence_for_weak_key_detection() -> No
     assert score["tls_metadata"]["collected"] is True
     assert score["tls_metadata"]["certificate"]["public_key_algorithm"] == "RSA"
     assert score["tls_metadata"]["certificate"]["public_key_size"] == 1024
+
+
+def test_build_risk_payload_forwards_ssh_evidence_for_weak_algorithm_detection() -> None:
+    payload = ScanIngestRequest(
+        source="network",
+        assets=[AssetCreate(asset_type="endpoint", name="legacy-ssh.internal:22")],
+        ssh_evidence=SSHEvidence(
+            collected=True,
+            target="legacy-ssh.internal",
+            kex_algorithms=["diffie-hellman-group1-sha1"],
+            server_host_key_algorithms=["ssh-rsa"],
+        ),
+    )
+
+    score = build_risk_payload(payload, asset_name="legacy-ssh.internal:22")
+
+    assert score["ssh_metadata"]["collected"] is True
+    assert score["ssh_metadata"]["kex_algorithms"] == ["diffie-hellman-group1-sha1"]
+    assert score["ssh_metadata"]["server_host_key_algorithms"] == ["ssh-rsa"]
+
+
+def test_build_risk_payload_forwards_embedded_key_findings_via_crypto_evidence() -> None:
+    payload = ScanIngestRequest(
+        source="repo",
+        assets=[AssetCreate(asset_type="other", name="sample-repo")],
+        crypto_evidence=CryptoEvidence(
+            repo_scan={"embedded_key_findings": [{"path": "main.tf", "line": 3}]},
+        ),
+    )
+
+    score = build_risk_payload(payload, asset_name="sample-repo")
+
+    assert score["crypto_evidence"]["repo_scan"]["embedded_key_findings"] == [{"path": "main.tf", "line": 3}]
 
 
 def test_build_risk_payload_forwards_crypto_evidence_for_host_evidence_signals() -> None:

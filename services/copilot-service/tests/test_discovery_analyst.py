@@ -47,6 +47,40 @@ def test_explicit_findings_from_repo_scan():
     assert "gpg_sign" in findings_text
 
 
+def test_explicit_findings_from_network_scan_ssh_evidence():
+    scan = {
+        "id": "s2b", "source": "network", "crypto_evidence": None, "tls_evidence": None,
+        "ssh_evidence": {
+            "collected": True,
+            "server_host_key_algorithms": ["ssh-rsa", "ssh-ed25519"],
+            "kex_algorithms": ["diffie-hellman-group1-sha1"],
+        },
+    }
+    result = build_discovery_summary([scan], [], None, [])
+    findings_text = " ".join(f["finding"] for f in result["explicit_findings"])
+    assert "ssh-rsa" in findings_text
+    assert "diffie-hellman-group1-sha1" in findings_text
+
+
+def test_explicit_findings_from_repo_scan_iac_and_embedded_key():
+    scan = {
+        "id": "s3b", "source": "repo",
+        "crypto_evidence": {
+            "repo_scan": {
+                "detected_algorithms": [],
+                "ci_pipeline_findings": [],
+                "iac_findings": [{"path": "main.tf", "line": 2, "algorithm": "RSA"}],
+                "embedded_key_findings": [{"path": "k8s/tls-secret.yaml", "line": 6}],
+            },
+        },
+        "tls_evidence": None,
+    }
+    result = build_discovery_summary([scan], [], None, [])
+    findings_text = " ".join(f["finding"] for f in result["explicit_findings"])
+    assert "IaC-declared key algorithms: RSA" in findings_text
+    assert "Embedded private key material found in: k8s/tls-secret.yaml" in findings_text
+
+
 def test_explicit_findings_from_documents():
     documents = [{"doc_id": "vendor.md", "chunks": [{"chunk_index": 0, "text": "Our roadmap covers ML-KEM and RSA phase-out."}]}]
     result = build_discovery_summary([], documents, None, [])

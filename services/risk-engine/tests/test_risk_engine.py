@@ -166,6 +166,110 @@ def test_evidence_signal_certificate_chain_available() -> None:
     assert data["stage2_signals"]["evidence_signals"]["certificate_chain_available"] is True
 
 
+def test_evidence_signal_weak_ssh_kex_detected() -> None:
+    payload = _base_payload()
+    payload["ssh_metadata"] = {"kex_algorithms": ["diffie-hellman-group1-sha1", "curve25519-sha256"]}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["weak_ssh_kex_detected"] is True
+    assert data["rationale"]["weak_ssh_kex_detected"] is True
+
+
+def test_evidence_signal_weak_ssh_kex_not_detected_for_modern_algorithms() -> None:
+    payload = _base_payload()
+    payload["ssh_metadata"] = {"kex_algorithms": ["curve25519-sha256", "sntrup761x25519-sha512@openssh.com"]}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["weak_ssh_kex_detected"] is False
+
+
+def test_evidence_signal_legacy_ssh_host_key_detected() -> None:
+    payload = _base_payload()
+    payload["ssh_metadata"] = {"server_host_key_algorithms": ["ssh-rsa", "ssh-ed25519"]}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["legacy_ssh_host_key_detected"] is True
+    assert data["rationale"]["legacy_ssh_host_key_detected"] is True
+
+
+def test_evidence_signal_weak_ssh_cipher_detected() -> None:
+    payload = _base_payload()
+    payload["ssh_metadata"] = {"encryption_algorithms_client_to_server": ["3des-cbc"]}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["weak_ssh_cipher_detected"] is True
+
+
+def test_evidence_signal_weak_ssh_mac_detected() -> None:
+    payload = _base_payload()
+    payload["ssh_metadata"] = {"mac_algorithms_server_to_client": ["hmac-sha1"]}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["weak_ssh_mac_detected"] is True
+
+
+def test_ssh_signals_absent_when_no_ssh_metadata() -> None:
+    payload = _base_payload()
+
+    data = client.post("/score", json=payload).json()
+    signals = data["stage2_signals"]["evidence_signals"]
+    assert signals["weak_ssh_kex_detected"] is False
+    assert signals["legacy_ssh_host_key_detected"] is False
+    assert signals["weak_ssh_cipher_detected"] is False
+    assert signals["weak_ssh_mac_detected"] is False
+
+
+def test_evidence_signal_embedded_private_key_in_repo_detected() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = {
+        "repo_scan": {
+            "embedded_key_findings": [
+                {"path": "k8s/tls-secret.yaml", "line": 6, "description": "Embedded private key material"},
+            ],
+        },
+    }
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["embedded_private_key_in_repo_detected"] is True
+    assert data["rationale"]["embedded_private_key_in_repo_detected"] is True
+
+
+def test_evidence_signal_embedded_private_key_not_detected_when_empty() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = {"repo_scan": {"embedded_key_findings": []}}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["embedded_private_key_in_repo_detected"] is False
+
+
+def test_risk_dimensions_urgency_increases_for_embedded_private_key() -> None:
+    baseline_payload = _base_payload()
+    baseline = client.post("/score", json=baseline_payload).json()
+
+    flagged_payload = _base_payload()
+    flagged_payload["crypto_evidence"] = {"repo_scan": {"embedded_key_findings": [{"path": "main.tf", "line": 1}]}}
+    flagged = client.post("/score", json=flagged_payload).json()
+
+    assert flagged["risk_dimensions"]["urgency"] > baseline["risk_dimensions"]["urgency"]
+    assert flagged["risk_dimensions"]["migration_complexity"] > baseline["risk_dimensions"]["migration_complexity"]
+
+
+def test_risk_dimensions_exposure_increases_for_weak_ssh_signals() -> None:
+    baseline_payload = _base_payload()
+    baseline_payload["quantum_exposure"] = 2
+    baseline = client.post("/score", json=baseline_payload).json()
+
+    flagged_payload = _base_payload()
+    flagged_payload["quantum_exposure"] = 2
+    flagged_payload["ssh_metadata"] = {
+        "kex_algorithms": ["diffie-hellman-group1-sha1"],
+        "server_host_key_algorithms": ["ssh-dss"],
+    }
+    flagged = client.post("/score", json=flagged_payload).json()
+
+    assert flagged["risk_dimensions"]["exposure"] > baseline["risk_dimensions"]["exposure"]
+
+
 def test_invalid_certificate_date_does_not_fail() -> None:
     payload = _base_payload()
     payload["tls_metadata"] = {

@@ -14,6 +14,9 @@ from typing import Any
 HIGH_SEVERITY_SIGNALS: list[tuple[str, str]] = [
     ("weak_public_key_detected", "a weak public key was detected (RSA key below 2048 bits)"),
     ("private_key_files_detected", "private key files were found on the host"),
+    ("embedded_private_key_in_repo_detected", "a private key was found embedded directly in the repository (e.g. in a Terraform or Kubernetes manifest)"),
+    ("legacy_ssh_host_key_detected", "the SSH server offers a legacy host key algorithm (RSA or DSA signatures), which is quantum-vulnerable"),
+    ("weak_ssh_kex_detected", "the SSH server offers a weak, SHA-1-based Diffie-Hellman key exchange algorithm"),
     ("expiring_certificate_detected", "a certificate close to expiry was found"),
     ("windows_expired_certificates", "expired certificates were found in the Windows certificate store"),
     ("windows_weak_signature_certificates", "certificates with a weak signature algorithm were found in the Windows certificate store"),
@@ -26,6 +29,8 @@ MEDIUM_SEVERITY_SIGNALS: list[tuple[str, str]] = [
     ("tls_config_detected", "TLS configuration was found on the host"),
     ("tls_detected", "TLS was observed on this asset"),
     ("ssh_config_detected", "SSH configuration was found on the host"),
+    ("weak_ssh_cipher_detected", "the SSH server offers a weak or legacy encryption cipher"),
+    ("weak_ssh_mac_detected", "the SSH server offers a weak or legacy MAC algorithm"),
     ("crypto_packages_detected", "crypto-related packages are installed"),
 ]
 

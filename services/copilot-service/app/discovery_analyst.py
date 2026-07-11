@@ -51,11 +51,40 @@ def _explicit_findings_from_scans(scans: list[dict[str, Any]]) -> list[dict[str,
                 detail = f"TLS certificate uses {algorithm} ({size}-bit)" if size else f"TLS certificate uses {algorithm}"
                 findings.append({"source": "network", "scan_id": scan_id, "finding": detail})
 
+            ssh_evidence = scan.get("ssh_evidence") or {}
+            if ssh_evidence.get("collected"):
+                host_key_algorithms = ssh_evidence.get("server_host_key_algorithms") or []
+                if host_key_algorithms:
+                    findings.append({
+                        "source": "network", "scan_id": scan_id,
+                        "finding": f"SSH host key algorithms offered: {', '.join(host_key_algorithms)}",
+                    })
+                kex_algorithms = ssh_evidence.get("kex_algorithms") or []
+                if kex_algorithms:
+                    findings.append({
+                        "source": "network", "scan_id": scan_id,
+                        "finding": f"SSH key exchange algorithms offered: {', '.join(kex_algorithms)}",
+                    })
+
         elif source == "repo":
             repo_scan = crypto_evidence.get("repo_scan") or {}
             algorithms = repo_scan.get("detected_algorithms") or []
             if algorithms:
                 findings.append({"source": "repo", "scan_id": scan_id, "finding": f"Source code references: {', '.join(algorithms)}"})
+
+            iac_findings = repo_scan.get("iac_findings") or []
+            if iac_findings:
+                iac_algorithms = sorted({f.get("algorithm") for f in iac_findings if f.get("algorithm")})
+                findings.append({"source": "repo", "scan_id": scan_id, "finding": f"IaC-declared key algorithms: {', '.join(iac_algorithms)}"})
+
+            embedded_key_findings = repo_scan.get("embedded_key_findings") or []
+            if embedded_key_findings:
+                paths = sorted({f.get("path") for f in embedded_key_findings if f.get("path")})
+                findings.append({
+                    "source": "repo", "scan_id": scan_id,
+                    "finding": f"Embedded private key material found in: {', '.join(paths)}",
+                })
+
             ci_findings = repo_scan.get("ci_pipeline_findings") or []
             if ci_findings:
                 commands = sorted({f.get("command_type") for f in ci_findings if f.get("command_type")})

@@ -38,6 +38,23 @@ def test_narrate_risk_surfaces_windows_signals():
     assert "Contributing factors" in text
 
 
+def test_narrate_risk_surfaces_ssh_and_embedded_key_signals():
+    text = narrate_risk("ssh-gateway", _risk(rationale={
+        "legacy_ssh_host_key_detected": True,
+        "weak_ssh_kex_detected": True,
+        "weak_ssh_cipher_detected": True,
+        "weak_ssh_mac_detected": True,
+        "embedded_private_key_in_repo_detected": True,
+    }))
+    assert "legacy host key algorithm" in text
+    assert "weak, SHA-1-based Diffie-Hellman" in text
+    assert "weak or legacy encryption cipher" in text
+    assert "weak or legacy MAC algorithm" in text
+    assert "embedded directly in the repository" in text
+    assert "Key risk drivers" in text
+    assert "Contributing factors" in text
+
+
 def test_narrate_risk_no_signals_says_so():
     text = narrate_risk("clean-host", _risk(rating="low", rationale={}))
     assert "No specific evidence-based risk signals" in text

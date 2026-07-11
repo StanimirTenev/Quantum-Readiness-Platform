@@ -52,8 +52,12 @@
 - `ssh_metadata` (alias `ssh_evidence`) is also accepted and persisted, as emitted by
   `network-scanner`'s SSH scan mode (`-protocol ssh`) -- server banner, offered
   kex/host-key/encryption/MAC algorithm lists. Deliberately permissive (`extra="allow"`, no
-  rigid schema): unlike `tls_metadata`, no risk-engine signal reads it yet, so it is stored
-  and returned on the scan record as-is (evidence-only for now).
+  rigid schema). Forwarded to risk-engine on ingest (`risk_mapper.py`), which derives
+  `weak_ssh_kex_detected`/`legacy_ssh_host_key_detected`/`weak_ssh_cipher_detected`/
+  `weak_ssh_mac_detected` from it -- see `services/risk-engine/README.md`.
+- `crypto_evidence.repo_scan.embedded_key_findings` (repo-ci-scanner's IaC embedded-key
+  detection) is likewise forwarded as part of `crypto_evidence` and drives risk-engine's
+  `embedded_private_key_in_repo_detected` signal.
 
 ### Sample ingest payload snippet
 ```json

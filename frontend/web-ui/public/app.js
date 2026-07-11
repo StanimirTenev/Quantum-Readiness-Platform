@@ -516,12 +516,13 @@ function renderReadinessMatrix(matrix) {
 function renderWaves(waves) {
   if (!waves || !waves.length) return "";
   return waves.map((w) => {
-    if (!w.assets || !w.assets.length) return `<p class="hint">${esc(w.summary)}</p>`;
+    const heading = `<p class="hint">${wavePill(w.wave)} ${esc(w.summary)}</p>`;
+    if (!w.assets || !w.assets.length) return heading;
     const rows = w.assets.map((a) => `
       <tr><td>${esc(a.asset_name)}</td><td>${pill(a.rating, a.rating)}</td>
       <td>${a.priority_score_100 ?? "-"}</td>
       <td>${a.vendor_blocked ? '<span class="badge-yes">yes</span>' : '<span class="badge-no">no</span>'}</td></tr>`).join("");
-    return `<p class="hint">${esc(w.summary)}</p><div class="table-scroll"><table>
+    return `${heading}<div class="table-scroll"><table>
       <tr><th>Asset</th><th>Rating</th><th>Priority</th><th>Vendor blocked</th></tr>${rows}</table></div>`;
   }).join("");
 }
@@ -634,16 +635,34 @@ async function refreshDemoStatus() {
 
 // --- Asset detail (the click-through flow: asset row -> narrative -> checklist -> wave) ---
 const WAVE_LABELS = { wave_1: "Wave 1 (urgent)", wave_2: "Wave 2 (near-term)", wave_3: "Wave 3 (planned)" };
+// Same urgency-color scale the risk-rating pills already use (high=orange,
+// medium=yellow, low=green) instead of a single flat color for every wave.
+const WAVE_PILL_KIND = { wave_1: "high", wave_2: "medium", wave_3: "low" };
+function wavePill(wave) {
+  if (!wave) return "-";
+  return pill(WAVE_LABELS[wave] || wave, WAVE_PILL_KIND[wave] || "info");
+}
+
+function renderNextAction(changePlan) {
+  const items = changePlan.pre_change_checklist || [];
+  const text = items.length
+    ? findingLine(items[0])
+    : "No pre-change actions flagged -- continue routine monitoring.";
+  return `<div class="next-action">
+    <div class="next-action-label">Recommended next action</div>
+    <div class="next-action-text">${esc(text)}</div>
+  </div>`;
+}
 
 async function showAssetDetail(assetName) {
   const panel = $("asset-detail");
   panel.hidden = false;
   $("ad-title").textContent = "Asset detail: " + assetName;
   $("ad-meta").innerHTML = stat("Asset", esc(assetName));
+  $("ad-next-action").innerHTML = "";
   $("ad-narrative").textContent = "Loading...";
   $("ad-change-narrative").textContent = "";
   $("ad-checklist").innerHTML = "";
-  $("ad-wave").innerHTML = "";
   panel.scrollIntoView({ behavior: "smooth", block: "start" });
 
   setMsg("Loading asset detail for " + assetName + "...");
@@ -655,15 +674,13 @@ async function showAssetDetail(assetName) {
     $("ad-meta").innerHTML = [
       stat("Asset", esc(assetName)),
       stat("Rating", changePlan.rating ? pill(changePlan.rating, changePlan.rating) : "-"),
-      stat("Wave", changePlan.wave ? pill(WAVE_LABELS[changePlan.wave] || changePlan.wave, "info") : "-"),
+      stat("Wave", wavePill(changePlan.wave)),
     ].join("");
+    $("ad-next-action").innerHTML = renderNextAction(changePlan);
     $("ad-narrative").innerHTML = esc(narrate.narrative || "");
     $("ad-change-narrative").innerHTML = esc(changePlan.narrative || "");
     $("ad-checklist").innerHTML = renderList("Pre-change checklist", changePlan.pre_change_checklist)
       || '<p class="hint">No checklist items.</p>';
-    $("ad-wave").innerHTML = changePlan.wave
-      ? stat("Migration wave", WAVE_LABELS[changePlan.wave] || changePlan.wave)
-      : '<p class="hint">Not yet placed in a migration wave.</p>';
     setMsg("Done.");
   } catch (err) {
     $("ad-narrative").textContent = "";
@@ -672,11 +689,45 @@ async function showAssetDetail(assetName) {
 }
 
 // --- Dashboard ---
+// Mirrors tools/report/build_operator_report.py's Executive Summary section
+// (same bullet-stat-plus-recommended-action shape) using only the fields
+// operational-summary already provides -- no separate report call needed.
+function renderExecutiveSummary(operational) {
+  const platform = operational.platform || {};
+  const planning = operational.planning || {};
+  const counts = platform.risk_counts || {};
+  const assetCount = platform.asset_count ?? 0;
+  const wave1 = planning.wave_1_count ?? 0;
+
+  if (!assetCount) {
+    return '<p class="hint">No assets assessed yet -- click "Load Demo" above.</p>';
+  }
+
+  const ratingLine = ["critical", "high", "medium", "low", "minimal"]
+    .filter((r) => counts[r])
+    .map((r) => `${counts[r]} ${r}`)
+    .join(", ") || "no scored risk yet";
+
+  const action = wave1 > 0
+    ? `Begin Wave 1 migration planning now for the ${wave1} urgent asset(s).`
+    : (counts.critical || counts.high)
+      ? "Review high-priority findings before the next planning cycle."
+      : "No urgent action required -- continue routine monitoring.";
+
+  return `<ul class="exec-summary">
+    <li>Assets assessed: <strong>${assetCount}</strong></li>
+    <li>Risk ratings: <strong>${esc(ratingLine)}</strong></li>
+    <li>Wave 1 (urgent): <strong>${wave1} asset(s)</strong></li>
+    <li>Recommended action: <strong>${esc(action)}</strong></li>
+  </ul>`;
+}
+
 async function loadDashboardTab() {
   const [status, operational] = await Promise.all([
     refreshDemoStatus(),
     api("GET", "/api/copilot/operational-summary"),
   ]);
+  $("dash-exec-summary").innerHTML = renderExecutiveSummary(operational);
   const platform = operational.platform || {};
   $("dash-overview").innerHTML = [
     stat("Assets", platform.asset_count ?? 0),
@@ -774,7 +825,7 @@ async function loadReportsTab() {
     stat("Wave 3", planning.wave_3_count ?? 0),
     stat("Open tasks", workflow.task_count ?? 0),
   ].join("");
-  $("rep-result").innerHTML = `<details open><summary class="hint">Full operational summary (raw JSON)</summary><pre class="mono">${esc(JSON.stringify(summary, null, 2))}</pre></details>`;
+  $("rep-result").innerHTML = `<details><summary class="hint">Full operational summary (raw JSON)</summary><pre class="mono">${esc(JSON.stringify(summary, null, 2))}</pre></details>`;
 
   currentWorkspaceId = demoStatus && demoStatus.workspace_id;
   $("rep-workspace-note").textContent = currentWorkspaceId

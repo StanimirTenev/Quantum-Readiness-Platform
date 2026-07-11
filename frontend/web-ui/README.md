@@ -14,15 +14,22 @@ Operator workflow:
   the running stack, without touching any script or service directly. "Refresh demo status"
   re-checks (`GET /api/demo/status`) without re-seeding. `POST /api/demo/load` is idempotent:
   an asset already present is skipped, not re-ingested, so clicking twice never creates
-  duplicates. Also shows a platform overview, clickable top-risk rows
-  (`GET /api/copilot/operational-summary`), and the current demo workspace (project/workspace
-  model -- see `services/inventory-service/README.md`): a workspace is created only when
-  there's something new to seed, and all of that click's scans join it.
+  duplicates. An **Executive Summary** (assets assessed, risk-rating breakdown, Wave 1 count, a
+  recommended action -- same shape as `tools/report/build_operator_report.py`'s report section,
+  built client-side from the same `GET /api/copilot/operational-summary` call the platform
+  overview already uses, no extra request) sits above the platform overview and clickable
+  top-risk rows, and the current demo workspace (project/workspace model -- see
+  `services/inventory-service/README.md`): a workspace is created only when there's something
+  new to seed, and all of that click's scans join it.
 - **Assets** — every asset (`GET /api/assets`) with its rating, as a clickable table. Clicking
-  a row opens **Asset detail**: Risk Narrator's explanation, Change Assistant's checklist, and
-  the asset's migration wave — the core click-through flow (asset row → narrative → checklist →
-  wave), sourced from two calls (`GET /api/copilot/narrate/{asset}` and
-  `GET /api/copilot/change-plan/{asset}`, the latter already carrying the wave assignment).
+  a row opens **Asset detail**: a **Recommended Next Action** callout (the top pre-change
+  checklist item, or a calm "no action needed" message when there isn't one), Risk Narrator's
+  explanation, Change Assistant's full checklist, and the asset's migration wave -- the core
+  click-through flow (asset row → next action → narrative → checklist → wave), sourced from two
+  calls (`GET /api/copilot/narrate/{asset}` and `GET /api/copilot/change-plan/{asset}`, the
+  latter already carrying the wave assignment). Rating and wave badges are colour-coded by
+  urgency (Wave 1 = high/orange, Wave 2 = medium/yellow, Wave 3 = low/green), not a single flat
+  colour for every wave -- same treatment on the Migration Plan tab's per-wave headings.
 - **Findings** — Discovery Analyst's explicit findings, inferred context, and evidence gaps
   (`GET /api/copilot/discover`).
 - **Risk** — every scored asset ranked by priority (`GET /api/copilot/migration-plan`'s waves,
@@ -35,11 +42,12 @@ Operator workflow:
   plain-language narrative plus known structured fields (findings, checklist, readiness
   matrix, waves) readably, with the raw JSON always available underneath. All five subagents
   are deterministic — no external LLM call is ever made; see `services/copilot-service/README.md`.
-- **Reports** — the live operational summary (`GET /api/copilot/operational-summary`), plus a
-  "Generate workspace report" button that persists a real operator report for the current demo
-  workspace (`POST /api/workspaces/{id}/reports`) and renders it inline. The full file-based
-  demo reports written by `scripts/run_product_demo.sh` live under `reports/product-demo/` on
-  disk (not served over HTTP).
+- **Reports** — the live operational summary (`GET /api/copilot/operational-summary`) as stat
+  cards, with the full raw JSON collapsed behind a `<details>` toggle by default (not dumped
+  open on the page), plus a "Generate workspace report" button that persists a real operator
+  report for the current demo workspace (`POST /api/workspaces/{id}/reports`) and renders it
+  inline. The full file-based demo reports written by `scripts/run_product_demo.sh` live under
+  `reports/product-demo/` on disk (not served over HTTP).
 
 Deterministic core (secondary tabs):
 - **Fingerprint** — classify algorithms / a TLS certificate (`POST /api/fingerprint`);

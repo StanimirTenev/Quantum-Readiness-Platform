@@ -40,6 +40,11 @@ EVIDENCE_SIGNAL_WEIGHTS: dict[str, float] = {
     "weak_ssh_cipher_detected": 4.0,
     "weak_ssh_mac_detected": 3.0,
     "embedded_private_key_in_repo_detected": 12.0,
+    "ci_signing_command_detected": 3.0,
+    "weak_ipsec_encryption_detected": 6.0,
+    "weak_ipsec_integrity_detected": 3.0,
+    "weak_ipsec_prf_detected": 4.0,
+    "legacy_ipsec_dh_group_detected": 8.0,
 }
 
 # SSH_MSG_KEXINIT algorithm names considered weak/legacy -- classical SHA-1-based
@@ -58,6 +63,14 @@ WEAK_SSH_CIPHERS = {
     "3des-cbc", "des-cbc", "arcfour", "arcfour128", "arcfour256", "blowfish-cbc", "cast128-cbc",
 }
 WEAK_SSH_MACS = {"hmac-md5", "hmac-md5-96", "hmac-sha1", "hmac-sha1-96"}
+
+# IKEv2 IKE_SA_INIT transform names considered weak/legacy (same rationale as the
+# SSH denylists above -- judged here, not by network-scanner's ScanIPsec, which
+# only reports the responder's selected transform as a neutral fact).
+WEAK_IPSEC_ENCRYPTION = {"DES-IV64", "DES", "3DES", "NULL"}
+WEAK_IPSEC_INTEGRITY = {"HMAC-MD5-96", "DES-MAC", "KPDK-MD5", "HMAC-SHA1-96"}
+WEAK_IPSEC_PRF = {"HMAC-MD5", "HMAC-SHA1"}
+LEGACY_IPSEC_DH_GROUPS = {"768-bit MODP", "1024-bit MODP"}
 
 # Aggregate Windows host signals (from inventory's windows_normalized_signals).
 # Treated as a parallel evidence family to the Linux/network signals above.
@@ -89,6 +102,7 @@ class RiskInput(BaseModel):
     crypto_evidence: dict[str, Any] | None = None
     tls_metadata: dict[str, Any] | None = None
     ssh_metadata: dict[str, Any] | None = None
+    ipsec_metadata: dict[str, Any] | None = None
     windows_signals: dict[str, Any] | None = None
 
 
@@ -157,9 +171,25 @@ def extract_ssh_signals(data: RiskInput) -> dict[str, bool]:
     }
 
 
+def extract_ipsec_signals(data: RiskInput) -> dict[str, bool]:
+    ipsec = data.ipsec_metadata if isinstance(data.ipsec_metadata, dict) else {}
+    return {
+        "weak_ipsec_encryption_detected": ipsec.get("selected_encryption") in WEAK_IPSEC_ENCRYPTION,
+        "weak_ipsec_integrity_detected": ipsec.get("selected_integrity") in WEAK_IPSEC_INTEGRITY,
+        "weak_ipsec_prf_detected": ipsec.get("selected_prf") in WEAK_IPSEC_PRF,
+        "legacy_ipsec_dh_group_detected": ipsec.get("selected_dh_group") in LEGACY_IPSEC_DH_GROUPS,
+    }
+
+
 def extract_embedded_key_signal(data: RiskInput) -> bool:
     repo_scan = ((data.crypto_evidence or {}).get("repo_scan") or {})
     findings = repo_scan.get("embedded_key_findings")
+    return isinstance(findings, list) and len(findings) > 0
+
+
+def extract_ci_signing_signal(data: RiskInput) -> bool:
+    repo_scan = ((data.crypto_evidence or {}).get("repo_scan") or {})
+    findings = repo_scan.get("ci_pipeline_findings")
     return isinstance(findings, list) and len(findings) > 0
 
 
@@ -212,7 +242,9 @@ def extract_stage2_signals(data: RiskInput) -> dict[str, bool | int | dict[str, 
             certificate_chain.get("available") is True and _safe_int(certificate_chain.get("length")) > 0
         ),
         **extract_ssh_signals(data),
+        **extract_ipsec_signals(data),
         "embedded_private_key_in_repo_detected": extract_embedded_key_signal(data),
+        "ci_signing_command_detected": extract_ci_signing_signal(data),
     }
 
     return {
@@ -314,6 +346,8 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
         exposure += 8.0
     if bool(evidence.get("legacy_ssh_host_key_detected")):
         exposure += 8.0
+    if bool(evidence.get("legacy_ipsec_dh_group_detected")):
+        exposure += 8.0
     if bool(windows.get("windows_domain_controller")):
         exposure += 10.0
 
@@ -344,6 +378,8 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
         migration_complexity += 15.0
     if bool(evidence.get("embedded_private_key_in_repo_detected")):
         migration_complexity += 15.0
+    if bool(evidence.get("ci_signing_command_detected")):
+        migration_complexity += 10.0
     if data.vendor_blocked:
         migration_complexity += 20.0
     if bool(windows.get("windows_large_certificate_estate")):
@@ -431,8 +467,15 @@ def score(data: RiskInput) -> RiskOutput:
             "legacy_ssh_host_key_detected": bool(stage2_signals["evidence_signals"].get("legacy_ssh_host_key_detected")),
             "weak_ssh_cipher_detected": bool(stage2_signals["evidence_signals"].get("weak_ssh_cipher_detected")),
             "weak_ssh_mac_detected": bool(stage2_signals["evidence_signals"].get("weak_ssh_mac_detected")),
+            "weak_ipsec_encryption_detected": bool(stage2_signals["evidence_signals"].get("weak_ipsec_encryption_detected")),
+            "weak_ipsec_integrity_detected": bool(stage2_signals["evidence_signals"].get("weak_ipsec_integrity_detected")),
+            "weak_ipsec_prf_detected": bool(stage2_signals["evidence_signals"].get("weak_ipsec_prf_detected")),
+            "legacy_ipsec_dh_group_detected": bool(stage2_signals["evidence_signals"].get("legacy_ipsec_dh_group_detected")),
             "embedded_private_key_in_repo_detected": bool(
                 stage2_signals["evidence_signals"].get("embedded_private_key_in_repo_detected")
+            ),
+            "ci_signing_command_detected": bool(
+                stage2_signals["evidence_signals"].get("ci_signing_command_detected")
             ),
             "confidence_score_computed": "yes",
             "risk_dimensions_computed": "yes",

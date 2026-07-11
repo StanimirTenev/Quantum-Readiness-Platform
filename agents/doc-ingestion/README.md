@@ -61,9 +61,11 @@ Point `retrieval-service` at the output via `DOC_INDEX_PATH=/tmp/doc-index.json`
 ## Known limitations
 - Supported formats: `.md`, `.txt`, `.pdf` only — no `.docx`, HTML, or image/
   OCR support.
-- Keyword substring search only (via `retrieval-service`), not semantic/
-  vector search — a document mentioning "post-quantum" won't match a query
-  for "PQC" unless the literal term appears in the text.
+- Search over ingested chunks (via `retrieval-service`) is BM25-ranked with a
+  curated domain synonym table, not embedding-based semantic search — a query
+  for "PQC" does match a chunk that only says "post-quantum" (see
+  `services/retrieval-service/README.md`), but a paraphrase using neither a
+  literal term nor a listed synonym still won't surface.
 - One malformed file is skipped (recorded in `errors`) rather than aborting
   the whole ingest run; a corrupt PDF, empty file, or garbage bytes will
   appear there instead of failing the CLI.

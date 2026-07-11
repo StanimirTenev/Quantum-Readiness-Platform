@@ -55,6 +55,27 @@ def test_narrate_risk_surfaces_ssh_and_embedded_key_signals():
     assert "Contributing factors" in text
 
 
+def test_narrate_risk_surfaces_ipsec_signals():
+    text = narrate_risk("vpn-gateway", _risk(rationale={
+        "legacy_ipsec_dh_group_detected": True,
+        "weak_ipsec_encryption_detected": True,
+        "weak_ipsec_integrity_detected": True,
+        "weak_ipsec_prf_detected": True,
+    }))
+    assert "legacy Diffie-Hellman group" in text
+    assert "weak or legacy encryption algorithm" in text
+    assert "weak or legacy integrity algorithm" in text
+    assert "weak or legacy pseudorandom function" in text
+    assert "Key risk drivers" in text
+    assert "Contributing factors" in text
+
+
+def test_narrate_risk_surfaces_ci_signing_command_signal():
+    text = narrate_risk("release-pipeline", _risk(rationale={"ci_signing_command_detected": True}))
+    assert "CI/CD pipeline signing command was detected" in text
+    assert "Contributing factors" in text
+
+
 def test_narrate_risk_no_signals_says_so():
     text = narrate_risk("clean-host", _risk(rating="low", rationale={}))
     assert "No specific evidence-based risk signals" in text

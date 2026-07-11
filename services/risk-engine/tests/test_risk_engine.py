@@ -219,6 +219,72 @@ def test_ssh_signals_absent_when_no_ssh_metadata() -> None:
     assert signals["weak_ssh_mac_detected"] is False
 
 
+def test_evidence_signal_weak_ipsec_encryption_detected() -> None:
+    payload = _base_payload()
+    payload["ipsec_metadata"] = {"selected_encryption": "3DES"}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["weak_ipsec_encryption_detected"] is True
+    assert data["rationale"]["weak_ipsec_encryption_detected"] is True
+
+
+def test_evidence_signal_weak_ipsec_encryption_not_detected_for_aes() -> None:
+    payload = _base_payload()
+    payload["ipsec_metadata"] = {"selected_encryption": "AES-CBC"}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["weak_ipsec_encryption_detected"] is False
+
+
+def test_evidence_signal_weak_ipsec_integrity_detected() -> None:
+    payload = _base_payload()
+    payload["ipsec_metadata"] = {"selected_integrity": "HMAC-SHA1-96"}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["weak_ipsec_integrity_detected"] is True
+
+
+def test_evidence_signal_weak_ipsec_prf_detected() -> None:
+    payload = _base_payload()
+    payload["ipsec_metadata"] = {"selected_prf": "HMAC-SHA1"}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["weak_ipsec_prf_detected"] is True
+
+
+def test_evidence_signal_legacy_ipsec_dh_group_detected() -> None:
+    payload = _base_payload()
+    payload["ipsec_metadata"] = {"selected_dh_group": "1024-bit MODP"}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["legacy_ipsec_dh_group_detected"] is True
+    assert data["rationale"]["legacy_ipsec_dh_group_detected"] is True
+
+
+def test_ipsec_signals_absent_when_no_ipsec_metadata() -> None:
+    payload = _base_payload()
+
+    data = client.post("/score", json=payload).json()
+    signals = data["stage2_signals"]["evidence_signals"]
+    assert signals["weak_ipsec_encryption_detected"] is False
+    assert signals["weak_ipsec_integrity_detected"] is False
+    assert signals["weak_ipsec_prf_detected"] is False
+    assert signals["legacy_ipsec_dh_group_detected"] is False
+
+
+def test_risk_dimensions_exposure_increases_for_legacy_ipsec_dh_group() -> None:
+    baseline_payload = _base_payload()
+    baseline_payload["quantum_exposure"] = 2
+    baseline = client.post("/score", json=baseline_payload).json()
+
+    flagged_payload = _base_payload()
+    flagged_payload["quantum_exposure"] = 2
+    flagged_payload["ipsec_metadata"] = {"selected_dh_group": "1024-bit MODP"}
+    flagged = client.post("/score", json=flagged_payload).json()
+
+    assert flagged["risk_dimensions"]["exposure"] > baseline["risk_dimensions"]["exposure"]
+
+
 def test_evidence_signal_embedded_private_key_in_repo_detected() -> None:
     payload = _base_payload()
     payload["crypto_evidence"] = {
@@ -251,6 +317,42 @@ def test_risk_dimensions_urgency_increases_for_embedded_private_key() -> None:
     flagged = client.post("/score", json=flagged_payload).json()
 
     assert flagged["risk_dimensions"]["urgency"] > baseline["risk_dimensions"]["urgency"]
+    assert flagged["risk_dimensions"]["migration_complexity"] > baseline["risk_dimensions"]["migration_complexity"]
+
+
+def test_evidence_signal_ci_signing_command_detected() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = {
+        "repo_scan": {
+            "ci_pipeline_findings": [
+                {"path": ".github/workflows/release.yml", "line": 12, "command_type": "gpg_sign"},
+            ],
+        },
+    }
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["ci_signing_command_detected"] is True
+    assert data["rationale"]["ci_signing_command_detected"] is True
+
+
+def test_evidence_signal_ci_signing_command_not_detected_when_empty() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = {"repo_scan": {"ci_pipeline_findings": []}}
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["ci_signing_command_detected"] is False
+
+
+def test_risk_dimensions_migration_complexity_increases_for_ci_signing_command() -> None:
+    baseline_payload = _base_payload()
+    baseline = client.post("/score", json=baseline_payload).json()
+
+    flagged_payload = _base_payload()
+    flagged_payload["crypto_evidence"] = {
+        "repo_scan": {"ci_pipeline_findings": [{"path": "release.yml", "line": 1, "command_type": "gpg_sign"}]}
+    }
+    flagged = client.post("/score", json=flagged_payload).json()
+
     assert flagged["risk_dimensions"]["migration_complexity"] > baseline["risk_dimensions"]["migration_complexity"]
 
 

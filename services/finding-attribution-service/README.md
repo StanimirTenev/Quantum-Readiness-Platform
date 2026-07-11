@@ -59,6 +59,8 @@ returns:
   - `tls_certificate` → network endpoint + certificate
   - `tls_cipher_suite` → network endpoint + cipher suite
   - `host_package` → package + library
+  - `repo_ci_pipeline` → config file + pipeline (repo-ci-scanner's CI/CD signing-command findings)
+  - `repo_embedded_key` → config file + config (repo-ci-scanner's embedded-private-key findings)
   - `explicit_algorithm` → manual (unattributed)
 - `finding_id` is deterministic (stable across runs for the same input).
 
@@ -84,9 +86,12 @@ PYTHONPATH=. pytest -q
 ## Known limitations
 - Attributes from supplied findings + evidence context; it does not fetch
   evidence itself.
-- `pipeline`/`config` are defined `CryptoObjectKind` values, but no finding
-  `source` currently routes to them -- only `tls_certificate`, `tls_cipher_suite`,
-  `host_package`, and `explicit_algorithm` are handled. This is independent of
-  scanner availability: `repo-ci-scanner` is a working agent (source=repo,
-  including IaC/embedded-key findings), but its output isn't yet routed through
-  this service's attribution logic -- a real follow-up, not a blocked one.
+- `pipeline`/`config` are now reachable via `repo_ci_pipeline`/`repo_embedded_key`
+  sources (see above), which crypto-fingerprint-service emits from
+  `crypto_evidence.repo_scan.ci_pipeline_findings`/`embedded_key_findings`.
+  `source_code_findings`/`iac_findings` algorithm detections still flow through
+  the existing `host_package` path (repo-ci-scanner folds them into
+  `package_metadata.packages` before ingest), so they attribute as `library`
+  rather than a repo-specific crypto object -- accurate for scoring, but the
+  location/label doesn't distinguish "found in source" from "an actual host
+  package".

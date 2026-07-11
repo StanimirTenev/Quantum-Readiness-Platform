@@ -392,6 +392,53 @@ def extract_findings(request: FingerprintRequest) -> list[Finding]:
                 )
             )
 
+    repo_scan = ((request.crypto_evidence or {}).get("repo_scan", {}) or {})
+
+    ci_pipeline_findings = repo_scan.get("ci_pipeline_findings", [])
+    if isinstance(ci_pipeline_findings, list):
+        for item in ci_pipeline_findings:
+            if not isinstance(item, dict):
+                continue
+            command_type = item.get("command_type")
+            if not (isinstance(command_type, str) and command_type.strip()):
+                continue
+            findings.append(
+                Finding(
+                    source="repo_ci_pipeline",
+                    location=f"{item.get('path', '?')}:{item.get('line', '?')}",
+                    raw_value=command_type,
+                    algorithm_family="signing_command",
+                    classification="unknown",
+                    quantum_vulnerable=False,
+                    harvest_now_decrypt_later=False,
+                    weak_key=False,
+                    severity="info",
+                    reason="CI/CD signing command detected; the signing key's algorithm is not "
+                    "visible from the pipeline config alone and should be reviewed manually.",
+                )
+            )
+
+    embedded_key_findings = repo_scan.get("embedded_key_findings", [])
+    if isinstance(embedded_key_findings, list):
+        for item in embedded_key_findings:
+            if not isinstance(item, dict):
+                continue
+            findings.append(
+                Finding(
+                    source="repo_embedded_key",
+                    location=f"{item.get('path', '?')}:{item.get('line', '?')}",
+                    raw_value=item.get("description") or "embedded private key material",
+                    algorithm_family="private_key",
+                    classification="unknown",
+                    quantum_vulnerable=False,
+                    harvest_now_decrypt_later=False,
+                    weak_key=True,
+                    severity="critical",
+                    reason="Embedded private key material committed to the repository; rotate "
+                    "the key and remove it from version control history.",
+                )
+            )
+
     return findings
 
 

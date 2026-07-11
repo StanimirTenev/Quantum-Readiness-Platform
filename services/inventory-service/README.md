@@ -64,8 +64,10 @@
 - `ipsec_metadata` (alias `ipsec_evidence`) is also accepted and persisted, as emitted by
   `network-scanner`'s IKEv2 scan mode (`-protocol ipsec`) -- selected encryption/PRF/
   integrity/DH-group, or the rejection reason. Deliberately permissive (`extra="allow"`, no
-  rigid schema), same as `ssh_metadata`. Not yet forwarded into any risk-engine signal --
-  evidence-only for now, a natural follow-up mirroring what was done for SSH.
+  rigid schema), same as `ssh_metadata`. Forwarded to risk-engine on ingest
+  (`risk_mapper.py`), which derives `legacy_ipsec_dh_group_detected`/
+  `weak_ipsec_encryption_detected`/`weak_ipsec_integrity_detected`/`weak_ipsec_prf_detected`
+  from it -- see `services/risk-engine/README.md`.
 
 ### Sample ingest payload snippet
 ```json

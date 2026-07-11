@@ -145,3 +145,47 @@ def test_empty_evidence_returns_unknown_readiness() -> None:
 def test_missing_asset_name_returns_422() -> None:
     response = client.post("/fingerprint", json={"algorithms": ["RSA"]})
     assert response.status_code == 422
+
+
+def test_repo_scan_ci_pipeline_finding_is_reported() -> None:
+    response = client.post(
+        "/fingerprint",
+        json={
+            "asset_name": "repo-a",
+            "crypto_evidence": {
+                "repo_scan": {
+                    "ci_pipeline_findings": [
+                        {"path": ".github/workflows/release.yml", "line": 12, "command_type": "gpg_sign"}
+                    ]
+                }
+            },
+        },
+    )
+    assert response.status_code == 200
+    finding = response.json()["findings"][0]
+    assert finding["source"] == "repo_ci_pipeline"
+    assert finding["location"] == ".github/workflows/release.yml:12"
+    assert finding["raw_value"] == "gpg_sign"
+    assert finding["severity"] == "info"
+
+
+def test_repo_scan_embedded_key_finding_is_reported_as_critical() -> None:
+    response = client.post(
+        "/fingerprint",
+        json={
+            "asset_name": "repo-a",
+            "crypto_evidence": {
+                "repo_scan": {
+                    "embedded_key_findings": [
+                        {"path": "k8s/tls-secret.yaml", "line": 6, "description": "Embedded private key material"}
+                    ]
+                }
+            },
+        },
+    )
+    assert response.status_code == 200
+    finding = response.json()["findings"][0]
+    assert finding["source"] == "repo_embedded_key"
+    assert finding["location"] == "k8s/tls-secret.yaml:6"
+    assert finding["severity"] == "critical"
+    assert finding["weak_key"] is True

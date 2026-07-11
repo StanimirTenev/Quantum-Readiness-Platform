@@ -17,6 +17,7 @@ HIGH_SEVERITY_SIGNALS: list[tuple[str, str]] = [
     ("embedded_private_key_in_repo_detected", "a private key was found embedded directly in the repository (e.g. in a Terraform or Kubernetes manifest)"),
     ("legacy_ssh_host_key_detected", "the SSH server offers a legacy host key algorithm (RSA or DSA signatures), which is quantum-vulnerable"),
     ("weak_ssh_kex_detected", "the SSH server offers a weak, SHA-1-based Diffie-Hellman key exchange algorithm"),
+    ("legacy_ipsec_dh_group_detected", "the IPsec/IKE responder selected a legacy Diffie-Hellman group (1024-bit or smaller), which is quantum-vulnerable"),
     ("expiring_certificate_detected", "a certificate close to expiry was found"),
     ("windows_expired_certificates", "expired certificates were found in the Windows certificate store"),
     ("windows_weak_signature_certificates", "certificates with a weak signature algorithm were found in the Windows certificate store"),
@@ -31,7 +32,11 @@ MEDIUM_SEVERITY_SIGNALS: list[tuple[str, str]] = [
     ("ssh_config_detected", "SSH configuration was found on the host"),
     ("weak_ssh_cipher_detected", "the SSH server offers a weak or legacy encryption cipher"),
     ("weak_ssh_mac_detected", "the SSH server offers a weak or legacy MAC algorithm"),
+    ("weak_ipsec_encryption_detected", "the IPsec/IKE responder selected a weak or legacy encryption algorithm (DES/3DES/NULL)"),
+    ("weak_ipsec_integrity_detected", "the IPsec/IKE responder selected a weak or legacy integrity algorithm"),
+    ("weak_ipsec_prf_detected", "the IPsec/IKE responder selected a weak or legacy pseudorandom function"),
     ("crypto_packages_detected", "crypto-related packages are installed"),
+    ("ci_signing_command_detected", "a CI/CD pipeline signing command was detected (e.g. gpg --sign, cosign sign); the signing key's algorithm isn't visible from the pipeline config alone and should be reviewed"),
 ]
 
 RATING_RECOMMENDATIONS: dict[str, str] = {

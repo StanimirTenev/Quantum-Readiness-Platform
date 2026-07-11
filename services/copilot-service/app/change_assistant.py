@@ -42,6 +42,11 @@ PRE_CHANGE_CHECKLIST_ITEMS: list[tuple[str, str]] = [
     ("ssh_config_detected", "Review SSH host key algorithms for a PQC-ready update path."),
     ("weak_ssh_cipher_detected", "Disable legacy SSH ciphers (3DES/RC4/Blowfish/CAST128/DES) in the server configuration."),
     ("weak_ssh_mac_detected", "Disable legacy SSH MAC algorithms (hmac-md5*/hmac-sha1*) in the server configuration."),
+    ("legacy_ipsec_dh_group_detected", "Reconfigure the IPsec/IKE policy to require a 2048-bit or larger Diffie-Hellman group (or an ECP/PQC-hybrid group) and retire the legacy one."),
+    ("weak_ipsec_encryption_detected", "Disable DES/3DES/NULL encryption in the IPsec/IKE proposal and require AES-GCM or AES-CBC-256."),
+    ("weak_ipsec_integrity_detected", "Disable legacy IPsec/IKE integrity algorithms (MD5-based, SHA1-96) and require a SHA2-based one."),
+    ("weak_ipsec_prf_detected", "Disable legacy IPsec/IKE pseudorandom functions (HMAC-MD5/HMAC-SHA1) and require a SHA2-based one."),
+    ("ci_signing_command_detected", "Identify the signing key used by the CI/CD pipeline's signing command and confirm it is (or has a plan to become) PQC-capable before relying on it long-term."),
 ]
 
 WAVE_LABELS = {"wave_1": "Wave 1 (urgent)", "wave_2": "Wave 2 (near-term)", "wave_3": "Wave 3 (planned)"}

@@ -150,6 +150,32 @@ def test_evidence_table_lists_matched_signals_for_persisted_risk_asset():
     assert "| ssh-gw |" in report
 
 
+def test_evidence_table_lists_matched_ipsec_signals():
+    bundle = {
+        "assets": [
+            _windows_host("vpn-gw", "critical", 80, {
+                "legacy_ipsec_dh_group_detected": True,
+                "weak_ipsec_encryption_detected": True,
+            }),
+        ],
+    }
+    report = reporter.build_report(bundle)
+    assert "legacy Diffie-Hellman group" in report
+    assert "weak or legacy encryption algorithm" in report
+    assert "| vpn-gw |" in report
+
+
+def test_evidence_table_lists_matched_ci_signing_signal():
+    bundle = {
+        "assets": [
+            _windows_host("release-pipeline", "medium", 40, {"ci_signing_command_detected": True}),
+        ],
+    }
+    report = reporter.build_report(bundle)
+    assert "CI/CD pipeline signing command was detected" in report
+    assert "| release-pipeline |" in report
+
+
 def test_evidence_table_empty_state():
     bundle = {"assets": [_windows_host("clean-host", "minimal", 5, {})]}
     report = reporter.build_report(bundle)

@@ -193,6 +193,11 @@ RATIONALE_SIGNAL_METADATA: dict[str, dict[str, str]] = {
         "checklist": "Disable SHA-1-based key exchange algorithms and confirm clients support a modern replacement (e.g. curve25519-sha256).",
         "severity": "high",
     },
+    "legacy_ipsec_dh_group_detected": {
+        "evidence": "the IPsec/IKE responder selected a legacy Diffie-Hellman group (1024-bit or smaller), which is quantum-vulnerable",
+        "checklist": "Reconfigure the IPsec/IKE policy to require a 2048-bit or larger Diffie-Hellman group (or an ECP/PQC-hybrid group) and retire the legacy one.",
+        "severity": "high",
+    },
     "expiring_certificate_detected": {
         "evidence": "a certificate close to expiry was found",
         "checklist": "Confirm the renewal/replacement certificate is provisioned before the current one expires.",
@@ -248,9 +253,29 @@ RATIONALE_SIGNAL_METADATA: dict[str, dict[str, str]] = {
         "checklist": "Disable legacy SSH MAC algorithms (hmac-md5*/hmac-sha1*) in the server configuration.",
         "severity": "medium",
     },
+    "weak_ipsec_encryption_detected": {
+        "evidence": "the IPsec/IKE responder selected a weak or legacy encryption algorithm (DES/3DES/NULL)",
+        "checklist": "Disable DES/3DES/NULL encryption in the IPsec/IKE proposal and require AES-GCM or AES-CBC-256.",
+        "severity": "medium",
+    },
+    "weak_ipsec_integrity_detected": {
+        "evidence": "the IPsec/IKE responder selected a weak or legacy integrity algorithm",
+        "checklist": "Disable legacy IPsec/IKE integrity algorithms (MD5-based, SHA1-96) and require a SHA2-based one.",
+        "severity": "medium",
+    },
+    "weak_ipsec_prf_detected": {
+        "evidence": "the IPsec/IKE responder selected a weak or legacy pseudorandom function",
+        "checklist": "Disable legacy IPsec/IKE pseudorandom functions (HMAC-MD5/HMAC-SHA1) and require a SHA2-based one.",
+        "severity": "medium",
+    },
     "crypto_packages_detected": {
         "evidence": "crypto-related packages are installed",
         "checklist": "Confirm PQC-capable library versions are available for the crypto packages installed on this asset.",
+        "severity": "medium",
+    },
+    "ci_signing_command_detected": {
+        "evidence": "a CI/CD pipeline signing command was detected (e.g. gpg --sign, cosign sign); the signing key's algorithm isn't visible from the pipeline config alone and should be reviewed",
+        "checklist": "Identify the signing key used by the CI/CD pipeline's signing command and confirm it is (or has a plan to become) PQC-capable before relying on it long-term.",
         "severity": "medium",
     },
 }

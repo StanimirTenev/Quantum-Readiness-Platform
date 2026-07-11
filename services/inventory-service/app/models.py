@@ -366,9 +366,10 @@ class IPsecEvidence(BaseModel):
     SSHEvidence: captures whatever network-scanner's IKEv2 IKE_SA_INIT probe
     reports (target, port, collected, ike_version, selected_encryption,
     selected_prf, selected_integrity, selected_dh_group, rejected_notify,
-    errors) without a rigid schema. Not yet forwarded into any risk-engine
-    signal -- evidence-only for now, a natural follow-up (see
-    agents/network-scanner/README.md)."""
+    errors) without a rigid schema. Forwarded to risk-engine on ingest
+    (risk_mapper.py), which derives legacy_ipsec_dh_group_detected/
+    weak_ipsec_encryption_detected/weak_ipsec_integrity_detected/
+    weak_ipsec_prf_detected from it."""
 
     model_config = ConfigDict(extra="allow")
 

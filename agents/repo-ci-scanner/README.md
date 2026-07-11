@@ -90,7 +90,9 @@ python3 scanner.py --repo-path /path/to/repo --ingest http://127.0.0.1:8001
   embedded_key_findings` directly -- deliberately not folded into
   `private_key_files_detected`, since that signal's shape models host filesystem
   cert/key stores, not repo findings). See `services/risk-engine/README.md`.
-- No finding-attribution-service wiring yet: `pipeline`/`config` crypto-object
-  kinds exist in that service's type system but no `source` branch routes
-  repo-ci-scanner's findings to them (see
-  `services/finding-attribution-service/README.md`).
+- `ci_pipeline_findings`/`embedded_key_findings` are routed through
+  `crypto-fingerprint-service` and `finding-attribution-service` to the
+  `pipeline`/`config` crypto-object kinds (see
+  `services/finding-attribution-service/README.md`). `source_code_findings`/
+  `iac_findings` algorithm detections still attribute as `library` (via the
+  existing `host_package` path), not a repo-specific crypto object.

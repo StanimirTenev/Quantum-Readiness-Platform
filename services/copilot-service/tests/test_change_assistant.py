@@ -47,6 +47,28 @@ def test_checklist_includes_ssh_and_embedded_key_items():
     assert "legacy SSH MAC algorithms" in checklist_text
 
 
+def test_checklist_includes_ipsec_items():
+    risk = _risk(rationale={
+        "legacy_ipsec_dh_group_detected": True,
+        "weak_ipsec_encryption_detected": True,
+        "weak_ipsec_integrity_detected": True,
+        "weak_ipsec_prf_detected": True,
+    })
+    result = build_change_plan("asset-a", {"risks": [risk]}, _plan(), [])
+    checklist_text = " ".join(result["pre_change_checklist"])
+    assert "2048-bit or larger Diffie-Hellman group" in checklist_text
+    assert "Disable DES/3DES/NULL encryption" in checklist_text
+    assert "legacy IPsec/IKE integrity algorithms" in checklist_text
+    assert "legacy IPsec/IKE pseudorandom functions" in checklist_text
+
+
+def test_checklist_includes_ci_signing_command_item():
+    risk = _risk(rationale={"ci_signing_command_detected": True})
+    result = build_change_plan("asset-a", {"risks": [risk]}, _plan(), [])
+    checklist_text = " ".join(result["pre_change_checklist"])
+    assert "signing key used by the CI/CD pipeline" in checklist_text
+
+
 def test_checklist_includes_vendor_blocked_note():
     risk = _risk(vendor_blocked=True)
     result = build_change_plan("asset-a", {"risks": [risk]}, _plan(), [])

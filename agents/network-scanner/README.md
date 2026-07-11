@@ -257,9 +257,11 @@ correct length); the exchange never proceeds past `IKE_SA_INIT`.
   `legacy_ssh_host_key_detected`/`weak_ssh_cipher_detected`/`weak_ssh_mac_detected`
   signals (see `services/risk-engine/README.md`) -- the scanner itself still only
   reports the offered algorithms as neutral facts, never judging them.
-- `ipsec_metadata` is ingested and persisted (`inventory-service`'s `ipsec_evidence`) but not
-  yet wired into any risk-engine signal -- evidence-only for now, a natural follow-up
-  mirroring what was done for SSH.
+- `ipsec_metadata`'s selected transforms are ingested, persisted (`inventory-service`'s
+  `ipsec_evidence`), and wired into risk-engine's `legacy_ipsec_dh_group_detected`/
+  `weak_ipsec_encryption_detected`/`weak_ipsec_integrity_detected`/`weak_ipsec_prf_detected`
+  signals (see `services/risk-engine/README.md`) -- the scanner itself still only reports the
+  responder's selected transform as a neutral fact, never judging it.
 - Not exercised in `scripts/run_product_demo.sh` (that script's own bash/openssl-based fixture
   setup can't easily fake a real SSH server or IKE responder); covered instead by Go unit
   tests against scripted fake servers plus manual live verification against this machine's

@@ -93,5 +93,14 @@ PYTHONPATH=. pytest -q
 - Classification is string/token based on observed algorithm identifiers; it
   does not parse raw certificate DER or private key material.
 - Host packages are reported as informational crypto-surface findings only.
+- `crypto_evidence.repo_scan.ci_pipeline_findings`/`embedded_key_findings` (from
+  `repo-ci-scanner`) are reported as `repo_ci_pipeline`/`repo_embedded_key`
+  findings -- unattributed algorithm classification (a signing command or an
+  embedded key isn't itself a named algorithm), but routed through
+  `finding-attribution-service` to the `pipeline`/`config` crypto-object kinds.
+  `source_code_findings`/`iac_findings` algorithm detections are not read
+  directly here; `repo-ci-scanner` already folds them into
+  `crypto_evidence.package_metadata.packages`, which this service classifies
+  via the existing `host_package` path.
 
 Wired into the API Gateway as `GET /api/algorithms` and `POST /api/fingerprint`.

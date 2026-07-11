@@ -1,4 +1,4 @@
-from app.models import AssetCreate, CryptoEvidence, ScanIngestRequest, SSHEvidence, TLSEvidence
+from app.models import AssetCreate, CryptoEvidence, IPsecEvidence, ScanIngestRequest, SSHEvidence, TLSEvidence
 from app.risk_mapper import build_risk_payload
 
 
@@ -116,6 +116,25 @@ def test_build_risk_payload_forwards_ssh_evidence_for_weak_algorithm_detection()
     assert score["ssh_metadata"]["collected"] is True
     assert score["ssh_metadata"]["kex_algorithms"] == ["diffie-hellman-group1-sha1"]
     assert score["ssh_metadata"]["server_host_key_algorithms"] == ["ssh-rsa"]
+
+
+def test_build_risk_payload_forwards_ipsec_evidence_for_weak_algorithm_detection() -> None:
+    payload = ScanIngestRequest(
+        source="network",
+        assets=[AssetCreate(asset_type="endpoint", name="legacy-ipsec.internal:500")],
+        ipsec_evidence=IPsecEvidence(
+            collected=True,
+            target="legacy-ipsec.internal",
+            selected_encryption="3DES",
+            selected_dh_group="1024-bit MODP",
+        ),
+    )
+
+    score = build_risk_payload(payload, asset_name="legacy-ipsec.internal:500")
+
+    assert score["ipsec_metadata"]["collected"] is True
+    assert score["ipsec_metadata"]["selected_encryption"] == "3DES"
+    assert score["ipsec_metadata"]["selected_dh_group"] == "1024-bit MODP"
 
 
 def test_build_risk_payload_forwards_embedded_key_findings_via_crypto_evidence() -> None:

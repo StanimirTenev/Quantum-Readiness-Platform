@@ -151,6 +151,12 @@ def attribute_finding(
         name = raw_value or family
         location_kind, location_value = "package", name
         crypto_object = CryptoObject(kind="library", id=f"package:{name}" if name else None, label=name)
+    elif source == "repo_ci_pipeline":
+        location_kind, location_value = "config_file", loc_ref or raw_value
+        crypto_object = CryptoObject(kind="pipeline", id=None, label=raw_value)
+    elif source == "repo_embedded_key":
+        location_kind, location_value = "config_file", loc_ref or raw_value
+        crypto_object = CryptoObject(kind="config", id=None, label=raw_value)
     elif source == "explicit_algorithm":
         location_kind, location_value = "manual", raw_value
     else:

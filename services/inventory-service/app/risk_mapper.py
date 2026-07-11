@@ -53,6 +53,8 @@ def build_risk_payload(payload: ScanIngestRequest, asset_name: str, scenario: st
         risk_payload["tls_metadata"] = payload.tls_evidence.model_dump(mode="json", exclude_none=True)
     if payload.ssh_evidence is not None:
         risk_payload["ssh_metadata"] = payload.ssh_evidence.model_dump(mode="json", exclude_none=True)
+    if payload.ipsec_evidence is not None:
+        risk_payload["ipsec_metadata"] = payload.ipsec_evidence.model_dump(mode="json", exclude_none=True)
     if payload.stage2_notes:
         risk_payload["stage2_notes"] = payload.stage2_notes
 

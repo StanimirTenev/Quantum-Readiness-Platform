@@ -137,3 +137,37 @@ def test_finding_id_is_deterministic() -> None:
 def test_missing_asset_name_returns_422() -> None:
     response = client.post("/attribute", json={"findings": []})
     assert response.status_code == 422
+
+
+def test_repo_ci_pipeline_finding_attributes_pipeline() -> None:
+    payload = {
+        "asset_name": "repo-a",
+        "findings": [
+            {"source": "repo_ci_pipeline", "location": ".github/workflows/release.yml:12",
+             "algorithm_family": "signing_command", "classification": "unknown", "raw_value": "gpg_sign"}
+        ],
+    }
+    response = client.post("/attribute", json=payload)
+    assert response.status_code == 200
+    finding = response.json()["attributed_findings"][0]
+    assert finding["location"]["kind"] == "config_file"
+    assert finding["location"]["value"] == ".github/workflows/release.yml:12"
+    assert finding["attribution"]["crypto_object"]["kind"] == "pipeline"
+    assert finding["attribution"]["crypto_object"]["label"] == "gpg_sign"
+
+
+def test_repo_embedded_key_finding_attributes_config() -> None:
+    payload = {
+        "asset_name": "repo-a",
+        "findings": [
+            {"source": "repo_embedded_key", "location": "k8s/tls-secret.yaml:6",
+             "algorithm_family": "private_key", "classification": "unknown",
+             "raw_value": "Embedded private key material"}
+        ],
+    }
+    response = client.post("/attribute", json=payload)
+    assert response.status_code == 200
+    finding = response.json()["attributed_findings"][0]
+    assert finding["location"]["kind"] == "config_file"
+    assert finding["location"]["value"] == "k8s/tls-secret.yaml:6"
+    assert finding["attribution"]["crypto_object"]["kind"] == "config"

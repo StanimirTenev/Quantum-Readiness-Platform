@@ -1,0 +1,37 @@
+{
+  "source": "manual",
+  "assets": [
+    {
+      "asset_type": "other",
+      "name": "corp.example.local",
+      "environment": "production",
+      "criticality": 5
+    }
+  ],
+  "crypto_evidence": {
+    "ad_evidence": {
+      "domain_topology_indicators": {
+        "forest_present": true,
+        "domain_functional_level_observed": true,
+        "forest_functional_level_observed": true,
+        "domain_controllers_count": 2,
+        "domain_name_redacted": true
+      },
+      "ca_presence_indicators": {
+        "enterprise_cas_observed_count": 1,
+        "standalone_ca_indicators_observed": false,
+        "root_ca_certificates_expiring_count": 1,
+        "ca_names_redacted": true
+      },
+      "certificate_template_indicators": {
+        "templates_observed_count": 25,
+        "templates_with_weak_key_algorithm_count": 2,
+        "templates_with_weak_signature_algorithm_count": 1,
+        "templates_expiring_soon_count": 0,
+        "template_names_redacted": true
+      },
+      "warnings": [],
+      "errors": []
+    }
+  }
+}

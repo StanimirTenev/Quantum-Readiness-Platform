@@ -166,8 +166,23 @@ collection, matching the existing collector's degrade-gracefully behavior.
 
 ## Status
 
-AD / Certificate Estate Discovery — design-only (2026-07-08). No collector,
-no ingest changes, no risk/planning changes are implemented. This document is
-the safety contract and evidence shape future implementation must follow;
-`docs/cross-platform-agent-design.md` §8/Phase 6 point here for the expanded
-version.
+Updated 2026-07-11: **Phases 6a, 6c, 6d done via a fixture (no live collector)**. A committed
+fixture (`services/inventory-service/tests/fixtures/stage2_evidence/ad_certificate_estate_ingest.json`)
+matches the `ad_evidence` shape above exactly and ingests through the existing generic
+`POST /scans/ingest` contract unchanged -- `crypto_evidence` already forwards wholesale to
+risk-engine (the same mechanism `repo_scan`/`ssh_metadata`/`ipsec_metadata` already use), so no
+inventory-service ingest-contract changes were needed beyond the fixture itself. risk-engine
+derives `ad_weak_certificate_template_detected`/`ad_ca_certificate_expiring_detected`/
+`ad_large_certificate_estate_detected` (see `services/risk-engine/README.md`), explained by Risk
+Narrator and turned into checklist items by Change Assistant (see
+`services/copilot-service/README.md`), and surfaced in the operator report's Evidence
+Table/Change Checklist (`tools/report/build_operator_report.py`) -- verified live end to end
+through the real gateway. **Phase 6b (the live PowerShell/LDAP collector) is still not
+implemented** -- blocked on a lab/test AD environment per the Non-goals section above; a
+production-AD dry run still requires explicit operator sign-off regardless. Phase 6e (a
+dedicated E2E smoke script) was not added separately -- the live gateway verification above
+covers the same ground manually; a `run_ad_evidence_smoke.sh` mirroring
+`run_windows_evidence_smoke.sh` remains a reasonable follow-up if this becomes a repeated
+regression-testing need. This document remains the safety contract and evidence shape any future
+live collector (Phase 6b) must follow; `docs/cross-platform-agent-design.md` §8/Phase 6 point
+here for the expanded version.

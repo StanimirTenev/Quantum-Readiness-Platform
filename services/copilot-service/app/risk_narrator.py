@@ -21,6 +21,8 @@ HIGH_SEVERITY_SIGNALS: list[tuple[str, str]] = [
     ("expiring_certificate_detected", "a certificate close to expiry was found"),
     ("windows_expired_certificates", "expired certificates were found in the Windows certificate store"),
     ("windows_weak_signature_certificates", "certificates with a weak signature algorithm were found in the Windows certificate store"),
+    ("ad_weak_certificate_template_detected", "a weak certificate template was found in Active Directory Certificate Services; every certificate issued from it inherits the weakness"),
+    ("ad_ca_certificate_expiring_detected", "a root Certificate Authority certificate close to expiry was found in Active Directory"),
 ]
 
 MEDIUM_SEVERITY_SIGNALS: list[tuple[str, str]] = [
@@ -37,6 +39,7 @@ MEDIUM_SEVERITY_SIGNALS: list[tuple[str, str]] = [
     ("weak_ipsec_prf_detected", "the IPsec/IKE responder selected a weak or legacy pseudorandom function"),
     ("crypto_packages_detected", "crypto-related packages are installed"),
     ("ci_signing_command_detected", "a CI/CD pipeline signing command was detected (e.g. gpg --sign, cosign sign); the signing key's algorithm isn't visible from the pipeline config alone and should be reviewed"),
+    ("ad_large_certificate_estate_detected", "Active Directory Certificate Services has a large certificate template estate"),
 ]
 
 RATING_RECOMMENDATIONS: dict[str, str] = {

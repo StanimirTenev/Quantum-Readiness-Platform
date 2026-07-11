@@ -165,6 +165,21 @@ def test_evidence_table_lists_matched_ipsec_signals():
     assert "| vpn-gw |" in report
 
 
+def test_evidence_table_lists_matched_ad_certificate_estate_signals():
+    bundle = {
+        "assets": [
+            _windows_host("corp.example.local", "critical", 80, {
+                "ad_weak_certificate_template_detected": True,
+                "ad_ca_certificate_expiring_detected": True,
+            }),
+        ],
+    }
+    report = reporter.build_report(bundle)
+    assert "a weak certificate template was found in Active Directory" in report
+    assert "root Certificate Authority certificate close to expiry" in report
+    assert "| corp.example.local |" in report
+
+
 def test_evidence_table_lists_matched_ci_signing_signal():
     bundle = {
         "assets": [

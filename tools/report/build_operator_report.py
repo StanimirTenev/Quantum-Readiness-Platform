@@ -278,6 +278,21 @@ RATIONALE_SIGNAL_METADATA: dict[str, dict[str, str]] = {
         "checklist": "Identify the signing key used by the CI/CD pipeline's signing command and confirm it is (or has a plan to become) PQC-capable before relying on it long-term.",
         "severity": "medium",
     },
+    "ad_weak_certificate_template_detected": {
+        "evidence": "a weak certificate template was found in Active Directory Certificate Services; every certificate issued from it inherits the weakness",
+        "checklist": "Update the weak certificate template's key/signature algorithm and reissue certificates already issued from it -- every certificate issued from a weak template inherits the weakness.",
+        "severity": "high",
+    },
+    "ad_ca_certificate_expiring_detected": {
+        "evidence": "a root Certificate Authority certificate close to expiry was found in Active Directory",
+        "checklist": "Confirm the root CA's renewal/replacement certificate is provisioned and distributed to trust stores before the current one expires.",
+        "severity": "high",
+    },
+    "ad_large_certificate_estate_detected": {
+        "evidence": "Active Directory Certificate Services has a large certificate template estate",
+        "checklist": "Plan for a staged rollout given the large certificate template estate in this domain's Certificate Services.",
+        "severity": "medium",
+    },
 }
 
 

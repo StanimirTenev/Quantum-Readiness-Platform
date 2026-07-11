@@ -47,6 +47,9 @@ PRE_CHANGE_CHECKLIST_ITEMS: list[tuple[str, str]] = [
     ("weak_ipsec_integrity_detected", "Disable legacy IPsec/IKE integrity algorithms (MD5-based, SHA1-96) and require a SHA2-based one."),
     ("weak_ipsec_prf_detected", "Disable legacy IPsec/IKE pseudorandom functions (HMAC-MD5/HMAC-SHA1) and require a SHA2-based one."),
     ("ci_signing_command_detected", "Identify the signing key used by the CI/CD pipeline's signing command and confirm it is (or has a plan to become) PQC-capable before relying on it long-term."),
+    ("ad_weak_certificate_template_detected", "Update the weak certificate template's key/signature algorithm and reissue certificates already issued from it -- every certificate issued from a weak template inherits the weakness."),
+    ("ad_ca_certificate_expiring_detected", "Confirm the root CA's renewal/replacement certificate is provisioned and distributed to trust stores before the current one expires."),
+    ("ad_large_certificate_estate_detected", "Plan for a staged rollout given the large certificate template estate in this domain's Certificate Services."),
 ]
 
 WAVE_LABELS = {"wave_1": "Wave 1 (urgent)", "wave_2": "Wave 2 (near-term)", "wave_3": "Wave 3 (planned)"}

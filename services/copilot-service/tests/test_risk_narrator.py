@@ -76,6 +76,19 @@ def test_narrate_risk_surfaces_ci_signing_command_signal():
     assert "Contributing factors" in text
 
 
+def test_narrate_risk_surfaces_ad_certificate_estate_signals():
+    text = narrate_risk("corp.example.local", _risk(rationale={
+        "ad_weak_certificate_template_detected": True,
+        "ad_ca_certificate_expiring_detected": True,
+        "ad_large_certificate_estate_detected": True,
+    }))
+    assert "a weak certificate template was found in Active Directory" in text
+    assert "root Certificate Authority certificate close to expiry" in text
+    assert "large certificate template estate" in text
+    assert "Key risk drivers" in text
+    assert "Contributing factors" in text
+
+
 def test_narrate_risk_no_signals_says_so():
     text = narrate_risk("clean-host", _risk(rating="low", rationale={}))
     assert "No specific evidence-based risk signals" in text

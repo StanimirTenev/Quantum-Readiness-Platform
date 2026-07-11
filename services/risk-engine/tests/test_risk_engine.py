@@ -356,6 +356,101 @@ def test_risk_dimensions_migration_complexity_increases_for_ci_signing_command()
     assert flagged["risk_dimensions"]["migration_complexity"] > baseline["risk_dimensions"]["migration_complexity"]
 
 
+def _ad_evidence(**overrides: dict) -> dict:
+    templates = {
+        "templates_observed_count": 5,
+        "templates_with_weak_key_algorithm_count": 0,
+        "templates_with_weak_signature_algorithm_count": 0,
+    }
+    templates.update(overrides.get("certificate_template_indicators", {}))
+    ca = {"root_ca_certificates_expiring_count": 0}
+    ca.update(overrides.get("ca_presence_indicators", {}))
+    return {
+        "ad_evidence": {
+            "certificate_template_indicators": templates,
+            "ca_presence_indicators": ca,
+        }
+    }
+
+
+def test_evidence_signal_ad_weak_certificate_template_detected() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = _ad_evidence(
+        certificate_template_indicators={"templates_with_weak_key_algorithm_count": 2}
+    )
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["ad_weak_certificate_template_detected"] is True
+    assert data["rationale"]["ad_weak_certificate_template_detected"] is True
+
+
+def test_evidence_signal_ad_weak_certificate_template_detected_via_weak_signature() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = _ad_evidence(
+        certificate_template_indicators={"templates_with_weak_signature_algorithm_count": 1}
+    )
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["ad_weak_certificate_template_detected"] is True
+
+
+def test_evidence_signal_ad_ca_certificate_expiring_detected() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = _ad_evidence(ca_presence_indicators={"root_ca_certificates_expiring_count": 1})
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["ad_ca_certificate_expiring_detected"] is True
+    assert data["rationale"]["ad_ca_certificate_expiring_detected"] is True
+
+
+def test_evidence_signal_ad_large_certificate_estate_detected() -> None:
+    payload = _base_payload()
+    payload["crypto_evidence"] = _ad_evidence(
+        certificate_template_indicators={"templates_observed_count": 25}
+    )
+
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["ad_large_certificate_estate_detected"] is True
+    assert data["rationale"]["ad_large_certificate_estate_detected"] is True
+
+
+def test_ad_signals_absent_when_no_ad_evidence() -> None:
+    payload = _base_payload()
+    data = client.post("/score", json=payload).json()
+    assert data["stage2_signals"]["evidence_signals"]["ad_weak_certificate_template_detected"] is False
+    assert data["stage2_signals"]["evidence_signals"]["ad_ca_certificate_expiring_detected"] is False
+    assert data["stage2_signals"]["evidence_signals"]["ad_large_certificate_estate_detected"] is False
+
+
+def test_risk_dimensions_urgency_increases_for_ad_weak_certificate_template() -> None:
+    baseline_payload = _base_payload()
+    baseline = client.post("/score", json=baseline_payload).json()
+
+    flagged_payload = _base_payload()
+    flagged_payload["crypto_evidence"] = _ad_evidence(
+        certificate_template_indicators={"templates_with_weak_key_algorithm_count": 2}
+    )
+    flagged = client.post("/score", json=flagged_payload).json()
+
+    assert flagged["risk_dimensions"]["urgency"] > baseline["risk_dimensions"]["urgency"]
+    assert flagged["risk_dimensions"]["migration_complexity"] > baseline["risk_dimensions"]["migration_complexity"]
+
+
+def test_risk_dimensions_exposure_increases_for_ad_weak_certificate_template() -> None:
+    baseline_payload = _base_payload()
+    baseline_payload["quantum_exposure"] = 2
+    baseline = client.post("/score", json=baseline_payload).json()
+
+    flagged_payload = _base_payload()
+    flagged_payload["quantum_exposure"] = 2
+    flagged_payload["crypto_evidence"] = _ad_evidence(
+        certificate_template_indicators={"templates_with_weak_key_algorithm_count": 2}
+    )
+    flagged = client.post("/score", json=flagged_payload).json()
+
+    assert flagged["risk_dimensions"]["exposure"] > baseline["risk_dimensions"]["exposure"]
+
+
 def test_risk_dimensions_exposure_increases_for_weak_ssh_signals() -> None:
     baseline_payload = _base_payload()
     baseline_payload["quantum_exposure"] = 2

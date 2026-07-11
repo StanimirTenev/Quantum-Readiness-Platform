@@ -69,6 +69,19 @@ def test_checklist_includes_ci_signing_command_item():
     assert "signing key used by the CI/CD pipeline" in checklist_text
 
 
+def test_checklist_includes_ad_certificate_estate_items():
+    risk = _risk(rationale={
+        "ad_weak_certificate_template_detected": True,
+        "ad_ca_certificate_expiring_detected": True,
+        "ad_large_certificate_estate_detected": True,
+    })
+    result = build_change_plan("asset-a", {"risks": [risk]}, _plan(), [])
+    checklist_text = " ".join(result["pre_change_checklist"])
+    assert "reissue certificates already issued from it" in checklist_text
+    assert "root CA's renewal/replacement certificate" in checklist_text
+    assert "large certificate template estate" in checklist_text
+
+
 def test_checklist_includes_vendor_blocked_note():
     risk = _risk(vendor_blocked=True)
     result = build_change_plan("asset-a", {"risks": [risk]}, _plan(), [])

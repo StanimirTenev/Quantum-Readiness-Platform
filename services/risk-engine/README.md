@@ -56,6 +56,17 @@ scanning -- see `agents/repo-ci-scanner/README.md`):
   isn't visible from the pipeline config alone, so this flags the pipeline for manual review
   rather than judging the key itself weak.
 
+AD/CA certificate estate evidence-derived signals (`crypto_evidence.ad_evidence` -- see
+`docs/ad-certificate-estate-design.md`; fixture-only for now, no live collector implemented):
+- `ad_weak_certificate_template_detected` when `certificate_template_indicators
+  .templates_with_weak_key_algorithm_count` or `...templates_with_weak_signature_algorithm_count`
+  is `> 0` (`+10`) -- weighted higher than a single weak leaf certificate because every
+  certificate issued from a weak template inherits the weakness going forward.
+- `ad_ca_certificate_expiring_detected` when `ca_presence_indicators
+  .root_ca_certificates_expiring_count` is `> 0` (`+8`)
+- `ad_large_certificate_estate_detected` when `certificate_template_indicators
+  .templates_observed_count >= 20` (`+3`)
+
 Additional existing deterministic hints:
 - `vendor_blocked` (`+0.20`)
 - `high_dependency_pressure` for `dependency_count >= 10` (`+0.15`)
@@ -70,10 +81,10 @@ Safety behavior:
 ## Stage 3 Risk Dimensions and Confidence
 - Stage 3 is additive and backward-compatible: existing score fields, normalized score, rating, rationale, `stage2_signals`, and `stage2_adjustment` remain available.
 - `confidence_score` (`0..100`) is always returned and represents deterministic confidence based on evidence completeness (criticality/environment/evidence presence).
-- `risk_dimensions.exposure` (`0..100`) captures quantum exposure with additive TLS/config/SSH/IPsec evidence hints (`weak_ssh_kex_detected`, `legacy_ssh_host_key_detected`, `legacy_ipsec_dh_group_detected`).
+- `risk_dimensions.exposure` (`0..100`) captures quantum exposure with additive TLS/config/SSH/IPsec evidence hints (`weak_ssh_kex_detected`, `legacy_ssh_host_key_detected`, `legacy_ipsec_dh_group_detected`, `ad_weak_certificate_template_detected`).
 - `risk_dimensions.impact` (`0..100`) is primarily driven by criticality, with production environment lift.
-- `risk_dimensions.urgency` (`0..100`) reflects immediate certificate/key urgency signals (expiring certs, weak keys, private key indicators, `embedded_private_key_in_repo_detected`).
-- `risk_dimensions.migration_complexity` (`0..100`) reflects dependencies plus migration blockers (certificate/private key artifacts, `embedded_private_key_in_repo_detected`, `ci_signing_command_detected`, vendor blocked).
+- `risk_dimensions.urgency` (`0..100`) reflects immediate certificate/key urgency signals (expiring certs, weak keys, private key indicators, `embedded_private_key_in_repo_detected`, `ad_weak_certificate_template_detected`, `ad_ca_certificate_expiring_detected`).
+- `risk_dimensions.migration_complexity` (`0..100`) reflects dependencies plus migration blockers (certificate/private key artifacts, `embedded_private_key_in_repo_detected`, `ci_signing_command_detected`, `ad_weak_certificate_template_detected`, `ad_large_certificate_estate_detected`, vendor blocked).
 - This stage is not dependency graph scoring yet; dimension logic is deterministic and local to risk-engine.
 
 ## Current status

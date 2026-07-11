@@ -68,6 +68,12 @@
   (`risk_mapper.py`), which derives `legacy_ipsec_dh_group_detected`/
   `weak_ipsec_encryption_detected`/`weak_ipsec_integrity_detected`/`weak_ipsec_prf_detected`
   from it -- see `services/risk-engine/README.md`.
+- `crypto_evidence.ad_evidence` (AD/Certificate Services estate evidence -- see
+  `docs/ad-certificate-estate-design.md`; fixture-only for now, no live collector) is likewise
+  forwarded as part of `crypto_evidence` and drives risk-engine's
+  `ad_weak_certificate_template_detected`/`ad_ca_certificate_expiring_detected`/
+  `ad_large_certificate_estate_detected` signals. Sample ingest payload:
+  `services/inventory-service/tests/fixtures/stage2_evidence/ad_certificate_estate_ingest.json`.
 
 ### Sample ingest payload snippet
 ```json

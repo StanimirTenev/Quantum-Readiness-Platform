@@ -45,6 +45,9 @@ EVIDENCE_SIGNAL_WEIGHTS: dict[str, float] = {
     "weak_ipsec_integrity_detected": 3.0,
     "weak_ipsec_prf_detected": 4.0,
     "legacy_ipsec_dh_group_detected": 8.0,
+    "ad_weak_certificate_template_detected": 10.0,
+    "ad_ca_certificate_expiring_detected": 8.0,
+    "ad_large_certificate_estate_detected": 3.0,
 }
 
 # SSH_MSG_KEXINIT algorithm names considered weak/legacy -- classical SHA-1-based
@@ -71,6 +74,13 @@ WEAK_IPSEC_ENCRYPTION = {"DES-IV64", "DES", "3DES", "NULL"}
 WEAK_IPSEC_INTEGRITY = {"HMAC-MD5-96", "DES-MAC", "KPDK-MD5", "HMAC-SHA1-96"}
 WEAK_IPSEC_PRF = {"HMAC-MD5", "HMAC-SHA1"}
 LEGACY_IPSEC_DH_GROUPS = {"768-bit MODP", "1024-bit MODP"}
+
+# AD/CA certificate estate evidence (crypto_evidence.ad_evidence -- see
+# docs/ad-certificate-estate-design.md; fixture-only for now, no live collector).
+# A weak certificate template is higher-leverage than a single weak leaf
+# certificate: every certificate issued from it going forward inherits the
+# weakness, hence the higher weight than a single expiring/weak host cert.
+AD_LARGE_TEMPLATE_ESTATE_THRESHOLD = 20
 
 # Aggregate Windows host signals (from inventory's windows_normalized_signals).
 # Treated as a parallel evidence family to the Linux/network signals above.
@@ -193,6 +203,21 @@ def extract_ci_signing_signal(data: RiskInput) -> bool:
     return isinstance(findings, list) and len(findings) > 0
 
 
+def extract_ad_signals(data: RiskInput) -> dict[str, bool]:
+    ad = ((data.crypto_evidence or {}).get("ad_evidence") or {})
+    templates = ad.get("certificate_template_indicators") or {}
+    ca = ad.get("ca_presence_indicators") or {}
+    return {
+        "ad_weak_certificate_template_detected": (
+            _safe_int(templates.get("templates_with_weak_key_algorithm_count")) > 0
+            or _safe_int(templates.get("templates_with_weak_signature_algorithm_count")) > 0
+        ),
+        "ad_ca_certificate_expiring_detected": _safe_int(ca.get("root_ca_certificates_expiring_count")) > 0,
+        "ad_large_certificate_estate_detected": _safe_int(templates.get("templates_observed_count"))
+        >= AD_LARGE_TEMPLATE_ESTATE_THRESHOLD,
+    }
+
+
 def extract_stage2_signals(data: RiskInput) -> dict[str, bool | int | dict[str, bool]]:
     notes = (data.stage2_notes or "").lower()
 
@@ -245,6 +270,7 @@ def extract_stage2_signals(data: RiskInput) -> dict[str, bool | int | dict[str, 
         **extract_ipsec_signals(data),
         "embedded_private_key_in_repo_detected": extract_embedded_key_signal(data),
         "ci_signing_command_detected": extract_ci_signing_signal(data),
+        **extract_ad_signals(data),
     }
 
     return {
@@ -348,6 +374,8 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
         exposure += 8.0
     if bool(evidence.get("legacy_ipsec_dh_group_detected")):
         exposure += 8.0
+    if bool(evidence.get("ad_weak_certificate_template_detected")):
+        exposure += 8.0
     if bool(windows.get("windows_domain_controller")):
         exposure += 10.0
 
@@ -366,6 +394,10 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
         urgency += 25.0
     if bool(evidence.get("embedded_private_key_in_repo_detected")):
         urgency += 25.0
+    if bool(evidence.get("ad_weak_certificate_template_detected")):
+        urgency += 25.0
+    if bool(evidence.get("ad_ca_certificate_expiring_detected")):
+        urgency += 40.0
     if bool(windows.get("windows_expired_certificates")):
         urgency += 40.0
     if bool(windows.get("windows_weak_signature_certificates")):
@@ -380,6 +412,10 @@ def calculate_risk_dimensions(data: RiskInput, stage2_signals: dict[str, bool | 
         migration_complexity += 15.0
     if bool(evidence.get("ci_signing_command_detected")):
         migration_complexity += 10.0
+    if bool(evidence.get("ad_weak_certificate_template_detected")):
+        migration_complexity += 20.0
+    if bool(evidence.get("ad_large_certificate_estate_detected")):
+        migration_complexity += 15.0
     if data.vendor_blocked:
         migration_complexity += 20.0
     if bool(windows.get("windows_large_certificate_estate")):
@@ -476,6 +512,15 @@ def score(data: RiskInput) -> RiskOutput:
             ),
             "ci_signing_command_detected": bool(
                 stage2_signals["evidence_signals"].get("ci_signing_command_detected")
+            ),
+            "ad_weak_certificate_template_detected": bool(
+                stage2_signals["evidence_signals"].get("ad_weak_certificate_template_detected")
+            ),
+            "ad_ca_certificate_expiring_detected": bool(
+                stage2_signals["evidence_signals"].get("ad_ca_certificate_expiring_detected")
+            ),
+            "ad_large_certificate_estate_detected": bool(
+                stage2_signals["evidence_signals"].get("ad_large_certificate_estate_detected")
             ),
             "confidence_score_computed": "yes",
             "risk_dimensions_computed": "yes",

@@ -63,6 +63,9 @@ npm run dev            # python -m http.server 5173 --directory public
 # open http://127.0.0.1:5173
 ```
 
+Or via Docker Compose (backend + web-ui together, one command) -- see
+`infra/docker/README.md`.
+
 The gateway enables CORS (`CORS_ALLOW_ORIGINS`, default `*`) so the browser app
 can call it cross-origin during local development.
 

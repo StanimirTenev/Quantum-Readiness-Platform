@@ -266,6 +266,22 @@ jobs:
             -d '{"assets":[{"asset_type":"server","name":"ci-docker-host","criticality":4,"environment":"production","lifecycle_years":3}],"crypto_evidence":{"package_metadata":{"packages":[{"name":"openssl","algorithm":"RSA","key_size":1024}]}}}'
           curl -fsS http://127.0.0.1:8000/api/copilot/narrate/ci-docker-host | grep -q '"narrative"'
 
+      - name: Wait for web-ui health
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5173/ >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          echo "web-ui did not become reachable in time"
+          exit 1
+
+      - name: Smoke -- web-ui reachable and serves the console, Load Demo works end to end
+        run: |
+          set -euo pipefail
+          curl -fsS http://127.0.0.1:5173/ | grep -q "Quantum Readiness Console"
+          curl -fsS http://127.0.0.1:5173/app.js >/dev/null
+          curl -fsS -X POST http://127.0.0.1:8000/api/demo/load | grep -q '"overall":"ok"'
+
       - name: Compose logs (on failure)
         if: failure()
         working-directory: infra/docker

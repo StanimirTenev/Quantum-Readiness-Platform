@@ -98,10 +98,13 @@ services:
         SERVICE_DIR: services/graph-service
     ports:
       - "8013:8000"
-    environment:
-      GRAPH_SNAPSHOT_PATH: /data/graph/graph-snapshot.json
+    # No GRAPH_SNAPSHOT_PATH override: the service's own default
+    # (REPO_ROOT/reports/graph/latest/graph-snapshot.json, where REPO_ROOT is
+    # computed from __file__ and lands on /app inside every container -- see
+    # the Dockerfile comment) resolves correctly as long as the real path is
+    # mounted at that exact location.
     volumes:
-      - ../../reports/graph/latest:/data/graph:ro
+      - ../../reports/graph/latest:/app/reports/graph/latest:ro
     healthcheck: *healthcheck
 
   inventory-service:
@@ -149,9 +152,9 @@ services:
       INVENTORY_SERVICE_URL: http://inventory-service:8000
       PLANNER_SERVICE_URL: http://planner-service:8000
       WORKFLOW_SERVICE_URL: http://workflow-service:8000
-      DOC_INDEX_PATH: /data/doc-index/doc-index.json
+    # No DOC_INDEX_PATH override -- see the graph-service comment above for why.
     volumes:
-      - ../../reports/doc-index/latest:/data/doc-index:ro
+      - ../../reports/doc-index/latest:/app/reports/doc-index/latest:ro
     depends_on:
       inventory-service:
         condition: service_healthy
@@ -173,9 +176,8 @@ services:
       RETRIEVAL_SERVICE_URL: http://retrieval-service:8000
       PLANNER_SERVICE_URL: http://planner-service:8000
       WORKFLOW_SERVICE_URL: http://workflow-service:8000
-      GRAPH_SNAPSHOT_PATH: /data/graph/graph-snapshot.json
     volumes:
-      - ../../reports/graph/latest:/data/graph:ro
+      - ../../reports/graph/latest:/app/reports/graph/latest:ro
     depends_on:
       inventory-service:
         condition: service_healthy
@@ -207,9 +209,16 @@ services:
       PQC_READINESS_URL: http://pqc-readiness-service:8000
       GRAPH_SERVICE_URL: http://graph-service:8000
       FINDING_ATTRIBUTION_URL: http://finding-attribution-service:8000
-      GRAPH_SNAPSHOT_PATH: /data/graph/graph-snapshot.json
+    # Read-write (unlike the other services' :ro mounts of the same host
+    # paths): POST /api/demo/load's demo_seed.py writes the graph snapshot
+    # and doc index here (via the same REPO_ROOT-relative defaults every
+    # service computes, landing on /app inside the container), plus needs
+    # the Stage2 fixture files it seeds from. Every other service still only
+    # reads these paths.
     volumes:
-      - ../../reports/graph/latest:/data/graph:ro
+      - ../../reports/graph/latest:/app/reports/graph/latest
+      - ../../reports/doc-index/latest:/app/reports/doc-index/latest
+      - ../../services/inventory-service/tests/fixtures/stage2_evidence:/app/services/inventory-service/tests/fixtures/stage2_evidence:ro
     depends_on:
       inventory-service:
         condition: service_healthy
@@ -234,6 +243,28 @@ services:
       finding-attribution-service:
         condition: service_healthy
     healthcheck: *healthcheck
+
+  web-ui:
+    image: python:3.12-slim
+    working_dir: /app
+    # Buildless static site (see frontend/web-ui/README.md) -- same command
+    # `npm run dev` uses locally, just bound to 0.0.0.0 so the container's
+    # port mapping reaches it. No build step, no Dockerfile: http.server
+    # needs no dependencies to serve static files.
+    command: ["python", "-m", "http.server", "5173", "--directory", "/app/public", "--bind", "0.0.0.0"]
+    ports:
+      - "5173:5173"
+    volumes:
+      - ../../frontend/web-ui/public:/app/public:ro
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5173/', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
 volumes:
   inventory-data:

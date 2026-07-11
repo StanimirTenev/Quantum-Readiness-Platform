@@ -70,7 +70,8 @@ make test       # every service/tool/agent unit+API test suite, plus web-ui JS s
 cleaned up on exit) and safe to run at any time, including while `dev-up`'s stack is running.
 
 For a containerized alternative to `make dev-up` (same 15 services, same call graph, packaged
-as Docker containers instead of bare processes), see `infra/docker/README.md`.
+as Docker containers instead of bare processes, plus the web-ui) -- `cd infra/docker && docker
+compose up -d --build` and open http://127.0.0.1:5173 -- see `infra/docker/README.md`.
 
 ## One-command product demo (Linux)
 

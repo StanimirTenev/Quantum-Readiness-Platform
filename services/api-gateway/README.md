@@ -39,6 +39,15 @@
 - Input: JSON payloads for scans, scenario runs, and copilot requests.
 - Output: JSON passthrough responses from downstream services.
 
+## Shared API key (optional)
+- Set `QRP_API_KEY` to require an `X-API-Key` header matching it on every route except
+  `/health` and CORS preflight (`OPTIONS`) -- unset (default) leaves the gateway open, so
+  local dev/CI need no header. A single shared secret, not per-user accounts -- meant to
+  gate exposing this stack outside a trusted local network (e.g. a public demo), not as a
+  substitute for real auth in a multi-tenant deployment.
+- Only this service enforces it. The other 14 services are not meant to be reachable
+  directly outside the internal network -- see `infra/docker/README.md`.
+
 ## Current status
 - Partially implemented integration gateway.
 

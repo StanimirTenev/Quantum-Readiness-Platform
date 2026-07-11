@@ -8,6 +8,8 @@ Note: the legacy demo (`docs/demo/qrp_demo_legacy.html`) has external LLM calls 
 
 Quantum Readiness Platform is a cybersecurity software prototype for automated post-quantum cryptography assessment — host and network evidence collection, risk scoring, and migration planning.
 
+The API Gateway supports an optional shared API key (`QRP_API_KEY`) gating every route except `/health` -- unset by default (open, matching local dev/CI), set it before exposing the stack outside a trusted local network. See `services/api-gateway/README.md` and `infra/docker/README.md`.
+
 ## Modules
 - API Gateway
 - Inventory Service

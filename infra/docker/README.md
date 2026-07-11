@@ -27,6 +27,24 @@ docker compose down          # stop and remove containers
 docker compose down -v       # also drop the persisted inventory-service volume
 ```
 
+## Exposing this outside a trusted local network (demos / presentations)
+
+Only `api-gateway` (8000) and `web-ui` (5173) publish a host port -- every other service
+(inventory-service, risk-engine, etc.) is reachable only on the internal Compose network, the
+same way they already call each other. Set a shared key before exposing the stack publicly:
+
+```bash
+QRP_API_KEY=some-long-random-string docker compose up -d --build
+```
+
+Every gateway route except `/health` then requires a matching `X-API-Key` header. Open
+`http://<host>:5173`, paste the same key into the console's **API Key** field (next to the
+gateway URL), click **Check** -- the console attaches the header on every request from then on
+and self-heals anything that failed to load before the key was entered (the dashboard loads
+eagerly on page open, racing the user typing the key). This is a single shared secret, not
+per-user accounts -- adequate for a controlled demo, not a substitute for real auth in a
+multi-tenant deployment. See `services/api-gateway/README.md`.
+
 ## What's wired
 
 - One shared `Dockerfile`, parametrized by a `SERVICE_DIR` build arg, reused for all 15

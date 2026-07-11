@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import Any
 from urllib import error, parse, request
 
-from fastapi import Body, FastAPI, HTTPException, Query
+from fastapi import Body, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -33,6 +34,35 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Shared API key gate for exposing the gateway outside a trusted local network (e.g. a
+# public demo). Disabled by default (QRP_API_KEY unset) so local dev/CI need no header.
+# /health and CORS preflight (OPTIONS) stay open -- Docker healthchecks and browser
+# preflight requests never carry the key.
+QRP_API_KEY = os.getenv("QRP_API_KEY") or None
+
+
+def _cors_headers(request: Request) -> dict[str, str]:
+    # A 401 short-circuited here bypasses CORSMiddleware's own response handling (it
+    # never reaches call_next), so the browser can't read it at all without this --
+    # it shows up as an opaque CORS failure instead of a readable 401.
+    if "*" in _cors_origins:
+        return {"Access-Control-Allow-Origin": "*"}
+    origin = request.headers.get("origin")
+    return {"Access-Control-Allow-Origin": origin} if origin in _cors_origins else {}
+
+
+@app.middleware("http")
+async def require_api_key(request: Request, call_next):
+    if QRP_API_KEY and request.method != "OPTIONS" and request.url.path != "/health":
+        if request.headers.get("X-API-Key") != QRP_API_KEY:
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Invalid or missing API key"},
+                headers=_cors_headers(request),
+            )
+    return await call_next(request)
+
 
 INVENTORY_BASE_URL = os.getenv("INVENTORY_SERVICE_URL", "http://inventory-service:8000")
 RISK_BASE_URL = os.getenv("RISK_ENGINE_URL", "http://risk-engine:8000")

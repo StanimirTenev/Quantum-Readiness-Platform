@@ -15,8 +15,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/risk-engine
-    ports:
-      - "8002:8000"
     healthcheck: *healthcheck
 
   crypto-fingerprint-service:
@@ -24,8 +22,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/crypto-fingerprint-service
-    ports:
-      - "8003:8000"
     healthcheck: *healthcheck
 
   workflow-service:
@@ -33,8 +29,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/workflow-service
-    ports:
-      - "8005:8000"
     healthcheck: *healthcheck
 
   scenario-engine:
@@ -42,8 +36,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/scenario-engine
-    ports:
-      - "8006:8000"
     healthcheck: *healthcheck
 
   policy-engine:
@@ -51,8 +43,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/policy-engine
-    ports:
-      - "8007:8000"
     healthcheck: *healthcheck
 
   evidence-normalizer:
@@ -60,8 +50,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/evidence-normalizer
-    ports:
-      - "8009:8000"
     healthcheck: *healthcheck
 
   integration-service:
@@ -69,8 +57,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/integration-service
-    ports:
-      - "8011:8000"
     healthcheck: *healthcheck
 
   pqc-readiness-service:
@@ -78,8 +64,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/pqc-readiness-service
-    ports:
-      - "8012:8000"
     healthcheck: *healthcheck
 
   finding-attribution-service:
@@ -87,8 +71,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/finding-attribution-service
-    ports:
-      - "8014:8000"
     healthcheck: *healthcheck
 
   graph-service:
@@ -96,8 +78,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/graph-service
-    ports:
-      - "8013:8000"
     # No GRAPH_SNAPSHOT_PATH override: the service's own default
     # (REPO_ROOT/reports/graph/latest/graph-snapshot.json, where REPO_ROOT is
     # computed from __file__ and lands on /app inside every container -- see
@@ -112,8 +92,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/inventory-service
-    ports:
-      - "8001:8000"
     environment:
       RISK_ENGINE_URL: http://risk-engine:8000
       INVENTORY_DB_PATH: /data/inventory.db
@@ -129,8 +107,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/planner-service
-    ports:
-      - "8004:8000"
     environment:
       INVENTORY_SERVICE_URL: http://inventory-service:8000
       WORKFLOW_SERVICE_URL: http://workflow-service:8000
@@ -146,8 +122,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/retrieval-service
-    ports:
-      - "8015:8000"
     environment:
       INVENTORY_SERVICE_URL: http://inventory-service:8000
       PLANNER_SERVICE_URL: http://planner-service:8000
@@ -169,8 +143,6 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/copilot-service
-    ports:
-      - "8008:8000"
     environment:
       INVENTORY_SERVICE_URL: http://inventory-service:8000
       RETRIEVAL_SERVICE_URL: http://retrieval-service:8000
@@ -209,6 +181,11 @@ services:
       PQC_READINESS_URL: http://pqc-readiness-service:8000
       GRAPH_SERVICE_URL: http://graph-service:8000
       FINDING_ATTRIBUTION_URL: http://finding-attribution-service:8000
+      # Unset (default) -- gateway accepts unauthenticated requests, matching every
+      # other service. Set on the host (`QRP_API_KEY=... docker compose up`) to
+      # require an `X-API-Key` header on every route except /health, e.g. before
+      # exposing this stack outside a trusted local network.
+      QRP_API_KEY: ${QRP_API_KEY:-}
     # Read-write (unlike the other services' :ro mounts of the same host
     # paths): POST /api/demo/load's demo_seed.py writes the graph snapshot
     # and doc index here (via the same REPO_ROOT-relative defaults every

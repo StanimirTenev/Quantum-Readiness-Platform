@@ -17,6 +17,10 @@ function setMsg(text, isError) {
 
 async function api(method, path, body) {
   const opts = { method, headers: { Accept: "application/json" } };
+  const apiKey = $("gateway-api-key").value.trim();
+  if (apiKey) {
+    opts.headers["X-API-Key"] = apiKey;
+  }
   if (body !== undefined) {
     opts.headers["Content-Type"] = "application/json";
     opts.body = JSON.stringify(body);
@@ -61,6 +65,17 @@ $("check-conn").addEventListener("click", async () => {
     status.className = "pill pill-ok";
     status.textContent = data.status === "ok" ? "connected" : "unknown";
     setMsg("Gateway healthy: " + (data.service || ""));
+    // Retry anything that failed to load before the API key was entered --
+    // the dashboard/scenarios/integrations loaders fire eagerly on page load,
+    // before the user has had a chance to type a key.
+    loadScenarios();
+    loadIntegrationActions();
+    Object.keys(tabLoaded).forEach((tabId) => { tabLoaded[tabId] = false; });
+    const activeTab = document.querySelector(".tab.active")?.dataset.tab;
+    if (activeTab && TAB_LOADERS[activeTab]) {
+      tabLoaded[activeTab] = true;
+      await TAB_LOADERS[activeTab]();
+    }
   } catch (err) {
     status.className = "pill pill-err";
     status.textContent = "offline";

@@ -975,3 +975,44 @@ def test_get_api_reports_filters_by_workspace_id(monkeypatch) -> None:
 
     assert response.status_code == 200
     assert "workspace_id=ws-1" in captured["url"]
+
+
+def test_api_key_disabled_by_default_allows_unauthenticated_requests() -> None:
+    assert main.QRP_API_KEY is None
+    response = client.get("/health")
+    assert response.status_code == 200
+
+
+def test_api_key_enabled_rejects_missing_key(monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_API_KEY", "secret-key")
+    response = client.get("/api/reports")
+    assert response.status_code == 401
+
+
+def test_api_key_enabled_401_still_carries_cors_header(monkeypatch) -> None:
+    # A short-circuited 401 bypasses CORSMiddleware's own response handling, so
+    # the browser can't read it at all without this header set explicitly --
+    # it would otherwise show up as an opaque CORS failure, not a readable 401.
+    monkeypatch.setattr(main, "QRP_API_KEY", "secret-key")
+    response = client.get("/api/reports", headers={"Origin": "http://127.0.0.1:5173"})
+    assert response.status_code == 401
+    assert response.headers.get("access-control-allow-origin") == "*"
+
+
+def test_api_key_enabled_rejects_wrong_key(monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_API_KEY", "secret-key")
+    response = client.get("/api/reports", headers={"X-API-Key": "wrong"})
+    assert response.status_code == 401
+
+
+def test_api_key_enabled_accepts_correct_key(monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_API_KEY", "secret-key")
+    monkeypatch.setattr(main, "_request_json", lambda method, url, payload=None: [])
+    response = client.get("/api/reports", headers={"X-API-Key": "secret-key"})
+    assert response.status_code == 200
+
+
+def test_api_key_enabled_still_allows_health_without_key(monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_API_KEY", "secret-key")
+    response = client.get("/health")
+    assert response.status_code == 200

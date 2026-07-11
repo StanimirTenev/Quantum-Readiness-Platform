@@ -27,8 +27,14 @@
   `GRAPH_SNAPSHOT_PATH` pattern). Missing/invalid index is not an error —
   document search silently returns no matches, since it's a best-effort
   source alongside assets/scans/risks/tasks.
-- Matching is keyword substring search (case-insensitive), not
-  semantic/vector search — see `app/document_index.py`.
+- Matching is BM25-ranked (Okapi BM25 over chunk tokens, no external ML
+  dependency) with a small domain synonym table (`SYNONYM_GROUPS` in
+  `app/document_index.py`) -- e.g. a query for "PQC" also matches a chunk
+  that only says "post-quantum", "HNDL" also matches "harvest now decrypt
+  later", "kyber" also matches "ML-KEM". Matches are ranked by relevance
+  score (returned as `score`), not insertion order. A light suffix-stripping
+  stemmer (plurals only) keeps "certificate" matching "certificates", which
+  exact-substring search used to do for free.
 
 ## Current status
 - Working prototype service. Document search verified live against a real
@@ -40,6 +46,15 @@
 ## Known limitations
 - Structured search (assets/scans/risks/tasks) is in-memory and rule-based;
   no dedicated indexing backend is used.
-- Document search is keyword substring matching only — no synonym/semantic
-  matching (e.g. "PQC" won't match "post-quantum" unless both literally
-  appear).
+- BM25 + a curated synonym table is not true embedding-based semantic search
+  -- it still requires token overlap (direct or via a known synonym group),
+  so a paraphrase using neither a literal term nor a listed synonym won't
+  surface. Chosen deliberately over a local embedding model
+  (`sentence-transformers`/`torch`) to keep this service's zero-external-ML-
+  dependency baseline; a real embedding-based upgrade remains a future option
+  if the synonym-table approach proves insufficient.
+- Compound technical terms tokenize on word boundaries, not as atomic units
+  (e.g. "ML-KEM" and "ML-DSA" both contain the token "ml"), so an unrelated
+  query can weakly partial-match a document via a shared generic sub-term --
+  BM25's scoring ranks such partial matches well below true matches, but
+  doesn't eliminate them outright.

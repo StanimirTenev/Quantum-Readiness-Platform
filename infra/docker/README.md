@@ -29,6 +29,9 @@ docker compose down -v       # also drop the persisted inventory-service volume
 
 ## Exposing this outside a trusted local network (demos / presentations)
 
+For the full pre-flight checklist, firewall guidance, an operator walkthrough script, and how
+to reset the demo data, see `infra/docker/PUBLIC_DEMO.md`. Short version:
+
 1. Copy `infra/docker/.env.example` to `infra/docker/.env` and fill in real values
    (`QRP_API_KEY`, `POSTGRES_PASSWORD`, `DOMAIN`, `CORS_ALLOW_ORIGINS`) -- `.env` is
    git-ignored, `docker compose` reads it automatically from this directory.

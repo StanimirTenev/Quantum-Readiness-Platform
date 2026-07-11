@@ -47,6 +47,9 @@
   substitute for real auth in a multi-tenant deployment.
 - Only this service enforces it. The other 14 services are not meant to be reachable
   directly outside the internal network -- see `infra/docker/README.md`.
+- The key travels as a plain HTTP header -- pair it with the `infra/docker` `public` Compose
+  profile (Caddy reverse proxy, automatic HTTPS) before exposing this stack anywhere the key
+  could be intercepted in transit. See `infra/docker/README.md`.
 
 ## Current status
 - Partially implemented integration gateway.

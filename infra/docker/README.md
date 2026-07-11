@@ -29,21 +29,39 @@ docker compose down -v       # also drop the persisted inventory-service volume
 
 ## Exposing this outside a trusted local network (demos / presentations)
 
-Only `api-gateway` (8000) and `web-ui` (5173) publish a host port -- every other service
-(inventory-service, risk-engine, etc.) is reachable only on the internal Compose network, the
-same way they already call each other. Set a shared key before exposing the stack publicly:
+1. Copy `infra/docker/.env.example` to `infra/docker/.env` and fill in real values
+   (`QRP_API_KEY`, `POSTGRES_PASSWORD`, `DOMAIN`, `CORS_ALLOW_ORIGINS`) -- `.env` is
+   git-ignored, `docker compose` reads it automatically from this directory.
+2. Start with the `public` profile, which also brings up **Caddy** as a reverse proxy with
+   automatic HTTPS (Let's Encrypt):
 
-```bash
-QRP_API_KEY=some-long-random-string docker compose up -d --build
-```
+   ```bash
+   docker compose --profile public up -d --build
+   ```
 
-Every gateway route except `/health` then requires a matching `X-API-Key` header. Open
-`http://<host>:5173`, paste the same key into the console's **API Key** field (next to the
-gateway URL), click **Check** -- the console attaches the header on every request from then on
-and self-heals anything that failed to load before the key was entered (the dashboard loads
-eagerly on page open, racing the user typing the key). This is a single shared secret, not
-per-user accounts -- adequate for a controlled demo, not a substitute for real auth in a
-multi-tenant deployment. See `services/api-gateway/README.md`.
+   `DOMAIN` must be a real, publicly resolvable domain (an A/AAAA record pointing at this
+   host) -- Let's Encrypt cannot issue a certificate for `localhost` or a bare IP. Use a
+   subdomain (e.g. `demo.example.com`) if the root domain is reserved for a separate
+   landing/download page. Caddy fails loudly on startup if `DOMAIN` is left empty.
+3. `api-gateway` (8000) and `web-ui` (5173) are bound to `127.0.0.1` only -- reachable from
+   this host (so local dev/CI curling them directly keeps working unchanged) but not from the
+   public internet. Caddy (ports 80/443, published normally) is the only public entry point;
+   it talks to both over the internal Compose network (`api-gateway:8000`, `web-ui:5173`), not
+   via those loopback-bound ports. Caddy routes `/api/*`, `/health`, and `/graph/*` to
+   `api-gateway`, everything else to `web-ui` -- see `infra/docker/Caddyfile`.
+4. Every gateway route except `/health` requires a matching `X-API-Key` header once
+   `QRP_API_KEY` is set. Open `https://<your-domain>`, paste the same key into the console's
+   **API Key** field (next to the gateway URL -- point it at `https://<your-domain>`, not a
+   port), click **Check** -- the console attaches the header on every request from then on and
+   self-heals anything that failed to load before the key was entered (the dashboard loads
+   eagerly on page open, racing the user typing the key). This is a single shared secret, not
+   per-user accounts -- adequate for a controlled demo, not a substitute for real auth in a
+   multi-tenant deployment. See `services/api-gateway/README.md`.
+5. Postgres credentials default to `qrp`/`qrp`/`qrp` -- fine for `docker compose up` with no
+   profile, but change `POSTGRES_PASSWORD` in `.env` before using the `public` profile.
+
+Without `--profile public` (plain `docker compose up`), Caddy never starts at all -- this is
+the default local/CI path, fully unaffected by any of the above.
 
 ## What's wired
 
@@ -92,6 +110,12 @@ multi-tenant deployment. See `services/api-gateway/README.md`.
   it (cosmetic only -- the static files serve regardless).
 - Healthchecks (`GET /health` for backend services, `GET /` for web-ui) gate startup ordering
   via `depends_on: condition: service_healthy`, following each service's real call graph.
+- `caddy` is gated behind Compose's `public` profile (`profiles: ["public"]`), so a plain
+  `docker compose up` (local dev, CI) never starts it -- fully inert unless explicitly
+  requested. `DOMAIN` is read with a plain `${DOMAIN:-}` default rather than a Compose
+  required-variable (`${DOMAIN:?...}`): Compose interpolates every service's variables at
+  config-parse time regardless of which profile is active, so a required-variable here would
+  break the default profile too, not just fail cleanly when `public` is actually requested.
 
 ## Verified live
 
@@ -110,6 +134,22 @@ beyond the two bind-mounted
 report files `api-gateway` writes to during a Load Demo click (`graph-snapshot.json` is
 git-tracked and reverted with `git checkout --` after manual testing, same as any other live
 verification in this repo; `doc-index.json` is gitignored).
+
+The `public` profile was verified separately with `DOMAIN=localhost` (Caddy's special case --
+issues a locally-trusted certificate instead of requesting one from Let's Encrypt, so the
+routing logic can be verified without a real internet-facing domain): `caddy validate` confirmed
+the Caddyfile syntax; a real HTTPS request through Caddy correctly reached the console at `/`,
+`api-gateway` at `/health`/`/api/algorithms`/`/graph/summary`, and `/api/demo/load` end to end
+(identical responses to hitting `api-gateway` directly, confirming Caddy's routing is
+transparent); HTTP requests to port 80 redirected to HTTPS (308); `docker port` confirmed
+`api-gateway`/`web-ui` bind to `127.0.0.1` only while `caddy` binds `80`/`443` to `0.0.0.0`;
+direct `127.0.0.1:8000` access kept working throughout (the same access pattern CI/local dev
+use). A plain `docker compose up` (no `--profile public`) afterward confirmed `caddy` never
+starts and every other behavior is unchanged. One real bug caught during this verification: a
+first attempt using `DOMAIN=localhost docker compose ...` failed because `sudo` drops
+environment variables set before it by default -- `sudo` doesn't see a shell prefix assignment
+placed before its own name, only variables placed after it
+(`sudo DOMAIN=localhost docker compose ...`) or exported beforehand; not a Compose or Caddy bug.
 
 ## Not included
 

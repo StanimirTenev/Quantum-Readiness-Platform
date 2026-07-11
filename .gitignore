@@ -56,3 +56,7 @@ reports/graph/latest/demo-load-graph-report.md
 
 # Windows host agent output (real local cert/software inventory; do not commit)
 agents/windows-host-agent/output/
+
+# Local secrets (API keys, DB passwords, domain) for docker-compose deployment --
+# see infra/docker/.env.example for the template.
+infra/docker/.env

@@ -1,0 +1,19 @@
+# Reverse proxy + automatic HTTPS (Let's Encrypt) for exposing this stack on a
+# real public domain. Only active with `docker compose --profile public up` --
+# see infra/docker/README.md. {$DOMAIN} must be a real, publicly resolvable
+# domain (an A/AAAA record pointing at this host) for the certificate request
+# to succeed; it does not work with "localhost" or a bare IP.
+{$DOMAIN} {
+	handle /api/* {
+		reverse_proxy api-gateway:8000
+	}
+	handle /health {
+		reverse_proxy api-gateway:8000
+	}
+	handle /graph/* {
+		reverse_proxy api-gateway:8000
+	}
+	handle {
+		reverse_proxy web-ui:5173
+	}
+}

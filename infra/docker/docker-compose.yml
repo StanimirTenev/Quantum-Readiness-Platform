@@ -188,7 +188,12 @@ services:
         SERVICE_DIR: services/api-gateway
     command: ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
     ports:
-      - "8000:8000"
+      # Loopback-only: reachable from this host (matches CI/local dev curling
+      # 127.0.0.1 directly) but not from the public internet. The `public`
+      # profile's Caddy reverse proxy talks to this container over the internal
+      # Docker network (api-gateway:8000), not via this published port -- see
+      # infra/docker/README.md.
+      - "127.0.0.1:8000:8000"
     environment:
       INVENTORY_SERVICE_URL: http://inventory-service:8000
       RISK_ENGINE_URL: http://risk-engine:8000
@@ -206,6 +211,9 @@ services:
       # require an `X-API-Key` header on every route except /health, e.g. before
       # exposing this stack outside a trusted local network.
       QRP_API_KEY: ${QRP_API_KEY:-}
+      # Defaults to "*" (unset here) for local dev; set CORS_ALLOW_ORIGINS in
+      # .env to the real domain(s) once one is in use -- see .env.example.
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
     # Read-write (unlike the other services' :ro mounts of the same host
     # paths): POST /api/demo/load's demo_seed.py writes the graph snapshot
     # and doc index here (via the same REPO_ROOT-relative defaults every
@@ -250,7 +258,8 @@ services:
     # needs no dependencies to serve static files.
     command: ["python", "-m", "http.server", "5173", "--directory", "/app/public", "--bind", "0.0.0.0"]
     ports:
-      - "5173:5173"
+      # Loopback-only -- see the same note on api-gateway's ports above.
+      - "127.0.0.1:5173:5173"
     volumes:
       - ../../frontend/web-ui/public:/app/public:ro
     depends_on:
@@ -263,5 +272,34 @@ services:
       retries: 20
       start_period: 5s
 
+  # Opt-in reverse proxy + automatic HTTPS for exposing this stack on a real
+  # public domain -- `docker compose --profile public up -d --build`. Never
+  # starts otherwise (CI/local `docker compose up` don't pass --profile, so
+  # this is fully inert there). See infra/docker/README.md.
+  caddy:
+    image: caddy:2-alpine
+    profiles: ["public"]
+    environment:
+      # DOMAIN must be set (in .env) before using this profile -- Compose
+      # interpolates every service's variables at config-parse time regardless
+      # of profile activation, so a required-variable (${DOMAIN:?...}) here
+      # would break the default profile too. Caddy fails loudly on startup
+      # instead if this is left empty.
+      DOMAIN: ${DOMAIN:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+      web-ui:
+        condition: service_healthy
+
 volumes:
   postgres-data:
+  caddy-data:
+  caddy-config:

@@ -188,10 +188,11 @@ collector's job.
 ## Known limitations
 - IPsec/VPN scanning is still not implemented -- SSH closes the gap noted in the previous
   version of this doc, but VPN protocols remain out of scope.
-- `ssh_metadata`'s algorithm lists are ingested and persisted (`inventory-service`'s
-  `ssh_evidence`) but not yet wired into any risk-engine signal -- unlike `tls_metadata`'s
-  `weak_public_key_detected`, there is no equivalent "weak SSH algorithm" risk rationale flag
-  yet. Evidence-only for now, a natural follow-up.
+- `ssh_metadata`'s algorithm lists are ingested, persisted (`inventory-service`'s
+  `ssh_evidence`), and wired into risk-engine's `weak_ssh_kex_detected`/
+  `legacy_ssh_host_key_detected`/`weak_ssh_cipher_detected`/`weak_ssh_mac_detected`
+  signals (see `services/risk-engine/README.md`) -- the scanner itself still only
+  reports the offered algorithms as neutral facts, never judging them.
 - Not exercised in `scripts/run_product_demo.sh` (that script's own bash/openssl-based fixture
   setup can't easily fake a real SSH server); covered instead by Go unit tests against a
   scripted fake SSH server plus manual live verification against this machine's real `sshd`.

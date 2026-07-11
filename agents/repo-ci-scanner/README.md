@@ -84,12 +84,13 @@ python3 scanner.py --repo-path /path/to/repo --ingest http://127.0.0.1:8001
   the algorithm-declaration and embedded-PEM-key patterns above — no CloudFormation, no
   Helm templating awareness, no cross-referencing a Terraform variable's actual value.
 - `iac_findings` feed into `detected_algorithms`/`package_metadata.packages` like source
-  findings do (so they can trigger the existing `crypto_packages_detected` risk signal), but
-  `embedded_key_findings` are evidence-only for now -- they are not wired into
-  risk-engine's `private_key_files_detected` signal, since that signal's shape
-  (`cert_indicators.certificate_file_indicators.counts`) models host filesystem cert/key
-  stores, not repo findings; a dedicated risk signal for embedded credentials would be a
-  separate follow-up.
-- No inventory/risk-engine wiring beyond the generic `crypto_evidence`
-  contract (unlike the Windows host evidence vertical, there is no dedicated
-  risk-mapper signal family for repo findings yet).
+  findings do (so they can trigger the existing `crypto_packages_detected` risk signal);
+  `embedded_key_findings` drive their own dedicated risk-engine signal,
+  `embedded_private_key_in_repo_detected` (reads `crypto_evidence.repo_scan.
+  embedded_key_findings` directly -- deliberately not folded into
+  `private_key_files_detected`, since that signal's shape models host filesystem
+  cert/key stores, not repo findings). See `services/risk-engine/README.md`.
+- No finding-attribution-service wiring yet: `pipeline`/`config` crypto-object
+  kinds exist in that service's type system but no `source` branch routes
+  repo-ci-scanner's findings to them (see
+  `services/finding-attribution-service/README.md`).

@@ -93,4 +93,5 @@ PYTHONPATH=. pytest -q
 - Classification is string/token based on observed algorithm identifiers; it
   does not parse raw certificate DER or private key material.
 - Host packages are reported as informational crypto-surface findings only.
-- Not wired into the API gateway routing yet.
+
+Wired into the API Gateway as `GET /api/algorithms` and `POST /api/fingerprint`.

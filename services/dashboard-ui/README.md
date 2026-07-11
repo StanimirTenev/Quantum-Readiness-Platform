@@ -4,7 +4,9 @@
 - Serves the static dashboard and proxies UI API calls to backend services.
 
 ## Current role in the prototype
-- Working prototype frontend gateway for demo and evaluator review flows.
+- Legacy: superseded by `frontend/web-ui` (the actively developed, tested console -- see
+  `frontend/web-ui/README.md`). Not started by `scripts/start_all.sh` or
+  `infra/docker/docker-compose.yml`; kept for reference, not part of the live product flow.
 
 ## Main endpoints or functions
 - `GET /` and `/static/*` for UI assets
@@ -16,7 +18,7 @@
 - Output: HTML/JS static assets and JSON responses from proxied backend calls.
 
 ## Current status
-- Working prototype service.
+- Legacy prototype, superseded (see above).
 
 ## Known limitations
 - No dedicated automated test suite is present in this service folder.

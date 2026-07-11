@@ -51,7 +51,7 @@ Quantum Readiness Platform is a cybersecurity software prototype for automated p
 | repo-ci-scanner | ✅ Working prototype | ✅ Unit tests |
 | doc-ingestion | ✅ Working prototype | ✅ Unit tests |
 | integration-service | 🟨 Safe dry-run skeleton | ✅ Unit + API tests |
-| dashboard-ui | ✅ Working prototype | — |
+| dashboard-ui | 🟨 Legacy, superseded by web-ui (not started by any script) | — |
 | web-ui | ✅ Working prototype (buildless) | ✅ Build + JS syntax check |
 
 ## Local packaging (Makefile shortcuts)

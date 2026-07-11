@@ -83,5 +83,10 @@ PYTHONPATH=. pytest -q
 
 ## Known limitations
 - Attributes from supplied findings + evidence context; it does not fetch
-  evidence itself. Repository/pipeline attribution is modelled but requires a
-  repo/CI scanner source, which is not implemented yet.
+  evidence itself.
+- `pipeline`/`config` are defined `CryptoObjectKind` values, but no finding
+  `source` currently routes to them -- only `tls_certificate`, `tls_cipher_suite`,
+  `host_package`, and `explicit_algorithm` are handled. This is independent of
+  scanner availability: `repo-ci-scanner` is a working agent (source=repo,
+  including IaC/embedded-key findings), but its output isn't yet routed through
+  this service's attribution logic -- a real follow-up, not a blocked one.

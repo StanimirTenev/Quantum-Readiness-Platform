@@ -12,7 +12,7 @@ import (
 
 func main() {
 	target := flag.String("target", "", "Target in host:port format")
-	protocol := flag.String("protocol", "tls", "Protocol to scan: tls or ssh")
+	protocol := flag.String("protocol", "tls", "Protocol to scan: tls, ssh, or ipsec")
 	insecure := flag.Bool("insecure", false, "Skip certificate verification (tls only)")
 	timeoutSeconds := flag.Int("timeout", 5, "Connection timeout in seconds")
 	ingest := flag.Bool("ingest", false, "Post collected data to inventory-service")
@@ -32,8 +32,10 @@ func main() {
 		result, err = scanner.ScanTLS(*target, *insecure, *timeoutSeconds)
 	case "ssh":
 		result, err = scanner.ScanSSH(*target, *timeoutSeconds)
+	case "ipsec":
+		result, err = scanner.ScanIPsec(*target, *timeoutSeconds)
 	default:
-		fmt.Fprintf(os.Stderr, "invalid -protocol %q: must be \"tls\" or \"ssh\"\n", *protocol)
+		fmt.Fprintf(os.Stderr, "invalid -protocol %q: must be \"tls\", \"ssh\", or \"ipsec\"\n", *protocol)
 		os.Exit(1)
 	}
 	if err != nil {

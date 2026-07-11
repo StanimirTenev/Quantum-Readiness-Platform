@@ -61,6 +61,11 @@
 - `crypto_evidence.repo_scan.embedded_key_findings` (repo-ci-scanner's IaC embedded-key
   detection) is likewise forwarded as part of `crypto_evidence` and drives risk-engine's
   `embedded_private_key_in_repo_detected` signal.
+- `ipsec_metadata` (alias `ipsec_evidence`) is also accepted and persisted, as emitted by
+  `network-scanner`'s IKEv2 scan mode (`-protocol ipsec`) -- selected encryption/PRF/
+  integrity/DH-group, or the rejection reason. Deliberately permissive (`extra="allow"`, no
+  rigid schema), same as `ssh_metadata`. Not yet forwarded into any risk-engine signal --
+  evidence-only for now, a natural follow-up mirroring what was done for SSH.
 
 ### Sample ingest payload snippet
 ```json

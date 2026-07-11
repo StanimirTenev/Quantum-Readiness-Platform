@@ -119,10 +119,24 @@ type SSHMetadata struct {
 	Errors                             []string `json:"errors"`
 }
 
+type IPsecMetadata struct {
+	Collected          bool     `json:"collected"`
+	Target             string   `json:"target"`
+	Port               int      `json:"port"`
+	IKEVersion         string   `json:"ike_version,omitempty"`
+	SelectedEncryption string   `json:"selected_encryption,omitempty"`
+	SelectedPRF        string   `json:"selected_prf,omitempty"`
+	SelectedIntegrity  string   `json:"selected_integrity,omitempty"`
+	SelectedDHGroup    string   `json:"selected_dh_group,omitempty"`
+	RejectedNotify     string   `json:"rejected_notify,omitempty"`
+	Errors             []string `json:"errors"`
+}
+
 type ScanOutput struct {
-	Source      string         `json:"source"`
-	TLSEvidence *TLSEvidence   `json:"tls_evidence,omitempty"`
-	TLSMetadata TLSMetadata    `json:"tls_metadata"`
-	SSHMetadata SSHMetadata    `json:"ssh_metadata"`
-	Assets      []AssetPayload `json:"assets"`
+	Source        string         `json:"source"`
+	TLSEvidence   *TLSEvidence   `json:"tls_evidence,omitempty"`
+	TLSMetadata   TLSMetadata    `json:"tls_metadata"`
+	SSHMetadata   SSHMetadata    `json:"ssh_metadata"`
+	IPsecMetadata IPsecMetadata  `json:"ipsec_metadata"`
+	Assets        []AssetPayload `json:"assets"`
 }

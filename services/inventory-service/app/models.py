@@ -347,11 +347,28 @@ class TLSEvidence(BaseModel):
         return value
 
 class SSHEvidence(BaseModel):
-    """Deliberately permissive (extra="allow"): unlike TLSEvidence, no
-    downstream risk signal reads specific fields yet, so this just captures
-    whatever network-scanner's SSH_MSG_KEXINIT parsing reports (target, port,
+    """Deliberately permissive (extra="allow"): captures whatever
+    network-scanner's SSH_MSG_KEXINIT parsing reports (target, port,
     collected, server_banner, kex_algorithms, server_host_key_algorithms,
-    encryption_algorithms_*, mac_algorithms_*, errors) without a rigid schema."""
+    encryption_algorithms_*, mac_algorithms_*, errors) without a rigid
+    schema. Forwarded to risk-engine on ingest (risk_mapper.py), which
+    derives weak_ssh_kex_detected/legacy_ssh_host_key_detected/
+    weak_ssh_cipher_detected/weak_ssh_mac_detected from it."""
+
+    model_config = ConfigDict(extra="allow")
+
+    target: Optional[str] = None
+    collected: Optional[bool] = None
+
+
+class IPsecEvidence(BaseModel):
+    """Deliberately permissive (extra="allow"), same rationale as
+    SSHEvidence: captures whatever network-scanner's IKEv2 IKE_SA_INIT probe
+    reports (target, port, collected, ike_version, selected_encryption,
+    selected_prf, selected_integrity, selected_dh_group, rejected_notify,
+    errors) without a rigid schema. Not yet forwarded into any risk-engine
+    signal -- evidence-only for now, a natural follow-up (see
+    agents/network-scanner/README.md)."""
 
     model_config = ConfigDict(extra="allow")
 
@@ -366,6 +383,7 @@ class ScanIngestRequest(BaseModel):
     crypto_evidence: Optional[CryptoEvidence] = None
     tls_evidence: Optional[TLSEvidence] = Field(default=None, validation_alias=AliasChoices("tls_evidence", "tls_metadata"), serialization_alias="tls_evidence")
     ssh_evidence: Optional[SSHEvidence] = Field(default=None, validation_alias=AliasChoices("ssh_evidence", "ssh_metadata"), serialization_alias="ssh_evidence")
+    ipsec_evidence: Optional[IPsecEvidence] = Field(default=None, validation_alias=AliasChoices("ipsec_evidence", "ipsec_metadata"), serialization_alias="ipsec_evidence")
     stage2_notes: Optional[str] = None
 
 
@@ -386,6 +404,7 @@ class ScanRecord(BaseModel):
     crypto_evidence: Optional[dict[str, Any]] = None
     tls_evidence: Optional[dict[str, Any]] = None
     ssh_evidence: Optional[dict[str, Any]] = None
+    ipsec_evidence: Optional[dict[str, Any]] = None
 
 
 class WorkspaceCreate(BaseModel):

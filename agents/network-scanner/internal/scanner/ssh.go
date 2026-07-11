@@ -35,10 +35,11 @@ func ScanSSH(target string, timeoutSeconds int) (ScanOutput, error) {
 	}
 
 	baseOutput := ScanOutput{
-		Source:      "network",
-		TLSMetadata: emptyTLSMetadata(host, port),
-		SSHMetadata: emptySSHMetadata(),
-		Assets:      buildAssets(target),
+		Source:        "network",
+		TLSMetadata:   emptyTLSMetadata(host, port),
+		SSHMetadata:   emptySSHMetadata(),
+		IPsecMetadata: emptyIPsecMetadata(),
+		Assets:        buildAssets(target),
 	}
 	baseOutput.SSHMetadata.Target = host
 	baseOutput.SSHMetadata.Port = port

@@ -131,6 +131,53 @@ def test_scan_ingest_persists_ssh_evidence(client: TestClient, monkeypatch) -> N
     assert scan["ssh_evidence"]["server_host_key_algorithms"] == ["ssh-rsa", "ssh-ed25519"]
 
 
+def test_scan_ingest_persists_ipsec_evidence(client: TestClient, monkeypatch) -> None:
+    def fake_score(self, payload):
+        return {
+            "contract_version": payload["contract_version"],
+            "asset_name": payload["asset_name"],
+            "scenario": payload["scenario"],
+            "scenario_multiplier": 1.0,
+            "base_score": 3.4,
+            "final_score": 3.4,
+            "normalized_score_100": 68.0,
+            "rating": "high",
+            "dependency_count": payload["dependency_count"],
+            "vendor_blocked": payload["vendor_blocked"],
+            "rationale": payload,
+        }
+
+    monkeypatch.setattr("app.clients.risk_engine.RiskEngineClient.score", fake_score)
+
+    ingest_response = client.post(
+        "/scans/ingest",
+        json={
+            "source": "network",
+            "assets": [
+                {"asset_type": "endpoint", "name": "10.0.0.6:500", "criticality": 3, "environment": "unknown", "lifecycle_years": 3},
+            ],
+            "ipsec_metadata": {
+                "collected": True,
+                "target": "10.0.0.6",
+                "port": 500,
+                "ike_version": "2.0",
+                "selected_encryption": "3DES",
+                "selected_dh_group": "1024-bit MODP",
+                "errors": [],
+            },
+        },
+    )
+    assert ingest_response.status_code == 201
+
+    scans_response = client.get("/scans")
+    assert scans_response.status_code == 200
+    scan = scans_response.json()[0]
+    assert scan["ipsec_evidence"]["target"] == "10.0.0.6"
+    assert scan["ipsec_evidence"]["collected"] is True
+    assert scan["ipsec_evidence"]["selected_encryption"] == "3DES"
+    assert scan["ipsec_evidence"]["selected_dh_group"] == "1024-bit MODP"
+
+
 def test_scan_ingest_accepts_stage2_evidence_shape(client: TestClient, monkeypatch) -> None:
     def fake_score(self, payload):
         return {

@@ -7,20 +7,26 @@
   `SSH_MSG_KEXINIT` packet (both sent in plaintext before any key exchange, per RFC 4253) to
   report which key-exchange, host-key, encryption, and MAC algorithms it offers -- no
   authentication or key exchange is attempted.
+- Performs IPsec/IKEv2 algorithm-negotiation scans: sends a single `IKE_SA_INIT` request
+  (RFC 7296) offering a spread of encryption/PRF/integrity/DH-group transforms and reports
+  whichever single combination the responder selects (or its rejection reason) -- no
+  IKE_AUTH, no tunnel is ever established.
 
 ## Current role in the prototype
 - Working prototype agent for network-side evidence collection and optional ingest into `inventory-service`.
 
 ## Main endpoints or functions
 - CLI entrypoint: `cmd/scanner/main.go`
-- Main flow: `scanner.ScanTLS(target, insecure, timeout)` or `scanner.ScanSSH(target, timeout)`
-  (selected via `-protocol`), and optional `client.PostScan(...)`
+- Main flow: `scanner.ScanTLS(target, insecure, timeout)`, `scanner.ScanSSH(target, timeout)`,
+  or `scanner.ScanIPsec(target, timeout)` (selected via `-protocol`), and optional
+  `client.PostScan(...)`
 
 ## Inputs / outputs
-- Input: CLI flags (`-target`, `-protocol` [`tls` default or `ssh`], `-insecure` [tls only],
-  `-timeout`, optional `-ingest`, optional `-workspace-id` to group this scan under an
-  existing workspace -- see `services/inventory-service/README.md`'s workspace model).
-- Output: JSON TLS or SSH evidence (stdout) or ingest response JSON.
+- Input: CLI flags (`-target`, `-protocol` [`tls` default, `ssh`, or `ipsec`], `-insecure`
+  [tls only], `-timeout`, optional `-ingest`, optional `-workspace-id` to group this scan
+  under an existing workspace -- see `services/inventory-service/README.md`'s workspace
+  model). For `-protocol ipsec`, `-target` must include the IKE port, e.g. `10.0.0.6:500`.
+- Output: JSON TLS, SSH, or IPsec evidence (stdout) or ingest response JSON.
 
 ## TLS Evidence Output Contract
 `tls_metadata` is always present in output JSON.
@@ -87,11 +93,38 @@ them as neutral facts (mirroring how `tls_metadata` reports `signature_algorithm
 quantum-vulnerable or weak is a downstream deterministic-analysis-layer concern, not this
 collector's job.
 
+## IPsec/IKEv2 Evidence Output Contract
+`ipsec_metadata` is always present in output JSON (with `collected=false` on a TLS/SSH-mode
+scan, or when an IPsec-mode scan gets no response).
+
+Canonical shape:
+- `ipsec_metadata`
+  - `collected` (true once a real, SPI-matched `IKE_SA_INIT` response arrives -- regardless
+    of whether the responder accepted or rejected the proposal)
+  - `target`
+  - `port`
+  - `ike_version` (e.g. `"2.0"`)
+  - `selected_encryption`, `selected_prf`, `selected_integrity`, `selected_dh_group`
+    (populated when the responder accepts a transform)
+  - `rejected_notify` (populated instead, e.g. `"NO_PROPOSAL_CHOSEN"`, when the responder
+    declines every offered transform -- not set if the response also carries an accepted
+    proposal, since a real accept can legitimately carry informational Notify payloads too,
+    e.g. NAT-detection or vendor-specific extensions)
+  - `errors` (`[]` when no errors)
+
+The offered proposal deliberately spans modern and legacy/weak options in the same request
+(AES-CBC-256/128 and 3DES; SHA2-256 and SHA1 PRF/integrity; 2048-bit and 1024-bit MODP DH) so
+the responder's selection is itself informative -- e.g. a responder that picks 3DES or a
+1024-bit group even though stronger options were also offered reveals its actual ceiling. No
+real Diffie-Hellman key exchange is performed (the KE payload carries random bytes of the
+correct length); the exchange never proceeds past `IKE_SA_INIT`.
+
 ## Timeout and scanning behavior
-- The scanner remains non-aggressive: a single TLS dial attempt, or for SSH a single TCP
-  connection followed by one identification-banner read and one `SSH_MSG_KEXINIT` packet read
-  -- no authentication or key exchange completion is attempted. Configurable timeout
-  (`-timeout`, default `5s`) applies to both.
+- The scanner remains non-aggressive: a single TLS dial attempt; for SSH, a single TCP
+  connection followed by one identification-banner read and one `SSH_MSG_KEXINIT` packet
+  read; for IPsec, a single UDP `IKE_SA_INIT` request and one response read -- no
+  authentication, key exchange completion, or retry is attempted for any protocol.
+  Configurable timeout (`-timeout`, default `5s`) applies to all three.
 - No async or parallel scanning behavior is introduced.
 
 ## Sample output (success)
@@ -176,23 +209,58 @@ collector's job.
 }
 ```
 
+## Sample output (IPsec success)
+```json
+{
+  "source": "network",
+  "ipsec_metadata": {
+    "collected": true,
+    "target": "10.0.0.6",
+    "port": 500,
+    "ike_version": "2.0",
+    "selected_encryption": "AES-CBC",
+    "selected_prf": "HMAC-SHA2-256",
+    "selected_integrity": "HMAC-SHA2-256-128",
+    "selected_dh_group": "2048-bit MODP",
+    "errors": []
+  },
+  "assets": [
+    {
+      "asset_type": "endpoint",
+      "name": "10.0.0.6:500",
+      "criticality": 3,
+      "environment": "unknown",
+      "lifecycle_years": 3
+    }
+  ]
+}
+```
+
 ## Current status
 - Working prototype service. SSH scanning verified live against a real `sshd` (this machine's
   own, including a real post-quantum-hybrid KEX algorithm,
   `sntrup761x25519-sha512@openssh.com`, correctly captured) and ingested end to end through
-  `inventory-service` (`ssh_evidence` on the scan record).
+  `inventory-service` (`ssh_evidence` on the scan record). IPsec/IKEv2 scanning verified live
+  against a real strongSwan `charon` daemon -- both the accept path (a configured connection
+  selecting AES-CBC-256/HMAC-SHA2-256/2048-bit MODP from the offered spread) and the
+  no-connection-configured `NO_PROPOSAL_CHOSEN` rejection path -- and ingested end to end
+  through `inventory-service` (`ipsec_evidence` on the scan record).
 
 ## How to run tests
 - `cd agents/network-scanner && go test ./...`
 
 ## Known limitations
-- IPsec/VPN scanning is still not implemented -- SSH closes the gap noted in the previous
-  version of this doc, but VPN protocols remain out of scope.
+- Only IKEv2 is implemented; IKEv1/ISAKMP (a different header and payload format) and
+  non-IKE VPN protocols (OpenVPN, WireGuard, L2TP/PPTP) are out of scope.
 - `ssh_metadata`'s algorithm lists are ingested, persisted (`inventory-service`'s
   `ssh_evidence`), and wired into risk-engine's `weak_ssh_kex_detected`/
   `legacy_ssh_host_key_detected`/`weak_ssh_cipher_detected`/`weak_ssh_mac_detected`
   signals (see `services/risk-engine/README.md`) -- the scanner itself still only
   reports the offered algorithms as neutral facts, never judging them.
+- `ipsec_metadata` is ingested and persisted (`inventory-service`'s `ipsec_evidence`) but not
+  yet wired into any risk-engine signal -- evidence-only for now, a natural follow-up
+  mirroring what was done for SSH.
 - Not exercised in `scripts/run_product_demo.sh` (that script's own bash/openssl-based fixture
-  setup can't easily fake a real SSH server); covered instead by Go unit tests against a
-  scripted fake SSH server plus manual live verification against this machine's real `sshd`.
+  setup can't easily fake a real SSH server or IKE responder); covered instead by Go unit
+  tests against scripted fake servers plus manual live verification against this machine's
+  real `sshd` and (temporarily installed for verification) `strongswan`.

@@ -1,7 +1,33 @@
+import importlib
 from pathlib import Path
 
 from app.models import TaskCreate
 from app.repository import WorkflowRepository
+
+
+def test_default_db_path_honors_workflow_db_path_env(tmp_path: Path, monkeypatch) -> None:
+    custom = tmp_path / "env-workflow.db"
+    monkeypatch.setenv("WORKFLOW_DB_PATH", str(custom))
+
+    import app.repository as repository_module
+
+    reloaded = importlib.reload(repository_module)
+    try:
+        assert reloaded.DEFAULT_DB_PATH == custom
+        repo = reloaded.WorkflowRepository()
+        repo.create_task(TaskCreate(
+            title="env db check",
+            asset_name="env-db-host",
+            wave="wave_1",
+            priority="high",
+            description="env db check description",
+            recommended_action="env db check action",
+            requested_by="test",
+        ))
+        assert custom.exists()
+    finally:
+        monkeypatch.delenv("WORKFLOW_DB_PATH", raising=False)
+        importlib.reload(repository_module)
 
 
 def test_workflow_repository(tmp_path: Path) -> None:

@@ -16,6 +16,12 @@
 - Input: task creation payloads (require `requested_by`) and approval/status update requests.
 - Output: JSON task objects, approval records, and cleanup counters.
 
+## Database location
+- Defaults to the service-local `workflow.db`. Set `WORKFLOW_DB_PATH` to point the store at
+  another file -- mirrors `inventory-service`'s `INVENTORY_DB_PATH` convention. Used by
+  `infra/docker/docker-compose.yml` to persist tasks/approvals on a named volume across
+  `docker compose up --build` (previously reset every rebuild, fixed 2026-07-11).
+
 ## Current status
 - Working prototype service. Enforces segregation of duties: `POST /tasks/{task_id}/approve`
   rejects (409) when `approver` matches the task's `requested_by`.

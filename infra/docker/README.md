@@ -73,10 +73,10 @@ multi-tenant deployment. See `services/api-gateway/README.md`.
   (`services/inventory-service/tests/fixtures/stage2_evidence`, read-only) -- without these
   three mounts, clicking "Load Demo" 500s inside a container (it doesn't on bare metal, where
   the whole repo tree is naturally on disk together).
-- `workflow-service`'s SQLite DB is not volume-backed (the service has no path override env
-  var, unlike inventory-service) -- it resets on every `docker compose up --build`. Known,
-  same-shape limitation as the bare-metal `workflow.db` (see inventory-service README's
-  workspace/report model notes).
+- `workflow-service`'s SQLite DB lives on its own named volume (`workflow-data`), the same
+  `WORKFLOW_DB_PATH`-env-var-plus-volume pattern as `inventory-service`'s `inventory-data` --
+  tasks/approvals now survive `docker compose up --build` (fixed 2026-07-11; previously reset
+  on every rebuild since the service had no path-override env var at all).
 - `web-ui` needs no build: it's a buildless static site (see `frontend/web-ui/README.md`), so
   the service just bind-mounts `frontend/web-ui/public` read-only into a stock
   `python:3.12-slim` image and runs the same `python -m http.server 5173` command

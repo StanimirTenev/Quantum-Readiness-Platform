@@ -29,6 +29,10 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/workflow-service
+    environment:
+      WORKFLOW_DB_PATH: /data/workflow.db
+    volumes:
+      - workflow-data:/data
     healthcheck: *healthcheck
 
   scenario-engine:
@@ -245,3 +249,4 @@ services:
 
 volumes:
   inventory-data:
+  workflow-data:

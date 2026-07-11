@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 import uuid
 from pathlib import Path
 
 from .models import ApprovalRecord, Task, TaskCreate
 
-DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent / "workflow.db"
+# WORKFLOW_DB_PATH lets a caller (e.g. an isolated test run, or a persistent volume
+# mount) point the store at a specific database file -- mirrors inventory-service's
+# INVENTORY_DB_PATH convention.
+DEFAULT_DB_PATH = Path(os.getenv("WORKFLOW_DB_PATH") or (Path(__file__).resolve().parent.parent / "workflow.db"))
 
 
 class WorkflowRepository:

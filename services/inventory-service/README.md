@@ -17,7 +17,10 @@
 - `POST /workspaces/{id}/reports` (optional `{"report_type": "..."}`, defaults to `"operator"`)
   builds an operator report (`tools/report/build_operator_report`, the same logic
   `scripts/run_product_demo.sh` and `run_report.sh` use) from the workspace's own scans/risks
-  -- one highest-scoring risk record per asset name -- and persists it.
+  -- one highest-scoring risk record per asset name -- and persists it. Includes an executive
+  summary, migration wave table, vendor blocker table, evidence table, per-asset change
+  checklist, findings/attribution tables, a technical appendix (raw risk-engine rationale
+  flags per asset), and methodology/boundaries -- see `tools/report/build_operator_report.py`.
   `GET /reports/{report_id}` fetches it back; `GET /reports?workspace_id=` lists/filters.
 - An asset's `workspace_id` records which workspace *first discovered* it (set once, at
   creation, like `created_at`); reusing an existing asset (matched by name+type) in a later

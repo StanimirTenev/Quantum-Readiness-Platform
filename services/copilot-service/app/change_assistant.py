@@ -29,6 +29,9 @@ SAFETY_NOTICE = (
 PRE_CHANGE_CHECKLIST_ITEMS: list[tuple[str, str]] = [
     ("weak_public_key_detected", "Confirm a PQC-capable (or at minimum RSA >=3072-bit) replacement certificate is provisioned and tested before rotating."),
     ("private_key_files_detected", "Confirm private key files are rotated and old key material is securely destroyed as part of the change."),
+    ("embedded_private_key_in_repo_detected", "Rotate the exposed key immediately, purge it from version-control history, and audit for unauthorized use."),
+    ("legacy_ssh_host_key_detected", "Plan migration to a PQC-ready SSH host key algorithm and disable ssh-rsa/ssh-dss once clients are updated."),
+    ("weak_ssh_kex_detected", "Disable SHA-1-based key exchange algorithms and confirm clients support a modern replacement (e.g. curve25519-sha256)."),
     ("expiring_certificate_detected", "Confirm the renewal/replacement certificate is provisioned before the current one expires."),
     ("windows_expired_certificates", "Confirm expired certificates in the store are identified and scheduled for removal/reissue."),
     ("windows_weak_signature_certificates", "Confirm weak-signature certificates have a reissue plan before this change proceeds."),
@@ -37,6 +40,8 @@ PRE_CHANGE_CHECKLIST_ITEMS: list[tuple[str, str]] = [
     ("crypto_packages_detected", "Confirm PQC-capable library versions are available for the crypto packages installed on this asset."),
     ("tls_config_detected", "Review TLS configuration for cipher/algorithm changes needed alongside the certificate change."),
     ("ssh_config_detected", "Review SSH host key algorithms for a PQC-ready update path."),
+    ("weak_ssh_cipher_detected", "Disable legacy SSH ciphers (3DES/RC4/Blowfish/CAST128/DES) in the server configuration."),
+    ("weak_ssh_mac_detected", "Disable legacy SSH MAC algorithms (hmac-md5*/hmac-sha1*) in the server configuration."),
 ]
 
 WAVE_LABELS = {"wave_1": "Wave 1 (urgent)", "wave_2": "Wave 2 (near-term)", "wave_3": "Wave 3 (planned)"}

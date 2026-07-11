@@ -2,10 +2,12 @@
 """Build an operator / executive migration report from an assessment bundle.
 
 Pure and deterministic: input is a JSON bundle of per-asset entries, each
-either an `/api/assess` result or (for a persisted Windows host) a
-`persisted_risk` record from inventory-service; output is a Markdown
-migration report (executive summary, migration waves, findings,
-attribution/evidence chains, boundaries).
+either an `/api/assess` result or (for a persisted Windows host, network, or
+repo scan) a `persisted_risk` record from inventory-service; output is a
+Markdown migration report: executive summary, migration wave table, vendor
+blocker table, evidence table, change checklist, findings by asset,
+attribution/evidence chains, a technical appendix (raw rationale flags per
+asset), and methodology/boundaries.
 """
 from __future__ import annotations
 
@@ -65,6 +67,7 @@ def windows_host_view(entry: dict[str, Any]) -> dict[str, Any]:
         "windows_high_signals": high_signals,
         "windows_medium_signals": medium_signals,
         "windows_priority_score_100": risk.get("normalized_score_100"),
+        "rationale": rationale,
     }
 
 
@@ -74,7 +77,8 @@ def asset_view(entry: dict[str, Any]) -> dict[str, Any]:
     assess = entry.get("assess") or {}
     fp = (assess.get("fingerprint") or {}).get("summary") or {}
     readiness = (assess.get("pqc_readiness") or {}).get("readiness") or "unknown"
-    risk = (assess.get("risk") or {}).get("rating")
+    risk_block = assess.get("risk") or {}
+    risk = risk_block.get("rating")
     attribution = (assess.get("attribution") or {}).get("attributed_findings") or []
 
     top_vuln = None
@@ -102,6 +106,7 @@ def asset_view(entry: dict[str, Any]) -> dict[str, Any]:
         "weak": int(fp.get("weak_count") or 0),
         "top_vulnerability": top_vuln or "-",
         "chain": chain,
+        "rationale": risk_block.get("rationale") or {},
     }
 
 
@@ -152,6 +157,189 @@ _WAVE_TITLES = {
     3: "Wave 3 — planned (post-quantum ready, vendor-blocked, or low exposure)",
 }
 
+# rationale key -> plain-language evidence phrase, an actionable pre-change
+# checklist item, and severity ("high"/"medium"). Evidence phrasing mirrors
+# services/copilot-service/app/risk_narrator.py's HIGH_SEVERITY_SIGNALS/
+# MEDIUM_SEVERITY_SIGNALS exactly (same vocabulary in the UI narrative and this
+# report); checklist phrasing mirrors
+# services/copilot-service/app/change_assistant.py's PRE_CHANGE_CHECKLIST_ITEMS.
+# tools/report is a standalone deterministic tool with no service imports, so
+# this table is a deliberate, small duplication -- kept in sync by hand.
+# certificate_chain_available is intentionally excluded: it's informational
+# (not a finding), and Risk Narrator doesn't narrate it either.
+RATIONALE_SIGNAL_METADATA: dict[str, dict[str, str]] = {
+    "weak_public_key_detected": {
+        "evidence": "a weak public key was detected (RSA key below 2048 bits)",
+        "checklist": "Confirm a PQC-capable (or at minimum RSA >=3072-bit) replacement certificate is provisioned and tested before rotating.",
+        "severity": "high",
+    },
+    "private_key_files_detected": {
+        "evidence": "private key files were found on the host",
+        "checklist": "Confirm private key files are rotated and old key material is securely destroyed as part of the change.",
+        "severity": "high",
+    },
+    "embedded_private_key_in_repo_detected": {
+        "evidence": "a private key was found embedded directly in the repository (e.g. in a Terraform or Kubernetes manifest)",
+        "checklist": "Rotate the exposed key immediately, purge it from version-control history, and audit for unauthorized use.",
+        "severity": "high",
+    },
+    "legacy_ssh_host_key_detected": {
+        "evidence": "the SSH server offers a legacy host key algorithm (RSA or DSA signatures), which is quantum-vulnerable",
+        "checklist": "Plan migration to a PQC-ready SSH host key algorithm and disable ssh-rsa/ssh-dss once clients are updated.",
+        "severity": "high",
+    },
+    "weak_ssh_kex_detected": {
+        "evidence": "the SSH server offers a weak, SHA-1-based Diffie-Hellman key exchange algorithm",
+        "checklist": "Disable SHA-1-based key exchange algorithms and confirm clients support a modern replacement (e.g. curve25519-sha256).",
+        "severity": "high",
+    },
+    "expiring_certificate_detected": {
+        "evidence": "a certificate close to expiry was found",
+        "checklist": "Confirm the renewal/replacement certificate is provisioned before the current one expires.",
+        "severity": "high",
+    },
+    "windows_expired_certificates": {
+        "evidence": "expired certificates were found in the Windows certificate store",
+        "checklist": "Confirm expired certificates in the store are identified and scheduled for removal/reissue.",
+        "severity": "high",
+    },
+    "windows_weak_signature_certificates": {
+        "evidence": "certificates with a weak signature algorithm were found in the Windows certificate store",
+        "checklist": "Confirm weak-signature certificates have a reissue plan before this change proceeds.",
+        "severity": "high",
+    },
+    "windows_domain_controller": {
+        "evidence": "the host is a domain controller, which widens its blast radius",
+        "checklist": "This host is a domain trust anchor -- coordinate with AD/PKI owners before any certificate change.",
+        "severity": "medium",
+    },
+    "windows_large_certificate_estate": {
+        "evidence": "the host has a large certificate store",
+        "checklist": "Plan for a staged rollout given the large certificate estate on this host.",
+        "severity": "medium",
+    },
+    "certificate_files_detected": {
+        "evidence": "certificate files are present on the host",
+        "checklist": "Inventory certificate files on this host and confirm ownership/rotation plan.",
+        "severity": "medium",
+    },
+    "tls_config_detected": {
+        "evidence": "TLS configuration was found on the host",
+        "checklist": "Review TLS configuration for cipher/algorithm changes needed alongside the certificate change.",
+        "severity": "medium",
+    },
+    "tls_detected": {
+        "evidence": "TLS was observed on this asset",
+        "checklist": "Confirm the negotiated TLS version/cipher suite has a PQC-ready migration path.",
+        "severity": "medium",
+    },
+    "ssh_config_detected": {
+        "evidence": "SSH configuration was found on the host",
+        "checklist": "Review SSH host key algorithms for a PQC-ready update path.",
+        "severity": "medium",
+    },
+    "weak_ssh_cipher_detected": {
+        "evidence": "the SSH server offers a weak or legacy encryption cipher",
+        "checklist": "Disable legacy SSH ciphers (3DES/RC4/Blowfish/CAST128/DES) in the server configuration.",
+        "severity": "medium",
+    },
+    "weak_ssh_mac_detected": {
+        "evidence": "the SSH server offers a weak or legacy MAC algorithm",
+        "checklist": "Disable legacy SSH MAC algorithms (hmac-md5*/hmac-sha1*) in the server configuration.",
+        "severity": "medium",
+    },
+    "crypto_packages_detected": {
+        "evidence": "crypto-related packages are installed",
+        "checklist": "Confirm PQC-capable library versions are available for the crypto packages installed on this asset.",
+        "severity": "medium",
+    },
+}
+
+
+def matched_signals(rationale: dict[str, Any]) -> list[tuple[str, dict[str, str]]]:
+    return [(key, meta) for key, meta in RATIONALE_SIGNAL_METADATA.items() if rationale.get(key)]
+
+
+def _vendor_blocked(view: dict[str, Any]) -> bool:
+    return view.get("readiness") == "vendor_blocked" or bool((view.get("rationale") or {}).get("vendor_blocked"))
+
+
+def _vendor_blocker_table_lines(views: list[dict[str, Any]]) -> list[str]:
+    blocked = [v for v in views if _vendor_blocked(v)]
+    lines = ["## Vendor Blocker Table", "",
+             "Assets whose migration is currently blocked by a vendor readiness gap.", ""]
+    if not blocked:
+        lines += ["_No vendor blockers identified in this workspace._", ""]
+        return lines
+    lines += ["| Asset | Risk | Note |", "| --- | --- | --- |"]
+    for v in sorted(blocked, key=lambda x: (-x["risk_rank"], x["asset_name"])):
+        lines.append(f"| {v['asset_name']} | {v['risk'] or '-'} | Vendor readiness blocker in effect -- escalate for a PQC-capable replacement timeline. |")
+    lines.append("")
+    return lines
+
+
+def _evidence_table_lines(views: list[dict[str, Any]]) -> list[str]:
+    rows = []
+    for v in sorted(views, key=lambda x: (-x["risk_rank"], x["asset_name"])):
+        matches = matched_signals(v.get("rationale") or {})
+        if matches:
+            rows.append((v, matches))
+
+    lines = ["## Evidence Table", "",
+              "Evidence signals risk-engine detected for each asset, independent of the derived risk score.", ""]
+    if not rows:
+        lines += ["_No evidence signals flagged across this workspace._", ""]
+        return lines
+
+    lines += ["| Asset | Evidence | Severity |", "| --- | --- | --- |"]
+    for v, matches in rows:
+        evidence_text = "; ".join(meta["evidence"] for _, meta in matches)
+        severity = "high" if any(meta["severity"] == "high" for _, meta in matches) else "medium"
+        lines.append(f"| {v['asset_name']} | {evidence_text} | {severity} |")
+    lines.append("")
+    return lines
+
+
+def _change_checklist_lines(views: list[dict[str, Any]]) -> list[str]:
+    lines = ["## Change Checklist", "",
+             "Draft pre-change verification items per asset, drawn from the same signal vocabulary as the",
+             "Evidence Table. QRP discovers, assesses and plans -- it does not execute changes.", ""]
+    any_checklist = False
+    for v in sorted(views, key=lambda x: (-x["risk_rank"], x["asset_name"])):
+        matches = matched_signals(v.get("rationale") or {})
+        vendor_blocked = _vendor_blocked(v)
+        if not matches and not vendor_blocked:
+            continue
+        any_checklist = True
+        lines.append(f"### {v['asset_name']} (risk: {v['risk'] or 'unrated'})")
+        lines.append("")
+        for _, meta in matches:
+            lines.append(f"- [ ] {meta['checklist']}")
+        if vendor_blocked:
+            lines.append("- [ ] Vendor readiness blocker is in effect -- confirm a vendor escalation ticket is open before committing to a timeline.")
+        lines.append("- [ ] Document a rollback plan and post-change validation/retest steps before execution.")
+        lines.append("")
+    if not any_checklist:
+        lines += ["_No assets currently require a pre-change checklist._", ""]
+    return lines
+
+
+def _technical_appendix_lines(views: list[dict[str, Any]]) -> list[str]:
+    lines = ["## Technical Appendix", "",
+             "Raw risk-engine rationale flags per asset, for traceability back to the deterministic",
+             "scoring contract (`services/risk-engine`).", ""]
+    for v in sorted(views, key=lambda x: (-x["risk_rank"], x["asset_name"])):
+        rationale = v.get("rationale") or {}
+        true_flags = sorted(key for key, value in rationale.items() if value is True)
+        lines.append(f"### {v['asset_name']}")
+        lines.append("")
+        lines.append(f"- Wave: {v.get('wave', '-')}")
+        lines.append(f"- Risk rating: {v['risk'] or '-'}")
+        lines.append(f"- Readiness: {v['readiness']}")
+        lines.append(f"- Rationale flags: {', '.join(true_flags) if true_flags else '_none set_'}")
+        lines.append("")
+    return lines
+
 
 def build_report(bundle: dict[str, Any]) -> str:
     generated = bundle.get("generated_at") or datetime.now(timezone.utc).isoformat()
@@ -164,7 +352,7 @@ def build_report(bundle: dict[str, Any]) -> str:
     classical = sum(1 for v in views if v["readiness"] == "classical_only")
     hybrid = sum(1 for v in views if v["readiness"] == "hybrid_capable")
     pqc = sum(1 for v in views if v["readiness"] == "pqc_ready")
-    vendor_blocked = sum(1 for v in views if v["readiness"] == "vendor_blocked")
+    vendor_blocked = sum(1 for v in views if _vendor_blocked(v))
     hndl = sum(1 for v in views if v["hndl"])
     weak = sum(v["weak"] for v in views)
     critical = sum(1 for v in views if v["risk"] and v["risk"].lower() == "critical")
@@ -214,6 +402,10 @@ def build_report(bundle: dict[str, Any]) -> str:
             L.append(f"| {v['asset_name']} | {v['application'] or '-'} | {v['readiness']} | {v['risk'] or '-'} | {'yes' if v['hndl'] else 'no'} | {v['top_vulnerability']} |")
         L.append("")
 
+    L += _vendor_blocker_table_lines(views)
+    L += _evidence_table_lines(views)
+    L += _change_checklist_lines(views)
+
     L += ["## Findings by Asset", "",
           "| Asset | Readiness | Risk | Q-vulnerable | HNDL | Weak | Top vulnerability |",
           "| --- | --- | --- | --- | --- | --- | --- |"]
@@ -231,6 +423,8 @@ def build_report(bundle: dict[str, Any]) -> str:
     if not any_chain:
         L.append("_No attributed vulnerability chains in this assessment._")
     L.append("")
+
+    L += _technical_appendix_lines(views)
 
     L += [
         "## Methodology & Boundaries",

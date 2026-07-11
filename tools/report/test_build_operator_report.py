@@ -124,3 +124,85 @@ def test_windows_host_does_not_pollute_pqc_readiness_counts():
     assert "1 classical-only" in report
     assert "dc-01" in report
     assert "Windows: windows_domain_controller, windows_expired_certificates" in report
+
+
+def test_report_has_new_sections():
+    bundle = {"assets": [_asset("payments-api", "classical_only", "critical", hndl=True, qv=2)]}
+    report = reporter.build_report(bundle)
+    assert "## Vendor Blocker Table" in report
+    assert "## Evidence Table" in report
+    assert "## Change Checklist" in report
+    assert "## Technical Appendix" in report
+
+
+def test_evidence_table_lists_matched_signals_for_persisted_risk_asset():
+    bundle = {
+        "assets": [
+            _windows_host("ssh-gw", "critical", 80, {
+                "weak_ssh_kex_detected": True,
+                "legacy_ssh_host_key_detected": True,
+            }),
+        ],
+    }
+    report = reporter.build_report(bundle)
+    assert "SHA-1-based Diffie-Hellman" in report
+    assert "legacy host key algorithm" in report
+    assert "| ssh-gw |" in report
+
+
+def test_evidence_table_empty_state():
+    bundle = {"assets": [_windows_host("clean-host", "minimal", 5, {})]}
+    report = reporter.build_report(bundle)
+    assert "_No evidence signals flagged across this workspace._" in report
+
+
+def test_vendor_blocker_table_lists_blocked_asset():
+    bundle = {"assets": [_windows_host("vendor-locked", "high", 70, {"vendor_blocked": True})]}
+    report = reporter.build_report(bundle)
+    assert "## Vendor Blocker Table" in report
+    assert "vendor-locked" in report
+    assert "escalate for a PQC-capable replacement timeline" in report
+
+
+def test_vendor_blocker_table_empty_state():
+    bundle = {"assets": [_windows_host("clean-host", "minimal", 5, {})]}
+    report = reporter.build_report(bundle)
+    assert "_No vendor blockers identified in this workspace._" in report
+
+
+def test_change_checklist_includes_matched_items_and_rollback_note():
+    bundle = {
+        "assets": [
+            _windows_host("repo-with-key", "critical", 95, {"embedded_private_key_in_repo_detected": True}),
+        ],
+    }
+    report = reporter.build_report(bundle)
+    assert "### repo-with-key (risk: critical)" in report
+    assert "- [ ] Rotate the exposed key immediately" in report
+    assert "- [ ] Document a rollback plan" in report
+
+
+def test_change_checklist_empty_state():
+    bundle = {"assets": [_windows_host("clean-host", "minimal", 5, {})]}
+    report = reporter.build_report(bundle)
+    assert "_No assets currently require a pre-change checklist._" in report
+
+
+def test_technical_appendix_lists_raw_rationale_flags():
+    bundle = {
+        "assets": [
+            _windows_host("dc-01", "critical", 90, {
+                "windows_domain_controller": True,
+                "windows_expired_certificates": True,
+            }),
+        ],
+    }
+    report = reporter.build_report(bundle)
+    assert "### dc-01" in report
+    assert "Rationale flags: windows_domain_controller, windows_expired_certificates" in report
+
+
+def test_technical_appendix_no_flags_set():
+    bundle = {"assets": [_windows_host("clean-host", "minimal", 5, {})]}
+    report = reporter.build_report(bundle)
+    assert "_none set_" in report

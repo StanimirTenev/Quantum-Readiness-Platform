@@ -30,6 +30,23 @@ def test_checklist_includes_matched_rationale_items():
     assert "renewal/replacement certificate" in checklist_text
 
 
+def test_checklist_includes_ssh_and_embedded_key_items():
+    risk = _risk(rationale={
+        "embedded_private_key_in_repo_detected": True,
+        "legacy_ssh_host_key_detected": True,
+        "weak_ssh_kex_detected": True,
+        "weak_ssh_cipher_detected": True,
+        "weak_ssh_mac_detected": True,
+    })
+    result = build_change_plan("asset-a", {"risks": [risk]}, _plan(), [])
+    checklist_text = " ".join(result["pre_change_checklist"])
+    assert "purge it from version-control history" in checklist_text
+    assert "PQC-ready SSH host key algorithm" in checklist_text
+    assert "SHA-1-based key exchange" in checklist_text
+    assert "legacy SSH ciphers" in checklist_text
+    assert "legacy SSH MAC algorithms" in checklist_text
+
+
 def test_checklist_includes_vendor_blocked_note():
     risk = _risk(vendor_blocked=True)
     result = build_change_plan("asset-a", {"risks": [risk]}, _plan(), [])

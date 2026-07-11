@@ -58,9 +58,17 @@ multi-tenant deployment. See `services/api-gateway/README.md`.
 - Every inter-service URL env var (`INVENTORY_SERVICE_URL`, `WORKFLOW_SERVICE_URL`, etc.) is
   set explicitly to the Compose service DNS name; none of the services' own `127.0.0.1`
   defaults apply inside containers.
-- `inventory-service`'s SQLite DB lives on a named volume (`inventory-data`) so it survives
-  `docker compose down`/`up`; fully separate from the bare-metal dev DB
-  (`services/inventory-service/inventory.db`), never touched by this stack.
+- `inventory-service` and `workflow-service` run on a shared **PostgreSQL** container
+  (`postgres:16-alpine`, one `postgres-data` named volume) here, not SQLite -- `DATABASE_URL`
+  is set on both, which their repositories prefer over the SQLite fallback they still use
+  everywhere else (bare-metal dev, tests, CI). One Postgres database is shared by both
+  services since their table names don't collide (`tasks`/`approvals` vs.
+  `workspaces`/`assets`/`scans`/`risk_results`/`reports`) -- no per-service database
+  provisioning needed. Credentials default to `qrp`/`qrp`/`qrp` (user/password/db), overridable
+  via `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB` (e.g. in a `.env` file) before exposing
+  this stack anywhere it matters. Fully separate from the bare-metal dev DB
+  (`services/inventory-service/inventory.db`), never touched by this stack. See
+  `tools/db_compat.py` and `services/inventory-service/README.md`.
 - `graph-service`, `copilot-service`, `retrieval-service`, and `api-gateway` read the repo's
   already-committed `reports/graph/latest/graph-snapshot.json` /
   `reports/doc-index/latest/doc-index.json` via bind mounts landed at the exact path each
@@ -73,10 +81,9 @@ multi-tenant deployment. See `services/api-gateway/README.md`.
   (`services/inventory-service/tests/fixtures/stage2_evidence`, read-only) -- without these
   three mounts, clicking "Load Demo" 500s inside a container (it doesn't on bare metal, where
   the whole repo tree is naturally on disk together).
-- `workflow-service`'s SQLite DB lives on its own named volume (`workflow-data`), the same
-  `WORKFLOW_DB_PATH`-env-var-plus-volume pattern as `inventory-service`'s `inventory-data` --
-  tasks/approvals now survive `docker compose up --build` (fixed 2026-07-11; previously reset
-  on every rebuild since the service had no path-override env var at all).
+- `workflow-service`'s tasks/approvals survive `docker compose up --build` via the same
+  Postgres volume described above (fixed 2026-07-11; previously reset on every rebuild since
+  the service had no persistent store here at all).
 - `web-ui` needs no build: it's a buildless static site (see `frontend/web-ui/README.md`), so
   the service just bind-mounts `frontend/web-ui/public` read-only into a stock
   `python:3.12-slim` image and runs the same `python -m http.server 5173` command
@@ -88,14 +95,18 @@ multi-tenant deployment. See `services/api-gateway/README.md`.
 
 ## Verified live
 
-Full 16-container build + start, all healthy; a real headless-browser (Playwright) run against
-`http://127.0.0.1:5173` clicking Load Demo end to end with zero console/page errors
-(screenshot confirmed clean rendering: assets/risks/graph snapshot/doc index all populated);
-`POST /api/demo/load` returns `"overall":"ok"` with all five steps (`ingest_host`,
-`ingest_network`, `ingest_repo`, `doc_index`, `graph_snapshot`) reporting `"status":"ok"`;
-ingest -> risk score -> Copilot Risk Narrator end to end through the gateway; a persisted
-workspace operator report generated (exercises the `tools.report.build_operator_report`
-import). `docker compose down` leaves no host-side state changes beyond the two bind-mounted
+Full 17-container build + start (16 app services + `postgres`), all healthy; a real
+headless-browser (Playwright) run against `http://127.0.0.1:5173` clicking Load Demo end to end
+with zero console/page errors (screenshot confirmed clean rendering: assets/risks/graph
+snapshot/doc index all populated); `POST /api/demo/load` returns `"overall":"ok"` with all five
+steps (`ingest_host`, `ingest_network`, `ingest_repo`, `doc_index`, `graph_snapshot`) reporting
+`"status":"ok"`; ingest -> risk score -> Copilot Risk Narrator end to end through the gateway; a
+persisted workspace operator report generated (exercises the
+`tools.report.build_operator_report` import, plus `inventory-service`'s `create_report`/
+`list_scans_by_workspace` against Postgres). `docker compose up -d --build --force-recreate`
+(no `-v`) re-verified assets and a `workflow-service` task both survive a full container
+rebuild on the `postgres-data` volume. `docker compose down` leaves no host-side state changes
+beyond the two bind-mounted
 report files `api-gateway` writes to during a Load Demo click (`graph-snapshot.json` is
 git-tracked and reverted with `git checkout --` after manual testing, same as any other live
 verification in this repo; `doc-index.json` is gitignored).

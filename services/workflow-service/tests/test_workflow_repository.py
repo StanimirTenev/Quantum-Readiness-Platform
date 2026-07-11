@@ -13,7 +13,7 @@ def test_default_db_path_honors_workflow_db_path_env(tmp_path: Path, monkeypatch
 
     reloaded = importlib.reload(repository_module)
     try:
-        assert reloaded.DEFAULT_DB_PATH == custom
+        assert reloaded.DEFAULT_DB_PATH == str(custom)
         repo = reloaded.WorkflowRepository()
         repo.create_task(TaskCreate(
             title="env db check",
@@ -26,6 +26,21 @@ def test_default_db_path_honors_workflow_db_path_env(tmp_path: Path, monkeypatch
         ))
         assert custom.exists()
     finally:
+        monkeypatch.delenv("WORKFLOW_DB_PATH", raising=False)
+        importlib.reload(repository_module)
+
+
+def test_default_db_path_prefers_database_url_over_workflow_db_path(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("WORKFLOW_DB_PATH", str(tmp_path / "sqlite-should-be-ignored.db"))
+    monkeypatch.setenv("DATABASE_URL", "postgresql://user:pass@localhost:5432/workflow")
+
+    import app.repository as repository_module
+
+    reloaded = importlib.reload(repository_module)
+    try:
+        assert reloaded.DEFAULT_DB_PATH == "postgresql://user:pass@localhost:5432/workflow"
+    finally:
+        monkeypatch.delenv("DATABASE_URL", raising=False)
         monkeypatch.delenv("WORKFLOW_DB_PATH", raising=False)
         importlib.reload(repository_module)
 
@@ -47,6 +62,26 @@ def test_workflow_repository(tmp_path: Path) -> None:
     assert task.id
     assert task.status == "draft"
 
+    duplicate = repo.create_task(payload)
+    assert duplicate.id == task.id
+
+
+def test_dedup_matches_null_recommended_action(tmp_path: Path) -> None:
+    # recommended_action is optional; the dedup lookup uses "IS NOT DISTINCT FROM"
+    # (not "=") specifically so two NULLs still count as a match here -- plain "="
+    # never matches NULL against NULL in SQL.
+    repo = WorkflowRepository(tmp_path / "workflow.db")
+    payload = TaskCreate(
+        title="Review google endpoint",
+        asset_name="google.com:443",
+        wave="wave_1",
+        priority="high",
+        description="Review TLS configuration and migration path.",
+        recommended_action=None,
+        requested_by="planner-service",
+    )
+
+    task = repo.create_task(payload)
     duplicate = repo.create_task(payload)
     assert duplicate.id == task.id
 

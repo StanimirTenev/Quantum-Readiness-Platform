@@ -1,6 +1,6 @@
 import json
 import os
-import sqlite3
+import sys
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -17,9 +17,20 @@ from .models import (
     Workspace,
 )
 
-# INVENTORY_DB_PATH lets a caller (e.g. the local flow runner) point the store at
-# an isolated database so a demonstration run does not accumulate into the dev DB.
-DEFAULT_DB_PATH = Path(os.getenv("INVENTORY_DB_PATH") or (Path(__file__).resolve().parent.parent / "inventory.db"))
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+from tools.db_compat import Connection, connect, existing_columns  # noqa: E402
+
+# DATABASE_URL (postgres://... or postgresql://...) takes priority when set --
+# used by infra/docker/docker-compose.yml so the deployed product runs on
+# Postgres. Otherwise falls back to SQLite: INVENTORY_DB_PATH lets a caller
+# (e.g. the local flow runner) point the store at an isolated database so a
+# demonstration run does not accumulate into the dev DB. See
+# tools/db_compat.py and infra/docker/README.md.
+DEFAULT_DB_PATH = os.getenv("DATABASE_URL") or os.getenv("INVENTORY_DB_PATH") or str(
+    Path(__file__).resolve().parent.parent / "inventory.db"
+)
 
 
 class AssetRepository:
@@ -27,10 +38,8 @@ class AssetRepository:
         self.db_path = str(db_path)
         self._ensure_schema()
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
-        connection.row_factory = sqlite3.Row
-        return connection
+    def _connect(self) -> Connection:
+        return connect(self.db_path)
 
     def _ensure_schema(self) -> None:
         with self._connect() as connection:
@@ -107,11 +116,8 @@ class AssetRepository:
             connection.commit()
 
     @staticmethod
-    def _ensure_risk_result_columns(connection: sqlite3.Connection) -> None:
-        columns = {
-            row["name"]
-            for row in connection.execute("PRAGMA table_info(risk_results)").fetchall()
-        }
+    def _ensure_risk_result_columns(connection: Connection) -> None:
+        columns = existing_columns(connection, "risk_results")
         if "contract_version" not in columns:
             connection.execute(
                 "ALTER TABLE risk_results ADD COLUMN contract_version TEXT NOT NULL DEFAULT 'stage1-v1'"
@@ -124,13 +130,15 @@ class AssetRepository:
             connection.execute(
                 "ALTER TABLE risk_results ADD COLUMN vendor_blocked INTEGER NOT NULL DEFAULT 0"
             )
+        if "created_at" not in columns:
+            # Portable substitute for SQLite's implicit rowid (not available on
+            # Postgres) as the "most recent first" ordering key -- see
+            # list_risk_results().
+            connection.execute("ALTER TABLE risk_results ADD COLUMN created_at TEXT")
 
     @staticmethod
-    def _ensure_scan_columns(connection: sqlite3.Connection) -> None:
-        columns = {
-            row["name"]
-            for row in connection.execute("PRAGMA table_info(scans)").fetchall()
-        }
+    def _ensure_scan_columns(connection: Connection) -> None:
+        columns = existing_columns(connection, "scans")
         if "workspace_id" not in columns:
             connection.execute("ALTER TABLE scans ADD COLUMN workspace_id TEXT")
         if "ssh_evidence" not in columns:
@@ -139,11 +147,8 @@ class AssetRepository:
             connection.execute("ALTER TABLE scans ADD COLUMN ipsec_evidence TEXT")
 
     @staticmethod
-    def _ensure_asset_columns(connection: sqlite3.Connection) -> None:
-        columns = {
-            row["name"]
-            for row in connection.execute("PRAGMA table_info(assets)").fetchall()
-        }
+    def _ensure_asset_columns(connection: Connection) -> None:
+        columns = existing_columns(connection, "assets")
         if "created_at" not in columns:
             connection.execute("ALTER TABLE assets ADD COLUMN created_at TEXT")
         if "workspace_id" not in columns:
@@ -216,7 +221,7 @@ class AssetRepository:
                 """
                 SELECT * FROM assets
                 WHERE name = ? AND asset_type = ?
-                ORDER BY rowid DESC
+                ORDER BY created_at DESC
                 LIMIT 1
                 """,
                 (payload.name, payload.asset_type),
@@ -352,9 +357,10 @@ class AssetRepository:
                 """
                 INSERT INTO risk_results (
                     id, scan_id, contract_version, asset_name, scenario, scenario_multiplier, base_score,
-                    final_score, normalized_score_100, rating, dependency_count, vendor_blocked, rationale
+                    final_score, normalized_score_100, rating, dependency_count, vendor_blocked, rationale,
+                    created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     result_id,
@@ -370,6 +376,7 @@ class AssetRepository:
                     int(payload.get("dependency_count", 0)),
                     int(bool(payload.get("vendor_blocked", False))),
                     json.dumps(payload["rationale"]),
+                    datetime.now(UTC).isoformat(),
                 ),
             )
             connection.commit()
@@ -381,7 +388,7 @@ class AssetRepository:
         if scan_id is not None:
             query += " WHERE scan_id = ?"
             params = (scan_id,)
-        query += " ORDER BY rowid DESC"
+        query += " ORDER BY created_at DESC"
 
         with self._connect() as connection:
             rows = connection.execute(query, params).fetchall()
@@ -402,7 +409,7 @@ class AssetRepository:
             FROM risk_results r
             JOIN scans s ON r.scan_id = s.id
             WHERE r.asset_name = ?
-            ORDER BY s.scanned_at ASC, r.rowid ASC
+            ORDER BY s.scanned_at ASC, r.created_at ASC
         """
         with self._connect() as connection:
             rows = connection.execute(query, (asset_name,)).fetchall()
@@ -412,9 +419,9 @@ class AssetRepository:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT id, name, asset_type, rowid
+                SELECT id, name, asset_type, created_at
                 FROM assets
-                ORDER BY rowid DESC
+                ORDER BY created_at DESC
                 """
             ).fetchall()
 
@@ -437,7 +444,7 @@ class AssetRepository:
 
         return {"deleted_assets": deleted_assets}
 
-    def _row_to_scan(self, row: sqlite3.Row) -> ScanRecord:
+    def _row_to_scan(self, row: Any) -> ScanRecord:
         return ScanRecord(
             id=row["id"],
             source=row["source"],
@@ -450,7 +457,7 @@ class AssetRepository:
             ipsec_evidence=self._parse_json(row["ipsec_evidence"]),
         )
 
-    def _row_to_risk(self, row: sqlite3.Row) -> RiskRecord:
+    def _row_to_risk(self, row: Any) -> RiskRecord:
         return RiskRecord(
             id=row["id"],
             scan_id=row["scan_id"],

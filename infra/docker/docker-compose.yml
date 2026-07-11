@@ -10,6 +10,21 @@ x-healthcheck: &healthcheck
   start_period: 5s
 
 services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-qrp}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-qrp}
+      POSTGRES_DB: ${POSTGRES_DB:-qrp}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-qrp} -d ${POSTGRES_DB:-qrp}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
   risk-engine:
     build:
       <<: *build-common
@@ -30,9 +45,10 @@ services:
       args:
         SERVICE_DIR: services/workflow-service
     environment:
-      WORKFLOW_DB_PATH: /data/workflow.db
-    volumes:
-      - workflow-data:/data
+      DATABASE_URL: postgresql://${POSTGRES_USER:-qrp}:${POSTGRES_PASSWORD:-qrp}@postgres:5432/${POSTGRES_DB:-qrp}
+    depends_on:
+      postgres:
+        condition: service_healthy
     healthcheck: *healthcheck
 
   scenario-engine:
@@ -98,11 +114,11 @@ services:
         SERVICE_DIR: services/inventory-service
     environment:
       RISK_ENGINE_URL: http://risk-engine:8000
-      INVENTORY_DB_PATH: /data/inventory.db
-    volumes:
-      - inventory-data:/data
+      DATABASE_URL: postgresql://${POSTGRES_USER:-qrp}:${POSTGRES_PASSWORD:-qrp}@postgres:5432/${POSTGRES_DB:-qrp}
     depends_on:
       risk-engine:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     healthcheck: *healthcheck
 
@@ -248,5 +264,4 @@ services:
       start_period: 5s
 
 volumes:
-  inventory-data:
-  workflow-data:
+  postgres-data:

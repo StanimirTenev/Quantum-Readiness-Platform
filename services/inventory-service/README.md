@@ -101,6 +101,12 @@
 - Defaults to the service-local `inventory.db`. Set `INVENTORY_DB_PATH` to point
   the store at another file (used by `scripts/run_flow.ps1` for an isolated,
   repeatable demo database).
+- Set `DATABASE_URL` (a `postgresql://` connection string) to use PostgreSQL instead --
+  takes priority over `INVENTORY_DB_PATH` when both are set. Used by
+  `infra/docker/docker-compose.yml` so the deployed product runs on Postgres (concurrent
+  writes, not SQLite's single-writer file lock); bare-metal dev/tests/CI stay on SQLite by
+  default (no `DATABASE_URL`, no Postgres server needed). Both backends run the exact same
+  queries via `tools/db_compat.py` -- no ORM, no ongoing dual-query maintenance.
 
 ## Asset risk history
 - `GET /assets/{asset_id}/history` returns the asset's risk trend across all

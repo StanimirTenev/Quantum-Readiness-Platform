@@ -1,16 +1,27 @@
 from __future__ import annotations
 
 import os
-import sqlite3
+import sys
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 from .models import ApprovalRecord, Task, TaskCreate
 
-# WORKFLOW_DB_PATH lets a caller (e.g. an isolated test run, or a persistent volume
-# mount) point the store at a specific database file -- mirrors inventory-service's
-# INVENTORY_DB_PATH convention.
-DEFAULT_DB_PATH = Path(os.getenv("WORKFLOW_DB_PATH") or (Path(__file__).resolve().parent.parent / "workflow.db"))
+REPO_ROOT = Path(__file__).resolve().parents[3]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.append(str(REPO_ROOT))
+from tools.db_compat import Connection, connect, existing_columns  # noqa: E402
+
+# DATABASE_URL (postgres://... or postgresql://...) takes priority when set --
+# used by infra/docker/docker-compose.yml so the deployed product runs on
+# Postgres. Otherwise falls back to SQLite: WORKFLOW_DB_PATH lets a caller (e.g.
+# an isolated test run, or a persistent volume mount) point the store at a
+# specific database file -- mirrors inventory-service's INVENTORY_DB_PATH
+# convention. See tools/db_compat.py and infra/docker/README.md.
+DEFAULT_DB_PATH = os.getenv("DATABASE_URL") or os.getenv("WORKFLOW_DB_PATH") or str(
+    Path(__file__).resolve().parent.parent / "workflow.db"
+)
 
 
 class WorkflowRepository:
@@ -18,10 +29,8 @@ class WorkflowRepository:
         self.db_path = str(db_path)
         self._ensure_schema()
 
-    def _connect(self) -> sqlite3.Connection:
-        connection = sqlite3.connect(self.db_path)
-        connection.row_factory = sqlite3.Row
-        return connection
+    def _connect(self) -> Connection:
+        return connect(self.db_path)
 
     def _ensure_schema(self) -> None:
         with self._connect() as connection:
@@ -52,26 +61,35 @@ class WorkflowRepository:
                 """
             )
             self._ensure_task_columns(connection)
+            self._ensure_approval_columns(connection)
             connection.commit()
 
     @staticmethod
-    def _ensure_task_columns(connection: sqlite3.Connection) -> None:
-        columns = {
-            row["name"]
-            for row in connection.execute("PRAGMA table_info(tasks)").fetchall()
-        }
+    def _ensure_task_columns(connection: Connection) -> None:
+        columns = existing_columns(connection, "tasks")
         if "requested_by" not in columns:
             connection.execute(
                 "ALTER TABLE tasks ADD COLUMN requested_by TEXT NOT NULL DEFAULT 'unknown'"
             )
+        if "created_at" not in columns:
+            # Portable substitute for SQLite's implicit rowid (not available on
+            # Postgres) as the "most recent first" ordering key -- see
+            # list_tasks()/_find_existing_task().
+            connection.execute("ALTER TABLE tasks ADD COLUMN created_at TEXT")
+
+    @staticmethod
+    def _ensure_approval_columns(connection: Connection) -> None:
+        columns = existing_columns(connection, "approvals")
+        if "created_at" not in columns:
+            connection.execute("ALTER TABLE approvals ADD COLUMN created_at TEXT")
 
     def _find_existing_task(self, payload: TaskCreate) -> Task | None:
         with self._connect() as connection:
             row = connection.execute(
                 """
                 SELECT * FROM tasks
-                WHERE asset_name = ? AND wave = ? AND recommended_action IS ?
-                ORDER BY rowid DESC
+                WHERE asset_name = ? AND wave = ? AND recommended_action IS NOT DISTINCT FROM ?
+                ORDER BY created_at DESC
                 LIMIT 1
                 """,
                 (payload.asset_name, payload.wave, payload.recommended_action),
@@ -88,9 +106,10 @@ class WorkflowRepository:
             connection.execute(
                 """
                 INSERT INTO tasks (
-                    id, title, asset_name, wave, priority, description, recommended_action, status, requested_by
+                    id, title, asset_name, wave, priority, description, recommended_action, status, requested_by,
+                    created_at
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     task_id,
@@ -102,6 +121,7 @@ class WorkflowRepository:
                     payload.recommended_action,
                     "draft",
                     payload.requested_by,
+                    datetime.now(UTC).isoformat(),
                 ),
             )
             connection.commit()
@@ -111,7 +131,7 @@ class WorkflowRepository:
 
     def list_tasks(self) -> list[Task]:
         with self._connect() as connection:
-            rows = connection.execute("SELECT * FROM tasks ORDER BY rowid DESC").fetchall()
+            rows = connection.execute("SELECT * FROM tasks ORDER BY created_at DESC").fetchall()
         return [Task(**dict(row)) for row in rows]
 
     def get_task(self, task_id: str) -> Task | None:
@@ -157,10 +177,10 @@ class WorkflowRepository:
         with self._connect() as connection:
             connection.execute(
                 """
-                INSERT INTO approvals (id, task_id, approver, decision, note)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO approvals (id, task_id, approver, decision, note, created_at)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
-                (approval_id, task_id, approver, decision, note),
+                (approval_id, task_id, approver, decision, note, datetime.now(UTC).isoformat()),
             )
             connection.commit()
 
@@ -175,7 +195,7 @@ class WorkflowRepository:
         if task_id:
             query += " WHERE task_id = ?"
             params = (task_id,)
-        query += " ORDER BY rowid DESC"
+        query += " ORDER BY created_at DESC"
 
         with self._connect() as connection:
             rows = connection.execute(query, params).fetchall()
@@ -185,9 +205,9 @@ class WorkflowRepository:
         with self._connect() as connection:
             rows = connection.execute(
                 """
-                SELECT id, asset_name, wave, COALESCE(recommended_action, '') AS recommended_action, rowid
+                SELECT id, asset_name, wave, COALESCE(recommended_action, '') AS recommended_action, created_at
                 FROM tasks
-                ORDER BY rowid DESC
+                ORDER BY created_at DESC
                 """
             ).fetchall()
 

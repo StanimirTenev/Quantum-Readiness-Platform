@@ -63,7 +63,7 @@ for service in inventory-service workflow-service; do
     fi
 
     current="$(run_alembic "$service" current 2>&1 || true)"
-    if echo "$current" | grep -q "0001 (head)"; then
+    if echo "$current" | grep -q "(head)"; then
         record "$service: verify head revision" "PASS" "$(echo "$current" | tail -1)"
     else
         record "$service: verify head revision" "FAIL" "$current"

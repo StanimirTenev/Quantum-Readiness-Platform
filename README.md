@@ -2,6 +2,10 @@
 
 [![CI](https://github.com/StanimirTenev/Quantum-Readiness-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/StanimirTenev/Quantum-Readiness-Platform/actions/workflows/ci.yml)
 
+> This repository reflects the initial prototype/proof-of-concept phase of QRP. Active
+> product development continues in a private repository as part of a structured pilot
+> program with design partners. If you're interested in a pilot, get in touch.
+
 QRP is designed for internal/customer-controlled deployment with local-first evidence processing, optional local Copilot support, and no mandatory external LLM dependency.
 
 Note: the legacy demo (`docs/demo/qrp_demo_legacy.html`) has external LLM calls disabled to preserve the local-first/privacy boundary.

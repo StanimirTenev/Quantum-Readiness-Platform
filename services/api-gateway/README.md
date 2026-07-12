@@ -88,6 +88,29 @@
 - Shares api-gateway's single Alembic migration history (`alembic_version_gateway`) --
   `audit_events` is migration `0002` there, not a separate one.
 
+## Scan scope manager (Product v1 roadmap Phase 4 item 9)
+- `POST /api/scan-scopes {workspace_id, allowed_cidr_ranges, allowed_domains, excluded_targets,
+  allowed_scan_types, scan_windows, rate_limits, approved_by}` (Admin/Security
+  Architect-only) -- defines an allowlist (+ exclusions) for a workspace. Rejects internet-wide
+  CIDRs (`0.0.0.0/0`, `::/0`, or any `/0` range) with `422`. `scan_windows`/`rate_limits` are
+  stored (the roadmap's data model names them) but not enforced yet -- no acceptance criterion
+  for this needs it.
+- `GET /api/scan-scopes?workspace_id=` -- any authenticated role.
+- Enforcement: `/api/scans/host|network|repo` and `/api/demo/load` check any network target
+  carried in the evidence (`tls_evidence.target`/`ssh_evidence.target`/`ipsec_evidence.target`)
+  against the target workspace's most recent scope before accepting the scan (`403` if
+  disallowed). Host/repo evidence with no network target, and Windows scan ingest (which has no
+  workspace grouping), have nothing to check.
+- **A workspace with no scope defined stays open** -- matches every other RBAC/audit safety
+  layer's "unconfigured = open for local dev" convention (see `enforce_rbac`'s setup-mode
+  bypass above), so every existing local-dev/CI/demo flow (none of which configure a scope)
+  keeps working unchanged. A scope is opt-in restriction a Security Architect adds for a
+  specific workspace, not a retroactive default lockdown.
+- An excluded target always wins, even if it also falls inside an allowed CIDR/domain.
+- Scope creation and every scan rejected by scope are written to the audit log
+  (`action="scan_scope.create"` / `action="scan.rejected"`). See `scan_scope.py`.
+- Shares api-gateway's single Alembic migration history -- `scan_scopes` is migration `0003`.
+
 ## Inputs / outputs
 - Input: JSON payloads for scans, scenario runs, and copilot requests.
 - Output: JSON passthrough responses from downstream services.

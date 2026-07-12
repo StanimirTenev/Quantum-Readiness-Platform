@@ -24,6 +24,7 @@ from tools.graph_projection.graph_snapshot_loader import (
 import auth
 import audit
 import demo_seed
+import scan_scope
 
 app = FastAPI(title="API Gateway", version="0.2.0")
 
@@ -146,6 +147,9 @@ SESSION_COOKIE_SECURE = os.getenv("QRP_SESSION_COOKIE_SECURE", "").strip().lower
 
 # --- Audit log foundation (Product v1 roadmap Phase 3 item 8, see audit.py) ---
 audit_repository = audit.AuditRepository()
+
+# --- Scan scope manager (Product v1 roadmap Phase 4 item 9, see scan_scope.py) ---
+scan_scope_repository = scan_scope.ScanScopeRepository()
 
 
 def _client_ip(request: Request) -> str | None:
@@ -273,6 +277,29 @@ def list_audit_log(limit: int = Query(default=200, le=1000)) -> list[audit.Audit
     return audit_repository.list_events(limit=limit)
 
 
+# --- Scan scope manager (Product v1 roadmap Phase 4 item 9, see scan_scope.py) ---
+@app.post("/api/scan-scopes", response_model=scan_scope.ScanScope, status_code=201)
+def create_scan_scope(payload: scan_scope.ScanScopeCreate, request: Request, current_user: auth.User | None = Depends(get_current_user)) -> scan_scope.ScanScope:
+    """Admin/Security Architect-only (enforced by enforce_rbac below, see
+    PRIVILEGED_WRITE_PREFIXES) -- rejects internet-wide CIDRs (0.0.0.0/0,
+    ::/0) outright, see scan_scope._validate_cidr."""
+    created = scan_scope_repository.create_scope(payload, created_by=current_user.id if current_user else None)
+    audit_repository.record(
+        action="scan_scope.create", result="success",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        workspace_id=created.workspace_id, resource_type="scan_scope", resource_id=created.id,
+        source_ip=_client_ip(request),
+        summary=f"cidrs={created.allowed_cidr_ranges} domains={created.allowed_domains} excluded={created.excluded_targets}",
+    )
+    return created
+
+
+@app.get("/api/scan-scopes", response_model=list[scan_scope.ScanScope])
+def list_scan_scopes(workspace_id: str | None = Query(default=None)) -> list[scan_scope.ScanScope]:
+    return scan_scope_repository.list_scopes(workspace_id=workspace_id)
+
+
 # --- RBAC v1 (Product v1 roadmap Phase 3 item 7) ---
 # Roles: Admin, Security Architect, Operator, Auditor (docs/product-v1-roadmap.md).
 # Enforcement only activates once at least one user has been bootstrapped --
@@ -301,6 +328,7 @@ PRIVILEGED_WRITE_PREFIXES = (
     "/api/scans/",
     "/api/demo/load",
     "/api/workspaces",
+    "/api/scan-scopes",
     "/api/scenarios/run",
     "/api/policies/evaluate",
     "/api/fingerprint",
@@ -384,21 +412,21 @@ def _audit_scan_ingest(request: Request, current_user: auth.User | None, source:
 
 @app.post("/api/scans/host")
 def ingest_host_scan(payload: dict[str, Any], request: Request, scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None), current_user: auth.User | None = Depends(get_current_user)) -> dict[str, Any]:
-    result = _ingest_scan("host", payload, scenario, workspace_id=workspace_id)
+    result = _ingest_scan("host", payload, scenario, workspace_id=workspace_id, request=request, current_user=current_user)
     _audit_scan_ingest(request, current_user, "host", result)
     return result
 
 
 @app.post("/api/scans/network")
 def ingest_network_scan(payload: dict[str, Any], request: Request, scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None), current_user: auth.User | None = Depends(get_current_user)) -> dict[str, Any]:
-    result = _ingest_scan("network", payload, scenario, workspace_id=workspace_id)
+    result = _ingest_scan("network", payload, scenario, workspace_id=workspace_id, request=request, current_user=current_user)
     _audit_scan_ingest(request, current_user, "network", result)
     return result
 
 
 @app.post("/api/scans/repo")
 def ingest_repo_scan(payload: dict[str, Any], request: Request, scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None), current_user: auth.User | None = Depends(get_current_user)) -> dict[str, Any]:
-    result = _ingest_scan("repo", payload, scenario, workspace_id=workspace_id)
+    result = _ingest_scan("repo", payload, scenario, workspace_id=workspace_id, request=request, current_user=current_user)
     _audit_scan_ingest(request, current_user, "repo", result)
     return result
 
@@ -453,7 +481,7 @@ def demo_load(request: Request, current_user: auth.User | None = Depends(get_cur
             steps.append({"step": f"ingest_{source}", "status": "skipped", "asset_name": asset_name, "detail": "already loaded"})
             continue
         try:
-            _ingest_scan(source, payload, "public_timeline", workspace_id=workspace_id)
+            _ingest_scan(source, payload, "public_timeline", workspace_id=workspace_id, request=request, current_user=current_user)
             steps.append({"step": f"ingest_{source}", "status": "ok", "asset_name": asset_name})
         except HTTPException as exc:
             steps.append({"step": f"ingest_{source}", "status": "error", "asset_name": asset_name, "detail": str(exc.detail)})
@@ -825,7 +853,51 @@ def _load_graph_snapshot_or_raise() -> dict[str, Any]:
         raise HTTPException(status_code=400, detail={"error": exc.code}) from exc
 
 
-def _ingest_scan(source: str, payload: dict[str, Any], scenario: str, workspace_id: str | None = None) -> dict[str, Any]:
+def _evidence_targets(payload: dict[str, Any]) -> list[str]:
+    targets = []
+    for key in ("tls_evidence", "ssh_evidence", "ipsec_evidence"):
+        block = payload.get(key)
+        if isinstance(block, dict) and block.get("target"):
+            targets.append(str(block["target"]))
+    return targets
+
+
+def _enforce_scan_scope(
+    payload: dict[str, Any],
+    workspace_id: str | None,
+    request: Request | None,
+    current_user: auth.User | None,
+) -> None:
+    """A workspace with no ScanScope defined stays open -- see scan_scope.py's
+    module docstring for why. Only checks targets carried in network-facing
+    evidence blocks (tls/ssh/ipsec); host/repo evidence has no network
+    target to authorize."""
+    if not workspace_id or not scan_scope_repository.has_scope(workspace_id):
+        return
+    scope = scan_scope_repository.list_scopes(workspace_id=workspace_id)[0]
+    for target in _evidence_targets(payload):
+        allowed, reason = scan_scope.check_target(scope, target)
+        if not allowed:
+            if request is not None:
+                audit_repository.record(
+                    action="scan.rejected", result="failure",
+                    actor_user_id=current_user.id if current_user else None,
+                    actor_role=current_user.role if current_user else None,
+                    workspace_id=workspace_id, resource_type="scan_scope", resource_id=scope.id,
+                    source_ip=_client_ip(request), summary=f"target={target}: {reason}",
+                )
+            raise HTTPException(status_code=403, detail=f"target {target!r} rejected by scan scope: {reason}")
+
+
+def _ingest_scan(
+    source: str,
+    payload: dict[str, Any],
+    scenario: str,
+    workspace_id: str | None = None,
+    request: Request | None = None,
+    current_user: auth.User | None = None,
+) -> dict[str, Any]:
+    _enforce_scan_scope(payload, workspace_id, request, current_user)
     request_payload = dict(payload)
     request_payload["source"] = source
     query = {"scenario": scenario, "auto_score": "true"}

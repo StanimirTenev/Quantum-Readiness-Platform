@@ -204,6 +204,92 @@ def change_password(payload: auth.PasswordChangeRequest, current_user: auth.User
     auth_repository.update_password(user.id, payload.new_password)
 
 
+@app.get("/api/users", response_model=list[auth.User])
+def list_users() -> list[auth.User]:
+    """Admin-only (enforced by enforce_rbac below, see ADMIN_ONLY_PREFIXES)."""
+    return auth_repository.list_users()
+
+
+@app.post("/api/users", response_model=auth.User, status_code=201)
+def create_user(payload: auth.UserCreateRequest) -> auth.User:
+    """Admin-only (enforced by enforce_rbac below, see ADMIN_ONLY_PREFIXES) --
+    lets an Admin onboard the other three roles once the first admin exists
+    (bootstrap only ever creates one Admin, see /api/auth/bootstrap)."""
+    if auth_repository.get_user_by_username(payload.username) is not None:
+        raise HTTPException(status_code=409, detail="Username already exists")
+    return auth_repository.create_user(payload.username, payload.password, role=payload.role)
+
+
+# --- RBAC v1 (Product v1 roadmap Phase 3 item 7) ---
+# Roles: Admin, Security Architect, Operator, Auditor (docs/product-v1-roadmap.md).
+# Enforcement only activates once at least one user has been bootstrapped --
+# before that, the gateway stays open, matching every other env-var-gated safety
+# layer's "unconfigured = open for local dev" default (QRP_API_KEY, QRP_DEMO_MODE)
+# so bootstrap itself, and every existing local-dev/CI/demo flow that never calls
+# it, keep working unchanged. A valid QRP_API_KEY header bypasses RBAC entirely --
+# it is a separate, orthogonal machine-trust mechanism (see
+# docs/adr/0001-product-v1-architecture.md), not tied to any one role.
+#
+# GET/HEAD (read) is open to any authenticated role, matching every role's
+# "view"/"read-only" permission in the roadmap. Only mutating routes are
+# restricted further, via prefix match (several routes carry path parameters,
+# e.g. /api/assets/{id}, so exact-match like DEMO_MODE_ALLOWED_POST_PATHS above
+# doesn't fit here).
+#
+# Operator's roadmap permissions ("view assigned tasks, update task status,
+# attach validation notes") have no corresponding gateway route yet --
+# workflow-service's task/approval routes aren't proxied here (roadmap item 18,
+# Migration Task Workflow, is a separate, later phase) -- so Operator is
+# read-only in this cut, same as Auditor, until that phase adds real
+# task-mutation routes to restrict to Operator+Admin instead.
+ADMIN_ONLY_PREFIXES = ("/api/users",)
+PRIVILEGED_WRITE_ROLES = {"admin", "security_architect"}
+PRIVILEGED_WRITE_PREFIXES = (
+    "/api/scans/",
+    "/api/demo/load",
+    "/api/workspaces",
+    "/api/scenarios/run",
+    "/api/policies/evaluate",
+    "/api/fingerprint",
+    "/api/normalize",
+    "/api/pqc-readiness",
+    "/api/assess",
+    "/api/attribute",
+    "/api/graph/blast-radius",
+    "/api/graph/trust-chain",
+    "/api/graph/neighbors",
+    "/api/graph/evidence-path",
+    "/api/integrations/dry-run",
+    "/api/copilot/query",
+)
+RBAC_PUBLIC_PATHS = {"/health", "/api/auth/bootstrap", "/api/auth/login"}
+
+
+@app.middleware("http")
+async def enforce_rbac(request: Request, call_next):
+    if request.method == "OPTIONS" or request.url.path in RBAC_PUBLIC_PATHS:
+        return await call_next(request)
+    if auth_repository.count_users() == 0:
+        return await call_next(request)  # setup mode: no admin bootstrapped yet
+    if QRP_API_KEY and request.headers.get("X-API-Key") == QRP_API_KEY:
+        return await call_next(request)  # trusted machine access, RBAC doesn't apply
+
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    current_user = auth_repository.get_session_user(token) if token else None
+    if current_user is None:
+        return JSONResponse(status_code=401, content={"detail": "Not authenticated"}, headers=_cors_headers(request))
+
+    path = request.url.path
+    if any(path.startswith(prefix) for prefix in ADMIN_ONLY_PREFIXES) and current_user.role != "admin":
+        return JSONResponse(status_code=403, content={"detail": "Admin role required"}, headers=_cors_headers(request))
+
+    if request.method not in ("GET", "HEAD") and any(path.startswith(prefix) for prefix in PRIVILEGED_WRITE_PREFIXES):
+        if current_user.role not in PRIVILEGED_WRITE_ROLES:
+            return JSONResponse(status_code=403, content={"detail": "Insufficient role for this action"}, headers=_cors_headers(request))
+
+    return await call_next(request)
+
+
 @app.post("/api/scans/host")
 def ingest_host_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None)) -> dict[str, Any]:
     return _ingest_scan("host", payload, scenario, workspace_id=workspace_id)

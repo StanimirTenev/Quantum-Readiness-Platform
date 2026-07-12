@@ -1,12 +1,14 @@
-"""Local authentication for the API gateway (Product v1 roadmap Phase 3 item 6).
+"""Local authentication + RBAC for the API gateway (Product v1 roadmap Phase 3
+items 6-7).
 
 Real per-user accounts + sessions, replacing QRP_API_KEY as the *only*
 protection available (see docs/adr/0001-product-v1-architecture.md). Kept
 deliberately minimal, matching the roadmap's "Да НЕ се прави още" list for
-this task: no SSO/OIDC, no multi-tenant accounts. RBAC route enforcement
-(who is allowed to call what) and the audit log are separate, later tasks
-(roadmap items 7-8) -- this module only proves identity and maintains a
-session; it does not yet gate any route by role.
+this task: no SSO/OIDC, no multi-tenant accounts. The audit log is a
+separate, later task (roadmap item 8) -- this module proves identity,
+maintains a session, and exposes each user's role; route-level RBAC
+enforcement itself (which role may call what) lives in main.py's
+enforce_rbac middleware.
 
 Same dual SQLite/Postgres model as inventory-service/workflow-service (see
 tools/db_compat.py): SQLite for bare-metal dev/tests/CI (implicit schema
@@ -22,7 +24,7 @@ import sys
 import uuid
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import bcrypt
 from pydantic import BaseModel, Field
@@ -40,7 +42,8 @@ DEFAULT_DB_PATH = os.getenv("DATABASE_URL") or os.getenv("GATEWAY_DB_PATH") or s
 )
 
 SESSION_TTL = timedelta(hours=24)
-Role = str  # "admin" | "security_architect" | "operator" | "auditor"
+# The four roadmap-defined roles (docs/product-v1-roadmap.md Phase 3 item 7).
+Role = Literal["admin", "security_architect", "operator", "auditor"]
 
 
 class User(BaseModel):
@@ -63,6 +66,12 @@ class LoginRequest(BaseModel):
 class PasswordChangeRequest(BaseModel):
     current_password: str
     new_password: str = Field(..., min_length=8, max_length=255)
+
+
+class UserCreateRequest(BaseModel):
+    username: str = Field(..., min_length=1, max_length=100)
+    password: str = Field(..., min_length=8, max_length=255)
+    role: Role
 
 
 def hash_password(password: str) -> str:
@@ -144,6 +153,16 @@ class AuthRepository:
         with self._connect() as connection:
             row = connection.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
         return self._row_to_user(row) if row else None
+
+    def get_user_by_username(self, username: str) -> User | None:
+        with self._connect() as connection:
+            row = connection.execute("SELECT * FROM users WHERE username = ?", (username,)).fetchone()
+        return self._row_to_user(row) if row else None
+
+    def list_users(self) -> list[User]:
+        with self._connect() as connection:
+            rows = connection.execute("SELECT * FROM users ORDER BY created_at ASC").fetchall()
+        return [self._row_to_user(row) for row in rows]
 
     def verify_credentials(self, username: str, password: str) -> User | None:
         with self._connect() as connection:

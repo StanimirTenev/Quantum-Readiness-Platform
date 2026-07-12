@@ -106,3 +106,98 @@ def test_change_password_rejects_wrong_current_password(client: TestClient) -> N
     )
 
     assert response.status_code == 401
+
+
+# --- RBAC v1 (Product v1 roadmap Phase 3 item 7) ---
+
+
+def _login_as(client: TestClient, username: str, password: str) -> None:
+    response = client.post("/api/auth/login", json={"username": username, "password": password})
+    assert response.status_code == 200
+
+
+def test_rbac_is_open_before_any_admin_is_bootstrapped(client: TestClient, monkeypatch) -> None:
+    monkeypatch.setattr(main, "_request_json", lambda *a, **k: {"created": 1, "scan_id": "s1", "workspace_id": "w1"})
+
+    response = client.post("/api/scans/host", json={"assets": [{"asset_type": "server", "name": "h1"}]})
+
+    assert response.status_code == 200
+
+
+def test_unauthenticated_request_is_rejected_once_admin_exists(client: TestClient) -> None:
+    client.post("/api/auth/bootstrap", json={"username": "admin", "password": "correct-horse-1"})
+
+    response = client.get("/api/assets")
+
+    assert response.status_code == 401
+
+
+def test_auditor_cannot_create_scans(client: TestClient, monkeypatch) -> None:
+    monkeypatch.setattr(main, "_request_json", lambda *a, **k: {"created": 1, "scan_id": "s1", "workspace_id": "w1"})
+    client.post("/api/auth/bootstrap", json={"username": "admin", "password": "correct-horse-1"})
+    _login_as(client, "admin", "correct-horse-1")
+    client.post("/api/users", json={"username": "auditor1", "password": "auditor-pass1", "role": "auditor"})
+    client.post("/api/auth/logout")
+
+    _login_as(client, "auditor1", "auditor-pass1")
+    response = client.post("/api/scans/host", json={"assets": [{"asset_type": "server", "name": "h1"}]})
+
+    assert response.status_code == 403
+
+
+def test_security_architect_can_create_scans(client: TestClient, monkeypatch) -> None:
+    monkeypatch.setattr(main, "_request_json", lambda *a, **k: {"created": 1, "scan_id": "s1", "workspace_id": "w1"})
+    client.post("/api/auth/bootstrap", json={"username": "admin", "password": "correct-horse-1"})
+    _login_as(client, "admin", "correct-horse-1")
+    client.post("/api/users", json={"username": "sa1", "password": "sa-password1", "role": "security_architect"})
+    client.post("/api/auth/logout")
+
+    _login_as(client, "sa1", "sa-password1")
+    response = client.post("/api/scans/host", json={"assets": [{"asset_type": "server", "name": "h1"}]})
+
+    assert response.status_code == 200
+
+
+def test_operator_cannot_access_admin_only_route(client: TestClient) -> None:
+    client.post("/api/auth/bootstrap", json={"username": "admin", "password": "correct-horse-1"})
+    _login_as(client, "admin", "correct-horse-1")
+    client.post("/api/users", json={"username": "operator1", "password": "operator-pass1", "role": "operator"})
+    client.post("/api/auth/logout")
+
+    _login_as(client, "operator1", "operator-pass1")
+    response = client.get("/api/users")
+
+    assert response.status_code == 403
+
+
+def test_admin_can_manage_users(client: TestClient) -> None:
+    client.post("/api/auth/bootstrap", json={"username": "admin", "password": "correct-horse-1"})
+    _login_as(client, "admin", "correct-horse-1")
+
+    create_response = client.post("/api/users", json={"username": "op1", "password": "operator-pass1", "role": "operator"})
+    assert create_response.status_code == 201
+    assert create_response.json()["role"] == "operator"
+
+    list_response = client.get("/api/users")
+    assert list_response.status_code == 200
+    usernames = {u["username"] for u in list_response.json()}
+    assert usernames == {"admin", "op1"}
+
+
+def test_create_user_rejects_duplicate_username(client: TestClient) -> None:
+    client.post("/api/auth/bootstrap", json={"username": "admin", "password": "correct-horse-1"})
+    _login_as(client, "admin", "correct-horse-1")
+
+    response = client.post("/api/users", json={"username": "admin", "password": "whatever12", "role": "operator"})
+
+    assert response.status_code == 409
+
+
+def test_api_key_bypasses_rbac(client: TestClient, monkeypatch) -> None:
+    monkeypatch.setattr(main, "QRP_API_KEY", "test-shared-key")
+    headers = {"X-API-Key": "test-shared-key"}
+    client.post("/api/auth/bootstrap", json={"username": "admin", "password": "correct-horse-1"}, headers=headers)
+
+    response = client.get("/api/users", headers=headers)
+
+    assert response.status_code == 200

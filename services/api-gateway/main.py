@@ -23,6 +23,7 @@ from tools.graph_projection.graph_snapshot_loader import (
 
 import auth
 import audit
+import agents
 import demo_seed
 import scan_jobs
 import scan_scope
@@ -154,6 +155,9 @@ scan_scope_repository = scan_scope.ScanScopeRepository()
 
 # --- Scan job model (Product v1 roadmap Phase 4 item 10, see scan_jobs.py) ---
 scan_job_repository = scan_jobs.ScanJobRepository()
+
+# --- Agent enrollment (Product v1 roadmap Phase 5 item 12, see agents.py) ---
+agent_repository = agents.AgentRepository()
 
 
 def _client_ip(request: Request) -> str | None:
@@ -397,6 +401,95 @@ def cancel_scan_job(job_id: str, request: Request, current_user: auth.User | Non
     return cancelled
 
 
+# --- Agent enrollment (Product v1 roadmap Phase 5 item 12, see agents.py) ---
+def _verify_enrollment_token(request: Request) -> agents.EnrollmentToken:
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or malformed enrollment token")
+    token = agent_repository.verify_token(header[len("Bearer "):].strip())
+    if token is None:
+        raise HTTPException(status_code=401, detail="Invalid or revoked enrollment token")
+    return token
+
+
+@app.post("/api/agent-enrollment-tokens", response_model=agents.EnrollmentTokenCreated, status_code=201)
+def create_enrollment_token(payload: agents.EnrollmentTokenCreate, request: Request, current_user: auth.User | None = Depends(get_current_user)) -> agents.EnrollmentTokenCreated:
+    """Admin/Security Architect-only (enforced by enforce_rbac below, see
+    PRIVILEGED_WRITE_PREFIXES). The raw token is shown ONCE in this response
+    -- only its hash is stored (see agents.py)."""
+    created = agent_repository.create_token(payload, created_by=current_user.id if current_user else None)
+    audit_repository.record(
+        action="agent_token.create", result="success",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        workspace_id=created.workspace_id, resource_type="agent_enrollment_token", resource_id=created.id,
+        source_ip=_client_ip(request), summary=f"label={created.label}",
+    )
+    return created
+
+
+@app.get("/api/agent-enrollment-tokens", response_model=list[agents.EnrollmentToken])
+def list_enrollment_tokens(workspace_id: str | None = Query(default=None)) -> list[agents.EnrollmentToken]:
+    return agent_repository.list_tokens(workspace_id=workspace_id)
+
+
+@app.post("/api/agent-enrollment-tokens/{token_id}/revoke", response_model=agents.EnrollmentToken)
+def revoke_enrollment_token(token_id: str, request: Request, current_user: auth.User | None = Depends(get_current_user)) -> agents.EnrollmentToken:
+    """Admin/Security Architect-only. Revoking a token cuts off both new
+    registrations and heartbeats from every agent that shares it (see
+    agents.py's module docstring)."""
+    revoked = agent_repository.revoke_token(token_id)
+    if revoked is None:
+        raise HTTPException(status_code=404, detail="Enrollment token not found")
+    audit_repository.record(
+        action="agent_token.revoke", result="success",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        workspace_id=revoked.workspace_id, resource_type="agent_enrollment_token", resource_id=token_id,
+        source_ip=_client_ip(request),
+    )
+    return revoked
+
+
+@app.post("/api/agents/register", response_model=agents.AgentRegisterResponse, status_code=201)
+def register_agent(payload: agents.AgentRegisterRequest, request: Request) -> agents.AgentRegisterResponse:
+    """Agent-facing, not human-facing -- authenticates via the enrollment
+    token (Authorization: Bearer <token>), not a user session (see
+    RBAC_PUBLIC_PATHS below and agents.py's module docstring)."""
+    token = _verify_enrollment_token(request)
+    agent = agent_repository.register_agent(token, payload)
+    audit_repository.record(
+        action="agent.register", result="success",
+        workspace_id=agent.workspace_id, resource_type="agent", resource_id=agent.id,
+        source_ip=_client_ip(request),
+        summary=f"os_type={agent.os_type} agent_version={agent.agent_version} status={agent.status}",
+    )
+    return agents.AgentRegisterResponse(agent_id=agent.id, status=agent.status, config={})
+
+
+@app.post("/api/agents/{agent_id}/heartbeat", response_model=agents.Agent)
+def agent_heartbeat(agent_id: str, request: Request) -> agents.Agent:
+    """Agent-facing -- same enrollment-token auth as register."""
+    _verify_enrollment_token(request)
+    updated = agent_repository.touch_last_seen(agent_id)
+    if updated is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return updated
+
+
+@app.get("/api/agents", response_model=list[agents.Agent])
+def list_agents(workspace_id: str | None = Query(default=None)) -> list[agents.Agent]:
+    return agent_repository.list_agents(workspace_id=workspace_id)
+
+
+@app.get("/api/agents/{agent_id}", response_model=agents.Agent)
+def get_agent(agent_id: str) -> agents.Agent:
+    agent = agent_repository.get_agent(agent_id)
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return agent
+
+
 # --- RBAC v1 (Product v1 roadmap Phase 3 item 7) ---
 # Roles: Admin, Security Architect, Operator, Auditor (docs/product-v1-roadmap.md).
 # Enforcement only activates once at least one user has been bootstrapped --
@@ -427,6 +520,7 @@ PRIVILEGED_WRITE_PREFIXES = (
     "/api/workspaces",
     "/api/scan-scopes",
     "/api/scan-jobs",
+    "/api/agent-enrollment-tokens",
     "/api/scenarios/run",
     "/api/policies/evaluate",
     "/api/fingerprint",
@@ -446,7 +540,15 @@ PRIVILEGED_WRITE_PREFIXES = (
 # matching the roadmap's own "[PASS] audit log се вижда в UI за Admin/Auditor".
 AUDIT_LOG_READ_ROLES = {"admin", "auditor"}
 AUDIT_LOG_PREFIXES = ("/api/audit-log",)
-RBAC_PUBLIC_PATHS = {"/health", "/api/auth/bootstrap", "/api/auth/login"}
+RBAC_PUBLIC_PATHS = {"/health", "/api/auth/bootstrap", "/api/auth/login", "/api/agents/register"}
+
+
+def _is_agent_heartbeat_path(path: str) -> bool:
+    # /api/agents/{agent_id}/heartbeat -- can't be an exact RBAC_PUBLIC_PATHS
+    # entry (path param), and must NOT make all of /api/agents/ public (that
+    # would also expose GET /api/agents -- the human-facing agent list/detail
+    # routes, which stay behind normal RBAC).
+    return path.startswith("/api/agents/") and path.endswith("/heartbeat")
 
 
 def _log_access_denied(request: Request, current_user: auth.User | None, reason: str) -> None:
@@ -464,7 +566,7 @@ def _log_access_denied(request: Request, current_user: auth.User | None, reason:
 
 @app.middleware("http")
 async def enforce_rbac(request: Request, call_next):
-    if request.method == "OPTIONS" or request.url.path in RBAC_PUBLIC_PATHS:
+    if request.method == "OPTIONS" or request.url.path in RBAC_PUBLIC_PATHS or _is_agent_heartbeat_path(request.url.path):
         return await call_next(request)
     if auth_repository.count_users() == 0:
         return await call_next(request)  # setup mode: no admin bootstrapped yet

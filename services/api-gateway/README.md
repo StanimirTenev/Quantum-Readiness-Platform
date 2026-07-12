@@ -147,6 +147,30 @@
   worker reuse the exact same auth/audit/scan-scope repositories and evidence-ingestion pipeline
   the API uses at request time -- see `worker.py`'s module docstring.
 
+## Agent enrollment (Product v1 roadmap Phase 5 item 12)
+- `POST /api/agent-enrollment-tokens {workspace_id, label?}` (Admin/Security Architect-only) --
+  creates a fleet-install token for a workspace; the raw token is shown **once**, in this
+  response only (`token`), never again -- only its hash is stored. `GET
+  /api/agent-enrollment-tokens?workspace_id=` (any authenticated role) never exposes the raw
+  token. `POST /api/agent-enrollment-tokens/{id}/revoke` (Admin/Security Architect-only) cuts
+  off both new registrations and heartbeats from every agent sharing that token (it's a fleet
+  credential, not a per-agent secret).
+- `POST /api/agents/register {hostname, os_type, agent_version, capabilities?}` -- agent-facing,
+  not human-facing: authenticates via `Authorization: Bearer <enrollment-token>`, bypassing
+  session/RBAC entirely (works even before any admin is bootstrapped). Returns
+  `{agent_id, status, config}`. `hostname` is hashed before storage (sha256), never kept raw.
+  An `agent_version` below `agents.MIN_SUPPORTED_AGENT_VERSION` ("1.0.0") is still registered
+  but flagged `status="unsupported_version"` instead of `"active"`.
+- `POST /api/agents/{agent_id}/heartbeat` -- same enrollment-token auth as register; updates
+  `last_seen`. `GET /api/agents?workspace_id=`, `GET /api/agents/{id}` -- human-facing, stay
+  behind normal RBAC (any authenticated role).
+- Evidence ingestion (`POST /api/scans/*`) is not yet gated by agent identity -- none of this
+  task's acceptance criteria need it, and it's a much larger, separate concern (roadmap item 13,
+  Agent Security, deals with the token/evidence-handling side of that). See `agents.py`'s
+  module docstring for the full scoping rationale.
+- Shares api-gateway's single Alembic migration history -- `agent_enrollment_tokens`/`agents`
+  are migration `0006`.
+
 ## Inputs / outputs
 - Input: JSON payloads for scans, scenario runs, and copilot requests.
 - Output: JSON passthrough responses from downstream services.

@@ -1,24 +1,29 @@
-"""Scan job model (Product v1 roadmap Phase 4 item 10).
+"""Scan job model + queue (Product v1 roadmap Phase 4 items 10-11).
 
 Long-running scans should not execute directly inside the API request --
-POST /api/scan-jobs queues a job and returns immediately (status=queued);
-main.py runs it as a FastAPI background task right after the response is
-sent (status transitions queued -> running -> succeeded/failed), reusing
-the exact same evidence-ingestion pipeline (_ingest_scan, including scan
-scope enforcement from scan_scope.py and audit logging) that
-/api/scans/{host,network,repo} already use synchronously.
+POST /api/scan-jobs (main.py) queues a job and returns immediately
+(status=queued) without running anything itself. A separate worker.py
+process (own docker-compose service, roadmap item 11's "Postgres-backed
+queue + one worker container") polls scan_jobs for status='queued', claims
+one (claim_next_queued_job, race-safe via mark_running's conditional
+UPDATE), and runs it through the exact same evidence-ingestion pipeline
+(_ingest_scan in main.py, including scan scope enforcement from
+scan_scope.py and audit logging) that /api/scans/{host,network,repo}
+already use synchronously: queued -> running -> succeeded/failed.
 
-This is deliberately an in-process background task, not a separate worker
-container -- that's roadmap item 11 (Worker Queue v1), a separate next
-task whose own acceptance criteria ("[PASS] worker стартира с Docker
-Compose", "[PASS] retry/failed state работи") this task doesn't need to
-satisfy yet. Cancellation is reliable while a job is still "queued"
-(checked cooperatively before the worker starts); once "running", jobs in
-this implementation finish near-instantly (they wrap the same fast
-evidence-ingestion call the synchronous routes already make), so
-mid-flight cancellation is best-effort rather than a hard guarantee -- true
-preemptive cancellation of a long-running operation is Worker Queue v1's
-concern, once jobs can actually run long.
+Retry: on failure, record_failure_and_maybe_retry re-queues the job (back
+to status='queued', retry_count incremented) up to SCAN_JOB_MAX_RETRIES
+(env-configurable, see worker.py) attempts before giving up and marking it
+permanently 'failed'. No backoff delay between attempts -- the worker's own
+poll interval provides natural spacing; no acceptance criterion for this
+task needs exponential backoff.
+
+Cancellation is reliable while a job is still "queued" (checked
+cooperatively via mark_running before the worker starts it); a job's own
+evidence-ingestion call is typically fast, so mid-flight cancellation of an
+already-"running" job is best-effort rather than a hard preemptive
+guarantee -- true preemption of a genuinely long-running operation isn't
+needed by any current evidence source.
 
 Same dual SQLite/Postgres model as auth.py (see tools/db_compat.py).
 Shares api-gateway's single Alembic migration history (alembic_version_gateway).
@@ -59,6 +64,7 @@ class ScanJob(BaseModel):
     scan_type: str
     targets: list[str]
     status: JobStatus
+    retry_count: int = 0
     created_by: Optional[str] = None
     created_at: str
     started_at: Optional[str] = None
@@ -75,6 +81,7 @@ def _row_to_job(row: Any) -> ScanJob:
         scan_type=data["scan_type"],
         targets=json.loads(data["targets"] or "[]"),
         status=data["status"],
+        retry_count=data.get("retry_count") or 0,
         created_by=data.get("created_by"),
         created_at=data["created_at"],
         started_at=data.get("started_at"),
@@ -105,6 +112,7 @@ class ScanJobRepository:
                     scenario TEXT NOT NULL,
                     targets TEXT,
                     status TEXT NOT NULL,
+                    retry_count INTEGER NOT NULL DEFAULT 0,
                     created_by TEXT,
                     created_at TEXT NOT NULL,
                     started_at TEXT,
@@ -207,6 +215,46 @@ class ScanJobRepository:
             )
             self._append_log(connection, job_id, log_line)
             connection.commit()
+
+    def claim_next_queued_job(self) -> ScanJob | None:
+        """Atomically claims the oldest queued job for a worker to run --
+        race-safe via mark_running's conditional UPDATE (WHERE status =
+        'queued'), so multiple worker processes never double-process the
+        same job. Returns None if nothing is queued."""
+        with self._connect() as connection:
+            rows = connection.execute(
+                "SELECT id FROM scan_jobs WHERE status = 'queued' ORDER BY created_at ASC LIMIT 10"
+            ).fetchall()
+        for row in rows:
+            job_id = dict(row)["id"]
+            if self.mark_running(job_id):
+                return self.get_job(job_id)
+        return None
+
+    def record_failure_and_maybe_retry(self, job_id: str, error_detail: str, max_retries: int) -> bool:
+        """Returns True if the job was re-queued for another attempt, False
+        if it was marked permanently 'failed' (retry_count exceeded
+        max_retries)."""
+        job = self.get_job(job_id)
+        if job is None:
+            return False
+        new_retry_count = job.retry_count + 1
+        with self._connect() as connection:
+            if new_retry_count <= max_retries:
+                connection.execute(
+                    "UPDATE scan_jobs SET status = 'queued', retry_count = ?, started_at = NULL WHERE id = ? AND status = 'running'",
+                    (new_retry_count, job_id),
+                )
+                self._append_log(connection, job_id, f"attempt {new_retry_count} failed: {error_detail} -- retrying")
+                connection.commit()
+                return True
+            connection.execute(
+                "UPDATE scan_jobs SET status = 'failed', retry_count = ?, finished_at = ?, result_summary = ? WHERE id = ? AND status = 'running'",
+                (new_retry_count, datetime.now(UTC).isoformat(), error_detail, job_id),
+            )
+            self._append_log(connection, job_id, f"attempt {new_retry_count} failed: {error_detail} -- giving up after {max_retries} retries")
+            connection.commit()
+        return False
 
     def cancel_job(self, job_id: str) -> ScanJob | None:
         """Only succeeds while the job is still queued or running -- a

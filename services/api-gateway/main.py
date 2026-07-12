@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from urllib import error, parse, request
 
-from fastapi import BackgroundTasks, Body, Cookie, Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi import Body, Cookie, Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -304,14 +304,19 @@ def list_scan_scopes(workspace_id: str | None = Query(default=None)) -> list[sca
     return scan_scope_repository.list_scopes(workspace_id=workspace_id)
 
 
-# --- Scan job model (Product v1 roadmap Phase 4 item 10, see scan_jobs.py) ---
-def _run_scan_job(job_id: str, scan_type: str, workspace_id: str | None, actor_user_id: str | None, actor_role: str | None) -> None:
-    """Runs as a FastAPI background task, after the response to POST
-    /api/scan-jobs has already been sent -- see scan_jobs.py's module
-    docstring for why this is in-process rather than a separate worker
-    container (that's roadmap item 11, Worker Queue v1, a separate task)."""
-    if not scan_job_repository.mark_running(job_id):
-        return  # already cancelled before the worker got to it
+# --- Scan job model + queue (Product v1 roadmap Phase 4 items 10-11) ---
+# POST /api/scan-jobs only enqueues (status=queued) -- it does not run anything
+# itself, so the API never blocks on scan start. A separate scan-worker
+# container (worker.py, own docker-compose service) polls scan_jobs for
+# queued work and calls run_scan_job below to actually process it -- see
+# scan_jobs.py's module docstring for the full design (claim/retry logic).
+MAX_SCAN_JOB_RETRIES = int(os.getenv("SCAN_JOB_MAX_RETRIES", "2"))
+
+
+def run_scan_job(job_id: str, scan_type: str, workspace_id: str | None, actor_user_id: str | None, actor_role: str | None) -> None:
+    """Called by worker.py for a job claim_next_queued_job() has already
+    transitioned to 'running'. On failure, retries (re-queues) up to
+    MAX_SCAN_JOB_RETRIES times before giving up."""
     job_input = scan_job_repository.get_job_input(job_id)
     if job_input is None:
         return
@@ -330,23 +335,22 @@ def _run_scan_job(job_id: str, scan_type: str, workspace_id: str | None, actor_u
             summary=f"scan_job={job_id} source={scan_type} created={result.get('created')}",
         )
     except HTTPException as exc:
-        scan_job_repository.mark_finished(
-            job_id, status="failed", result_summary=str(exc.detail), log_line=f"failed: {exc.detail}",
-        )
+        retrying = scan_job_repository.record_failure_and_maybe_retry(job_id, str(exc.detail), MAX_SCAN_JOB_RETRIES)
         audit_repository.record(
             action="scan.ingest", result="failure",
             actor_user_id=actor_user_id, actor_role=actor_role,
             workspace_id=workspace_id, resource_type="scan", resource_id=job_id,
-            summary=f"scan_job={job_id} source={scan_type}: {exc.detail}",
+            summary=f"scan_job={job_id} source={scan_type}: {exc.detail} ({'retrying' if retrying else 'gave up'})",
         )
 
 
 @app.post("/api/scan-jobs", response_model=scan_jobs.ScanJob, status_code=202)
-def create_scan_job(payload: scan_jobs.ScanJobCreate, request: Request, background_tasks: BackgroundTasks, current_user: auth.User | None = Depends(get_current_user)) -> scan_jobs.ScanJob:
+def create_scan_job(payload: scan_jobs.ScanJobCreate, request: Request, current_user: auth.User | None = Depends(get_current_user)) -> scan_jobs.ScanJob:
     """Admin/Security Architect-only (enforced by enforce_rbac below, see
     PRIVILEGED_WRITE_PREFIXES) -- queues a scan (status=queued) and returns
-    immediately; a background task performs the actual evidence ingestion
-    (including scan scope enforcement) and updates status/logs/result_summary."""
+    immediately; the scan-worker container (see worker.py) picks it up,
+    performs the actual evidence ingestion (including scan scope
+    enforcement), and updates status/logs/result_summary."""
     if not payload.targets:
         payload = payload.model_copy(update={"targets": _evidence_targets(payload.payload)})
     job = scan_job_repository.create_job(payload, created_by=current_user.id if current_user else None)
@@ -356,10 +360,6 @@ def create_scan_job(payload: scan_jobs.ScanJobCreate, request: Request, backgrou
         actor_role=current_user.role if current_user else None,
         workspace_id=job.workspace_id, resource_type="scan_job", resource_id=job.id,
         source_ip=_client_ip(request), summary=f"scan_type={job.scan_type} targets={job.targets}",
-    )
-    background_tasks.add_task(
-        _run_scan_job, job.id, job.scan_type, job.workspace_id,
-        current_user.id if current_user else None, current_user.role if current_user else None,
     )
     return job
 

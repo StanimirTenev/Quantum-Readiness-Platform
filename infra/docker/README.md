@@ -103,6 +103,10 @@ the default local/CI path, fully unaffected by any of the above.
   against an already-migrated database is a no-op (idempotent). See
   `docs/adr/0001-product-v1-architecture.md` and
   `scripts/run_db_migration_smoke.sh`.
+- `scan-worker` (Product v1 roadmap Phase 4 item 11) polls `scan_jobs` (the same shared Postgres
+  database) for queued scans created via `POST /api/scan-jobs` and runs them -- no published
+  port or healthcheck, since it's not an HTTP service and nothing else `depends_on` it. See
+  `services/api-gateway/worker.py` and `services/api-gateway/README.md`.
 - `graph-service`, `copilot-service`, `retrieval-service`, and `api-gateway` read the repo's
   already-committed `reports/graph/latest/graph-snapshot.json` /
   `reports/doc-index/latest/doc-index.json` via bind mounts landed at the exact path each

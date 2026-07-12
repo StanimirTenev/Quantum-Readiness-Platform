@@ -122,14 +122,30 @@
   `logs` (newline-joined) and `result_summary` fill in as the job progresses.
 - `POST /api/scan-jobs/{id}/cancel` (Admin/Security Architect-only) -- succeeds while `queued`
   or `running`; `409` once terminal (`succeeded`/`failed`/`cancelled`).
-- A FastAPI background task -- not yet a separate worker container -- picks up the job right
-  after the response is sent and runs it through the exact same `_ingest_scan` pipeline
-  `/api/scans/{scan_type}` uses synchronously (scan scope enforcement included): `queued` ->
-  `running` -> `succeeded`/`failed`. A separate worker container with retry/failed-state
-  handling is roadmap item 11 (Worker Queue v1), a later task -- see `scan_jobs.py`'s module
-  docstring for the full scoping rationale, including why mid-flight cancellation of a
-  `running` job is best-effort (jobs finish near-instantly in this implementation).
-- Shares api-gateway's single Alembic migration history -- `scan_jobs` is migration `0004`.
+- The API itself does not process jobs -- see "Worker queue" below (roadmap item 11) for the
+  separate container that actually picks up `queued` work: `queued` -> `running` ->
+  `succeeded`/`failed`, running it through the exact same `_ingest_scan` pipeline
+  `/api/scans/{scan_type}` uses synchronously (scan scope enforcement included). Mid-flight
+  cancellation of a `running` job is best-effort (jobs finish near-instantly in this
+  implementation) -- see `scan_jobs.py`'s module docstring.
+- Shares api-gateway's single Alembic migration history -- `scan_jobs` is migration `0004`
+  (`retry_count` is migration `0005`).
+
+## Worker queue v1 (Product v1 roadmap Phase 4 item 11)
+- `worker.py`, its own `docker-compose` service (`scan-worker`, no published port/healthcheck --
+  it's not an HTTP service) -- the roadmap's own v1 recommendation: "Postgres-backed queue + one
+  worker container". Polls `scan_jobs` for `status='queued'` work every
+  `SCAN_WORKER_POLL_INTERVAL_SECONDS` (default `2`), claims one at a time
+  (`claim_next_queued_job` -- race-safe, so running more than one worker container is safe too,
+  not just tolerated), and runs it via `main.run_scan_job`.
+- Retry: on failure, the job is re-queued (`retry_count` incremented) up to
+  `SCAN_JOB_MAX_RETRIES` (default `2`, env-configurable on `api-gateway`/`scan-worker`) attempts
+  before giving up and marking it permanently `failed` with the final error in
+  `result_summary`. No backoff delay between attempts -- the worker's own poll interval provides
+  natural spacing.
+- Importing `main.py` from `worker.py` (rather than duplicating its logic) is what lets the
+  worker reuse the exact same auth/audit/scan-scope repositories and evidence-ingestion pipeline
+  the API uses at request time -- see `worker.py`'s module docstring.
 
 ## Inputs / outputs
 - Input: JSON payloads for scans, scenario runs, and copilot requests.

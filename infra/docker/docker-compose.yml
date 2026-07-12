@@ -312,6 +312,27 @@ services:
         condition: service_healthy
     healthcheck: *healthcheck
 
+  # Worker Queue v1 (roadmap item 11): polls scan_jobs (shared Postgres DB,
+  # see services/api-gateway/scan_jobs.py) for queued work and runs it --
+  # see services/api-gateway/worker.py. No published port/healthcheck: it's
+  # not an HTTP service and nothing else depends_on it.
+  scan-worker:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/api-gateway
+    command: ["python", "worker.py"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-qrp}:${POSTGRES_PASSWORD:-qrp}@postgres:5432/${POSTGRES_DB:-qrp}
+      INVENTORY_SERVICE_URL: http://inventory-service:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      gateway-migrate:
+        condition: service_completed_successfully
+      inventory-service:
+        condition: service_healthy
+
   web-ui:
     image: python:3.12-slim
     working_dir: /app

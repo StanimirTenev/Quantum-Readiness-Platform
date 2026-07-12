@@ -22,6 +22,7 @@ from tools.graph_projection.graph_snapshot_loader import (
 )
 
 import auth
+import audit
 import demo_seed
 
 app = FastAPI(title="API Gateway", version="0.2.0")
@@ -143,6 +144,13 @@ SESSION_COOKIE_NAME = "qrp_session"
 # gets the cookie back from the browser.
 SESSION_COOKIE_SECURE = os.getenv("QRP_SESSION_COOKIE_SECURE", "").strip().lower() in ("1", "true", "yes")
 
+# --- Audit log foundation (Product v1 roadmap Phase 3 item 8, see audit.py) ---
+audit_repository = audit.AuditRepository()
+
+
+def _client_ip(request: Request) -> str | None:
+    return request.client.host if request.client else None
+
 
 def get_current_user(qrp_session: str | None = Cookie(default=None)) -> auth.User | None:
     if not qrp_session:
@@ -157,20 +165,30 @@ def _require_current_user(current_user: auth.User | None) -> auth.User:
 
 
 @app.post("/api/auth/bootstrap", response_model=auth.User, status_code=201)
-def bootstrap_admin(payload: auth.BootstrapRequest) -> auth.User:
+def bootstrap_admin(payload: auth.BootstrapRequest, request: Request) -> auth.User:
     """Creates the first Admin user -- only while no users exist yet. Run this
     immediately after first deploying the stack, before exposing it beyond a
     trusted network, so nobody else can win the race to become the first
     admin (see services/api-gateway/README.md)."""
     if auth_repository.count_users() > 0:
         raise HTTPException(status_code=409, detail="An admin user already exists")
-    return auth_repository.create_user(payload.username, payload.password, role="admin")
+    user = auth_repository.create_user(payload.username, payload.password, role="admin")
+    audit_repository.record(
+        action="user.create", result="success", actor_user_id=user.id, actor_role=user.role,
+        resource_type="user", resource_id=user.id, source_ip=_client_ip(request),
+        summary=f"bootstrap admin username={user.username}",
+    )
+    return user
 
 
 @app.post("/api/auth/login", response_model=auth.User)
-def login(payload: auth.LoginRequest, response: Response) -> auth.User:
+def login(payload: auth.LoginRequest, response: Response, request: Request) -> auth.User:
     user = auth_repository.verify_credentials(payload.username, payload.password)
     if user is None:
+        audit_repository.record(
+            action="login", result="failure", source_ip=_client_ip(request),
+            summary=f"username={payload.username}",
+        )
         raise HTTPException(status_code=401, detail="Invalid username or password")
     token = auth_repository.create_session(user.id)
     response.set_cookie(
@@ -181,13 +199,23 @@ def login(payload: auth.LoginRequest, response: Response) -> auth.User:
         secure=SESSION_COOKIE_SECURE,
         max_age=int(auth.SESSION_TTL.total_seconds()),
     )
+    audit_repository.record(
+        action="login", result="success", actor_user_id=user.id, actor_role=user.role,
+        resource_type="user", resource_id=user.id, source_ip=_client_ip(request),
+    )
     return user
 
 
 @app.post("/api/auth/logout", status_code=204, response_model=None)
-def logout(response: Response, qrp_session: str | None = Cookie(default=None)) -> None:
+def logout(response: Response, request: Request, qrp_session: str | None = Cookie(default=None)) -> None:
     if qrp_session:
+        user = auth_repository.get_session_user(qrp_session)
         auth_repository.delete_session(qrp_session)
+        if user is not None:
+            audit_repository.record(
+                action="logout", result="success", actor_user_id=user.id, actor_role=user.role,
+                resource_type="user", resource_id=user.id, source_ip=_client_ip(request),
+            )
     response.delete_cookie(SESSION_COOKIE_NAME)
 
 
@@ -197,11 +225,21 @@ def me(current_user: auth.User | None = Depends(get_current_user)) -> auth.User:
 
 
 @app.post("/api/auth/password", status_code=204, response_model=None)
-def change_password(payload: auth.PasswordChangeRequest, current_user: auth.User | None = Depends(get_current_user)) -> None:
+def change_password(payload: auth.PasswordChangeRequest, request: Request, current_user: auth.User | None = Depends(get_current_user)) -> None:
     user = _require_current_user(current_user)
     if auth_repository.verify_credentials(user.username, payload.current_password) is None:
+        audit_repository.record(
+            action="user.update", result="failure", actor_user_id=user.id, actor_role=user.role,
+            resource_type="user", resource_id=user.id, source_ip=_client_ip(request),
+            summary="password change: wrong current password",
+        )
         raise HTTPException(status_code=401, detail="Current password is incorrect")
     auth_repository.update_password(user.id, payload.new_password)
+    audit_repository.record(
+        action="user.update", result="success", actor_user_id=user.id, actor_role=user.role,
+        resource_type="user", resource_id=user.id, source_ip=_client_ip(request),
+        summary="password changed",
+    )
 
 
 @app.get("/api/users", response_model=list[auth.User])
@@ -211,13 +249,28 @@ def list_users() -> list[auth.User]:
 
 
 @app.post("/api/users", response_model=auth.User, status_code=201)
-def create_user(payload: auth.UserCreateRequest) -> auth.User:
+def create_user(payload: auth.UserCreateRequest, request: Request, current_user: auth.User | None = Depends(get_current_user)) -> auth.User:
     """Admin-only (enforced by enforce_rbac below, see ADMIN_ONLY_PREFIXES) --
     lets an Admin onboard the other three roles once the first admin exists
     (bootstrap only ever creates one Admin, see /api/auth/bootstrap)."""
     if auth_repository.get_user_by_username(payload.username) is not None:
         raise HTTPException(status_code=409, detail="Username already exists")
-    return auth_repository.create_user(payload.username, payload.password, role=payload.role)
+    user = auth_repository.create_user(payload.username, payload.password, role=payload.role)
+    audit_repository.record(
+        action="user.create", result="success",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        resource_type="user", resource_id=user.id, source_ip=_client_ip(request),
+        summary=f"created username={user.username} role={user.role}",
+    )
+    return user
+
+
+@app.get("/api/audit-log", response_model=list[audit.AuditEvent])
+def list_audit_log(limit: int = Query(default=200, le=1000)) -> list[audit.AuditEvent]:
+    """Admin/Auditor-only (enforced by enforce_rbac below, see
+    AUDIT_LOG_READ_ROLES) -- read-only, no route exists to mutate audit events."""
+    return audit_repository.list_events(limit=limit)
 
 
 # --- RBAC v1 (Product v1 roadmap Phase 3 item 7) ---
@@ -262,7 +315,25 @@ PRIVILEGED_WRITE_PREFIXES = (
     "/api/integrations/dry-run",
     "/api/copilot/query",
 )
+# Audit Log Foundation (roadmap item 8): narrower than the general "any
+# authenticated role can GET" default -- only Admin/Auditor may read it,
+# matching the roadmap's own "[PASS] audit log се вижда в UI за Admin/Auditor".
+AUDIT_LOG_READ_ROLES = {"admin", "auditor"}
+AUDIT_LOG_PREFIXES = ("/api/audit-log",)
 RBAC_PUBLIC_PATHS = {"/health", "/api/auth/bootstrap", "/api/auth/login"}
+
+
+def _log_access_denied(request: Request, current_user: auth.User | None, reason: str) -> None:
+    audit_repository.record(
+        action="access_denied",
+        result="failure",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        resource_type="route",
+        resource_id=request.url.path,
+        source_ip=_client_ip(request),
+        summary=f"{request.method} {request.url.path}: {reason}",
+    )
 
 
 @app.middleware("http")
@@ -277,46 +348,75 @@ async def enforce_rbac(request: Request, call_next):
     token = request.cookies.get(SESSION_COOKIE_NAME)
     current_user = auth_repository.get_session_user(token) if token else None
     if current_user is None:
+        _log_access_denied(request, None, "not authenticated")
         return JSONResponse(status_code=401, content={"detail": "Not authenticated"}, headers=_cors_headers(request))
 
     path = request.url.path
     if any(path.startswith(prefix) for prefix in ADMIN_ONLY_PREFIXES) and current_user.role != "admin":
+        _log_access_denied(request, current_user, "admin role required")
         return JSONResponse(status_code=403, content={"detail": "Admin role required"}, headers=_cors_headers(request))
+
+    if any(path.startswith(prefix) for prefix in AUDIT_LOG_PREFIXES) and current_user.role not in AUDIT_LOG_READ_ROLES:
+        _log_access_denied(request, current_user, "admin or auditor role required")
+        return JSONResponse(status_code=403, content={"detail": "Admin or Auditor role required"}, headers=_cors_headers(request))
 
     if request.method not in ("GET", "HEAD") and any(path.startswith(prefix) for prefix in PRIVILEGED_WRITE_PREFIXES):
         if current_user.role not in PRIVILEGED_WRITE_ROLES:
+            _log_access_denied(request, current_user, "insufficient role for this action")
             return JSONResponse(status_code=403, content={"detail": "Insufficient role for this action"}, headers=_cors_headers(request))
 
     return await call_next(request)
 
 
+def _audit_scan_ingest(request: Request, current_user: auth.User | None, source: str, result: dict[str, Any]) -> None:
+    audit_repository.record(
+        action="scan.ingest",
+        result="success",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        workspace_id=result.get("workspace_id"),
+        resource_type="scan",
+        resource_id=result.get("scan_id"),
+        source_ip=_client_ip(request),
+        summary=f"source={source} created={result.get('created')}",
+    )
+
+
 @app.post("/api/scans/host")
-def ingest_host_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None)) -> dict[str, Any]:
-    return _ingest_scan("host", payload, scenario, workspace_id=workspace_id)
+def ingest_host_scan(payload: dict[str, Any], request: Request, scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None), current_user: auth.User | None = Depends(get_current_user)) -> dict[str, Any]:
+    result = _ingest_scan("host", payload, scenario, workspace_id=workspace_id)
+    _audit_scan_ingest(request, current_user, "host", result)
+    return result
 
 
 @app.post("/api/scans/network")
-def ingest_network_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None)) -> dict[str, Any]:
-    return _ingest_scan("network", payload, scenario, workspace_id=workspace_id)
+def ingest_network_scan(payload: dict[str, Any], request: Request, scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None), current_user: auth.User | None = Depends(get_current_user)) -> dict[str, Any]:
+    result = _ingest_scan("network", payload, scenario, workspace_id=workspace_id)
+    _audit_scan_ingest(request, current_user, "network", result)
+    return result
 
 
 @app.post("/api/scans/repo")
-def ingest_repo_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None)) -> dict[str, Any]:
-    return _ingest_scan("repo", payload, scenario, workspace_id=workspace_id)
+def ingest_repo_scan(payload: dict[str, Any], request: Request, scenario: str = Query(default="public_timeline"), workspace_id: str | None = Query(default=None), current_user: auth.User | None = Depends(get_current_user)) -> dict[str, Any]:
+    result = _ingest_scan("repo", payload, scenario, workspace_id=workspace_id)
+    _audit_scan_ingest(request, current_user, "repo", result)
+    return result
 
 
 @app.post("/api/scans/windows")
-def ingest_windows_scan(payload: dict[str, Any], scenario: str = Query(default="public_timeline")) -> dict[str, Any]:
+def ingest_windows_scan(payload: dict[str, Any], request: Request, scenario: str = Query(default="public_timeline"), current_user: auth.User | None = Depends(get_current_user)) -> dict[str, Any]:
     """Persist a Windows host evidence document (from the windows-host-agent).
 
     The raw redacted/aggregate document is forwarded as-is; the inventory service
     maps it to the ingest contract (source is fixed to "host" there)."""
     endpoint = f"{INVENTORY_BASE_URL}/scans/ingest/windows?{parse.urlencode({'scenario': scenario, 'auto_score': 'true'})}"
-    return _request_json("POST", endpoint, payload=payload)
+    result = _request_json("POST", endpoint, payload=payload)
+    _audit_scan_ingest(request, current_user, "windows", result)
+    return result
 
 
 @app.post("/api/demo/load")
-def demo_load() -> dict[str, Any]:
+def demo_load(request: Request, current_user: auth.User | None = Depends(get_current_user)) -> dict[str, Any]:
     """Seeds the small, realistic demo dataset (host/network/repo evidence +
     a vendor document) into the currently-running stack for the web-ui's
     "Load Demo" button. See demo_seed.py. Best-effort: each step is recorded
@@ -369,6 +469,17 @@ def demo_load() -> dict[str, Any]:
     steps.append({"step": "graph_snapshot", "status": "ok" if graph_ok else "error", "detail": graph_message})
 
     overall = "ok" if all(s["status"] in ("ok", "skipped") for s in steps) else "partial"
+    audit_repository.record(
+        action="scan.ingest",
+        result="success" if overall == "ok" else "failure",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        workspace_id=workspace_id,
+        resource_type="workspace",
+        resource_id=workspace_id,
+        source_ip=_client_ip(request),
+        summary=f"demo load: {overall}",
+    )
     return {"overall": overall, "steps": steps, "workspace_id": workspace_id}
 
 
@@ -424,8 +535,16 @@ def get_asset_history(asset_id: str) -> dict[str, Any]:
 
 # --- Workspace model (services/inventory-service/README.md) ---
 @app.post("/api/workspaces")
-def create_workspace(payload: dict[str, Any] = Body(default_factory=dict)) -> dict[str, Any]:
-    return _request_json("POST", f"{INVENTORY_BASE_URL}/workspaces", payload=payload)
+def create_workspace(request: Request, payload: dict[str, Any] = Body(default_factory=dict), current_user: auth.User | None = Depends(get_current_user)) -> dict[str, Any]:
+    result = _request_json("POST", f"{INVENTORY_BASE_URL}/workspaces", payload=payload)
+    audit_repository.record(
+        action="workspace.create", result="success",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        workspace_id=result.get("id"), resource_type="workspace", resource_id=result.get("id"),
+        source_ip=_client_ip(request),
+    )
+    return result
 
 
 @app.get("/api/workspaces")
@@ -440,8 +559,16 @@ def get_workspace(workspace_id: str) -> dict[str, Any]:
 
 
 @app.post("/api/workspaces/{workspace_id}/reports")
-def create_workspace_report(workspace_id: str, payload: dict[str, Any] = Body(default_factory=dict)) -> dict[str, Any]:
-    return _request_json("POST", f"{INVENTORY_BASE_URL}/workspaces/{workspace_id}/reports", payload=payload)
+def create_workspace_report(workspace_id: str, request: Request, payload: dict[str, Any] = Body(default_factory=dict), current_user: auth.User | None = Depends(get_current_user)) -> dict[str, Any]:
+    result = _request_json("POST", f"{INVENTORY_BASE_URL}/workspaces/{workspace_id}/reports", payload=payload)
+    audit_repository.record(
+        action="report.generate", result="success",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        workspace_id=workspace_id, resource_type="report", resource_id=result.get("id"),
+        source_ip=_client_ip(request),
+    )
+    return result
 
 
 @app.get("/api/reports/{report_id}")

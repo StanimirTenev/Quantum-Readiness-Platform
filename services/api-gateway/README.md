@@ -51,11 +51,42 @@
 - Set `QRP_SESSION_COOKIE_SECURE=true` once this stack sits behind HTTPS (e.g. the `infra/docker`
   `public` Compose profile) -- off by default so local-dev `http://` still gets the cookie back.
 - This is real per-user login, alongside (not replacing) `QRP_API_KEY` above -- see
-  `docs/adr/0001-product-v1-architecture.md`. It does not yet gate any route by role; RBAC route
-  enforcement and the audit log are separate, later roadmap tasks (Phase 3 items 7-8). See `auth.py`.
+  `docs/adr/0001-product-v1-architecture.md`. See `auth.py`.
 - Users/sessions live in the same dual SQLite (dev/test)/Postgres (production, via
   `services/api-gateway/migrations/`) model as inventory-service/workflow-service -- see
   `tools/db_compat.py` and `services/inventory-service/README.md`.
+
+## RBAC v1 (Product v1 roadmap Phase 3 item 7)
+- Four roles: Admin, Security Architect, Operator, Auditor (`auth.User.role`). `GET/POST
+  /api/users` (Admin-only) is the only way to onboard the other three roles -- bootstrap always
+  creates an Admin.
+- Enforcement (`enforce_rbac` middleware in `main.py`) only activates once at least one user has
+  been bootstrapped -- before that the gateway stays open, matching `QRP_API_KEY`/`QRP_DEMO_MODE`'s
+  own "unconfigured = open for local dev" default, so every local-dev/CI/demo/smoke-test flow
+  that never bootstraps an admin keeps working unchanged.
+- Read (`GET`/`HEAD`) is open to any authenticated role. Mutating routes need Admin or Security
+  Architect (scan ingestion, workspace/report creation, compute/analysis routes); `/api/users`
+  needs Admin; `/api/audit-log` (below) needs Admin or Auditor.
+- A valid `QRP_API_KEY` header bypasses RBAC entirely -- a separate, orthogonal machine-trust
+  mechanism, not tied to any one human role.
+- Operator has no route-level distinction from Auditor yet (both read-only): workflow-service's
+  task/approval routes aren't proxied through this gateway (roadmap item 18, Migration Task
+  Workflow, is a separate later phase).
+
+## Audit log (Product v1 roadmap Phase 3 item 8)
+- `GET /api/audit-log?limit=` (Admin/Auditor-only, default `limit=200`, max `1000`) -- read-only,
+  most recent first. No route exists to mutate or delete audit events.
+- Written for: login (success and failure), logout, user creation (bootstrap and
+  `POST /api/users`), password change, workspace creation, scan ingestion (`/api/scans/*` and
+  `/api/demo/load`), report generation, and every request `enforce_rbac` denies (`401`/`403`,
+  `action="access_denied"`).
+- Each event records who (`actor_user_id`/`actor_role`, null for unauthenticated denials), what
+  (`action`, `resource_type`/`resource_id`), where from (`source_ip`), a `request_id`, a short
+  best-effort `summary` (not a full field-level before/after diff -- that would need hooks into
+  every downstream service's own mutation logic, not just the gateway), and `result`
+  (`success`/`failure`). See `audit.py`.
+- Shares api-gateway's single Alembic migration history (`alembic_version_gateway`) --
+  `audit_events` is migration `0002` there, not a separate one.
 
 ## Inputs / outputs
 - Input: JSON payloads for scans, scenario runs, and copilot requests.

@@ -27,10 +27,10 @@ services:
 
   # One-shot Alembic migration runners (see services/*/migrations/,
   # docs/adr/0001-product-v1-architecture.md) -- inventory-service/
-  # workflow-service wait on these completing successfully before starting,
-  # so production mode never relies on implicit schema creation. Each keeps
-  # its own version_table (alembic_version_inventory/_workflow) since both
-  # share one physical Postgres database.
+  # workflow-service/api-gateway wait on these completing successfully before
+  # starting, so production mode never relies on implicit schema creation.
+  # Each keeps its own version_table (alembic_version_inventory/_workflow/
+  # _gateway) since all three share one physical Postgres database.
   inventory-migrate:
     build:
       <<: *build-common
@@ -49,6 +49,19 @@ services:
       <<: *build-common
       args:
         SERVICE_DIR: services/workflow-service
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-qrp}:${POSTGRES_PASSWORD:-qrp}@postgres:5432/${POSTGRES_DB:-qrp}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  gateway-migrate:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/api-gateway
     command: ["alembic", "upgrade", "head"]
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-qrp}:${POSTGRES_PASSWORD:-qrp}@postgres:5432/${POSTGRES_DB:-qrp}
@@ -231,6 +244,7 @@ services:
       # infra/docker/README.md.
       - "127.0.0.1:8000:8000"
     environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-qrp}:${POSTGRES_PASSWORD:-qrp}@postgres:5432/${POSTGRES_DB:-qrp}
       INVENTORY_SERVICE_URL: http://inventory-service:8000
       RISK_ENGINE_URL: http://risk-engine:8000
       COPILOT_SERVICE_URL: http://copilot-service:8000
@@ -255,6 +269,10 @@ services:
       # no arbitrary scan ingest or other mutations). Independent of QRP_API_KEY --
       # see services/api-gateway/README.md.
       QRP_DEMO_MODE: ${QRP_DEMO_MODE:-}
+      # Set to true once this stack sits behind the Caddy `public` profile
+      # (real HTTPS) -- see services/api-gateway/README.md. Off by default so
+      # the local-dev http:// setup still gets the session cookie back.
+      QRP_SESSION_COOKIE_SECURE: ${QRP_SESSION_COOKIE_SECURE:-}
     # Read-write (unlike the other services' :ro mounts of the same host
     # paths): POST /api/demo/load's demo_seed.py writes the graph snapshot
     # and doc index here (via the same REPO_ROOT-relative defaults every
@@ -266,6 +284,10 @@ services:
       - ../../reports/doc-index/latest:/app/reports/doc-index/latest
       - ../../services/inventory-service/tests/fixtures/stage2_evidence:/app/services/inventory-service/tests/fixtures/stage2_evidence:ro
     depends_on:
+      postgres:
+        condition: service_healthy
+      gateway-migrate:
+        condition: service_completed_successfully
       inventory-service:
         condition: service_healthy
       risk-engine:

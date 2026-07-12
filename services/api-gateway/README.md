@@ -35,6 +35,28 @@
   `POST /api/scans/{host|network|repo}` and `/api/demo/load` also accept `?workspace_id=` to
   group a scan under an existing workspace.
 
+## Local authentication (Product v1 roadmap Phase 3 item 6)
+- `POST /api/auth/bootstrap {username, password}` — creates the first Admin user; only works
+  while no users exist yet (`409` afterwards). Run this immediately after first deploying the
+  stack, before exposing it beyond a trusted network, so nobody else can race to become the
+  first admin.
+- `POST /api/auth/login {username, password}` — verifies credentials, starts a session, and
+  sets an `httponly` session cookie (`qrp_session`, 24h TTL). `401` on a wrong username/password.
+- `POST /api/auth/logout` — ends the current session and clears the cookie.
+- `GET /api/auth/me` — the current session's user, or `401` if not logged in.
+- `POST /api/auth/password {current_password, new_password}` — changes the logged-in user's
+  password after re-verifying the current one.
+- Passwords are hashed with `bcrypt`, never stored or logged in plaintext. Session tokens are
+  stored hashed (like passwords) so a DB dump alone doesn't yield usable session credentials.
+- Set `QRP_SESSION_COOKIE_SECURE=true` once this stack sits behind HTTPS (e.g. the `infra/docker`
+  `public` Compose profile) -- off by default so local-dev `http://` still gets the cookie back.
+- This is real per-user login, alongside (not replacing) `QRP_API_KEY` above -- see
+  `docs/adr/0001-product-v1-architecture.md`. It does not yet gate any route by role; RBAC route
+  enforcement and the audit log are separate, later roadmap tasks (Phase 3 items 7-8). See `auth.py`.
+- Users/sessions live in the same dual SQLite (dev/test)/Postgres (production, via
+  `services/api-gateway/migrations/`) model as inventory-service/workflow-service -- see
+  `tools/db_compat.py` and `services/inventory-service/README.md`.
+
 ## Inputs / outputs
 - Input: JSON payloads for scans, scenario runs, and copilot requests.
 - Output: JSON passthrough responses from downstream services.

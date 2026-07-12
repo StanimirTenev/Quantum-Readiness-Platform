@@ -9,18 +9,20 @@ dev-down:
 demo:
 	bash scripts/run_product_demo.sh
 
-# Postgres-only (see docs/adr/0001-product-v1-architecture.md): applies both
-# services' Alembic migrations to whatever DATABASE_URL points at. Requires
-# DATABASE_URL to be exported and alembic/psycopg installed locally (or use
-# infra/docker's inventory-migrate/workflow-migrate one-shot containers
-# instead, which run automatically on `docker compose up`).
+# Postgres-only (see docs/adr/0001-product-v1-architecture.md): applies all
+# three services' Alembic migrations to whatever DATABASE_URL points at.
+# Requires DATABASE_URL to be exported and alembic/psycopg installed locally
+# (or use infra/docker's inventory-migrate/workflow-migrate/gateway-migrate
+# one-shot containers instead, which run automatically on `docker compose up`).
 db-migrate:
 	cd services/inventory-service && alembic upgrade head
 	cd services/workflow-service && alembic upgrade head
+	cd services/api-gateway && alembic upgrade head
 
 db-check:
 	cd services/inventory-service && alembic current
 	cd services/workflow-service && alembic current
+	cd services/api-gateway && alembic current
 
 test:
 	for d in services/*/; do \

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from urllib import error, parse, request
 
-from fastapi import Body, FastAPI, HTTPException, Query, Request
+from fastapi import Body, Cookie, Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -21,16 +21,22 @@ from tools.graph_projection.graph_snapshot_loader import (
     summarize_graph_snapshot,
 )
 
+import auth
 import demo_seed
 
 app = FastAPI(title="API Gateway", version="0.2.0")
 
 # Allow the local web-ui (a browser frontend) to call the gateway. Configurable
 # via CORS_ALLOW_ORIGINS (comma-separated); defaults to permissive for local dev.
+# allow_credentials=True is required for the session cookie (see auth.py) to be
+# sent/read cross-origin; Starlette handles allow_origins=["*"] + credentials by
+# reflecting the actual request Origin instead of a literal "*", which is what
+# browsers require, so this doesn't change the permissive local-dev default.
 _cors_origins = [o.strip() for o in os.getenv("CORS_ALLOW_ORIGINS", "*").split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins or ["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -123,6 +129,79 @@ GRAPH_SNAPSHOT_DEFAULT_PATH = "reports/graph/latest/graph-snapshot.json"
 @app.get("/health")
 def health() -> dict[str, Any]:
     return {"status": "ok", "service": "api-gateway", "demo_mode": QRP_DEMO_MODE}
+
+
+# --- Local authentication (Product v1 roadmap Phase 3 item 6, see auth.py) ---
+# Real per-user login/session, alongside (not replacing) QRP_API_KEY -- see
+# docs/adr/0001-product-v1-architecture.md. Route-level RBAC enforcement (who
+# is allowed to call what) is a separate, later roadmap task; these routes
+# only prove identity and maintain a session.
+auth_repository = auth.AuthRepository()
+SESSION_COOKIE_NAME = "qrp_session"
+# Secure requires HTTPS (e.g. behind the Caddy `public` profile, see
+# infra/docker/README.md) -- off by default so bare-metal/local-dev http still
+# gets the cookie back from the browser.
+SESSION_COOKIE_SECURE = os.getenv("QRP_SESSION_COOKIE_SECURE", "").strip().lower() in ("1", "true", "yes")
+
+
+def get_current_user(qrp_session: str | None = Cookie(default=None)) -> auth.User | None:
+    if not qrp_session:
+        return None
+    return auth_repository.get_session_user(qrp_session)
+
+
+def _require_current_user(current_user: auth.User | None) -> auth.User:
+    if current_user is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return current_user
+
+
+@app.post("/api/auth/bootstrap", response_model=auth.User, status_code=201)
+def bootstrap_admin(payload: auth.BootstrapRequest) -> auth.User:
+    """Creates the first Admin user -- only while no users exist yet. Run this
+    immediately after first deploying the stack, before exposing it beyond a
+    trusted network, so nobody else can win the race to become the first
+    admin (see services/api-gateway/README.md)."""
+    if auth_repository.count_users() > 0:
+        raise HTTPException(status_code=409, detail="An admin user already exists")
+    return auth_repository.create_user(payload.username, payload.password, role="admin")
+
+
+@app.post("/api/auth/login", response_model=auth.User)
+def login(payload: auth.LoginRequest, response: Response) -> auth.User:
+    user = auth_repository.verify_credentials(payload.username, payload.password)
+    if user is None:
+        raise HTTPException(status_code=401, detail="Invalid username or password")
+    token = auth_repository.create_session(user.id)
+    response.set_cookie(
+        SESSION_COOKIE_NAME,
+        token,
+        httponly=True,
+        samesite="lax",
+        secure=SESSION_COOKIE_SECURE,
+        max_age=int(auth.SESSION_TTL.total_seconds()),
+    )
+    return user
+
+
+@app.post("/api/auth/logout", status_code=204, response_model=None)
+def logout(response: Response, qrp_session: str | None = Cookie(default=None)) -> None:
+    if qrp_session:
+        auth_repository.delete_session(qrp_session)
+    response.delete_cookie(SESSION_COOKIE_NAME)
+
+
+@app.get("/api/auth/me", response_model=auth.User)
+def me(current_user: auth.User | None = Depends(get_current_user)) -> auth.User:
+    return _require_current_user(current_user)
+
+
+@app.post("/api/auth/password", status_code=204, response_model=None)
+def change_password(payload: auth.PasswordChangeRequest, current_user: auth.User | None = Depends(get_current_user)) -> None:
+    user = _require_current_user(current_user)
+    if auth_repository.verify_credentials(user.username, payload.current_password) is None:
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+    auth_repository.update_password(user.id, payload.new_password)
 
 
 @app.post("/api/scans/host")

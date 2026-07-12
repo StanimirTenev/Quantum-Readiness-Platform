@@ -84,23 +84,24 @@ the default local/CI path, fully unaffected by any of the above.
 - Every inter-service URL env var (`INVENTORY_SERVICE_URL`, `WORKFLOW_SERVICE_URL`, etc.) is
   set explicitly to the Compose service DNS name; none of the services' own `127.0.0.1`
   defaults apply inside containers.
-- `inventory-service` and `workflow-service` run on a shared **PostgreSQL** container
-  (`postgres:16-alpine`, one `postgres-data` named volume) here, not SQLite -- `DATABASE_URL`
-  is set on both, which their repositories prefer over the SQLite fallback they still use
-  everywhere else (bare-metal dev, tests, CI). One Postgres database is shared by both
-  services since their table names don't collide (`tasks`/`approvals` vs.
-  `workspaces`/`assets`/`scans`/`risk_results`/`reports`) -- no per-service database
-  provisioning needed. Credentials default to `qrp`/`qrp`/`qrp` (user/password/db), overridable
-  via `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB` (e.g. in a `.env` file) before exposing
-  this stack anywhere it matters. Fully separate from the bare-metal dev DB
-  (`services/inventory-service/inventory.db`), never touched by this stack. See
-  `tools/db_compat.py` and `services/inventory-service/README.md`.
+- `inventory-service`, `workflow-service`, and `api-gateway` run on a shared **PostgreSQL**
+  container (`postgres:16-alpine`, one `postgres-data` named volume) here, not SQLite --
+  `DATABASE_URL` is set on all three, which their repositories prefer over the SQLite fallback
+  they still use everywhere else (bare-metal dev, tests, CI). One Postgres database is shared
+  by all three since their table names don't collide (`tasks`/`approvals` vs.
+  `workspaces`/`assets`/`scans`/`risk_results`/`reports` vs. `users`/`sessions`) -- no
+  per-service database provisioning needed. Credentials default to `qrp`/`qrp`/`qrp`
+  (user/password/db), overridable via `POSTGRES_USER`/`POSTGRES_PASSWORD`/`POSTGRES_DB` (e.g.
+  in a `.env` file) before exposing this stack anywhere it matters. Fully separate from the
+  bare-metal dev DB (`services/inventory-service/inventory.db`), never touched by this stack.
+  See `tools/db_compat.py` and `services/inventory-service/README.md`.
 - Schema on this Postgres instance is created by Alembic migrations, not implicitly: the
-  one-shot `inventory-migrate`/`workflow-migrate` services run `alembic upgrade head` and
-  exit; `inventory-service`/`workflow-service` each `depends_on` their migrate service with
-  `condition: service_completed_successfully`, so `docker compose up` always migrates before
-  the app starts. Re-running `docker compose up` against an already-migrated database is a
-  no-op (idempotent). See `docs/adr/0001-product-v1-architecture.md` and
+  one-shot `inventory-migrate`/`workflow-migrate`/`gateway-migrate` services run
+  `alembic upgrade head` and exit; `inventory-service`/`workflow-service`/`api-gateway` each
+  `depends_on` their migrate service with `condition: service_completed_successfully`, so
+  `docker compose up` always migrates before the app starts. Re-running `docker compose up`
+  against an already-migrated database is a no-op (idempotent). See
+  `docs/adr/0001-product-v1-architecture.md` and
   `scripts/run_db_migration_smoke.sh`.
 - `graph-service`, `copilot-service`, `retrieval-service`, and `api-gateway` read the repo's
   already-committed `reports/graph/latest/graph-snapshot.json` /

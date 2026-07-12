@@ -2,12 +2,11 @@
 # DB migration smoke test (Postgres-only path -- see
 # docs/adr/0001-product-v1-architecture.md). Proves:
 #   1. a clean Postgres database can be created via Alembic migrations
-#      (inventory-service + workflow-service, each with its own
+#      (inventory-service + workflow-service + api-gateway, each with its own
 #      version_table since they share one physical database);
 #   2. an already-migrated database can be "upgraded" again safely
-#      (idempotent re-run, standing in for a real future upgrade until a
-#      second migration exists to test against);
-#   3. `alembic current` reports the expected head revision for both.
+#      (idempotent re-run, standing in for a real future upgrade);
+#   3. `alembic current` reports each service's own head revision.
 #
 # Requires DATABASE_URL to already point at a reachable Postgres database
 # (e.g. `docker compose up -d postgres` in infra/docker, or a local
@@ -47,7 +46,7 @@ run_alembic() {
 
 overall="PASS"
 
-for service in inventory-service workflow-service; do
+for service in inventory-service workflow-service api-gateway; do
     if out="$(run_alembic "$service" upgrade head 2>&1)"; then
         record "$service: apply migrations" "PASS" "upgrade head succeeded"
     else

@@ -6,6 +6,31 @@
 > product development continues in a private repository as part of a structured pilot
 > program with design partners. If you're interested in a pilot, get in touch.
 
+## Product v1 (private, in active development)
+
+Building on the prototype in this repository, Product v1 adds the operational and
+governance layer a real deployment needs:
+
+- **Multi-user accounts & RBAC** — real per-user logins and four roles (Admin, Security
+  Architect, Operator, Auditor), not just a single shared API key.
+- **Full audit trail** — every mutating action and every access decision is logged, for
+  compliance review.
+- **Controlled scan scope** — explicit allow/deny lists per engagement, so no target gets
+  scanned without prior authorization; exclusions always win.
+- **Production-grade data layer** — PostgreSQL-backed with versioned, reviewable schema
+  migrations, not just a development database.
+- **Asynchronous scan processing** — a dedicated worker queue with automatic retries, so
+  the API never blocks on a long-running scan.
+- **Managed agent fleet** — enrollment tokens, agent registration and heartbeat tracking,
+  automatic detection of outdated agent versions.
+
+More is landing continuously: agent security hardening, a guided migration workflow, a
+persistent risk graph, and richer executive/technical reporting.
+
+**Interested in a pilot?** Open a
+[Discussion](https://github.com/StanimirTenev/Quantum-Readiness-Platform/discussions) —
+we're onboarding a small number of design partners under a structured pilot program.
+
 QRP is designed for internal/customer-controlled deployment with local-first evidence processing, optional local Copilot support, and no mandatory external LLM dependency.
 
 Note: the legacy demo (`docs/demo/qrp_demo_legacy.html`) has external LLM calls disabled to preserve the local-first/privacy boundary.

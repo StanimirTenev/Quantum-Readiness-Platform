@@ -111,6 +111,26 @@
   (`action="scan_scope.create"` / `action="scan.rejected"`). See `scan_scope.py`.
 - Shares api-gateway's single Alembic migration history -- `scan_scopes` is migration `0003`.
 
+## Scan job model (Product v1 roadmap Phase 4 item 10)
+- `POST /api/scan-jobs {scan_type, payload, workspace_id?, scenario?, targets?}`
+  (Admin/Security Architect-only) -- `payload` is the same evidence shape
+  `/api/scans/{scan_type}` accepts (`scan_type` is `host`/`network`/`repo`; Windows scan ingest
+  has no workspace grouping, so it isn't wrapped here). Returns `202` immediately with
+  `status="queued"`; `targets` auto-extracts from `tls_evidence`/`ssh_evidence`/`ipsec_evidence`
+  if omitted.
+- `GET /api/scan-jobs?workspace_id=`, `GET /api/scan-jobs/{id}` -- any authenticated role.
+  `logs` (newline-joined) and `result_summary` fill in as the job progresses.
+- `POST /api/scan-jobs/{id}/cancel` (Admin/Security Architect-only) -- succeeds while `queued`
+  or `running`; `409` once terminal (`succeeded`/`failed`/`cancelled`).
+- A FastAPI background task -- not yet a separate worker container -- picks up the job right
+  after the response is sent and runs it through the exact same `_ingest_scan` pipeline
+  `/api/scans/{scan_type}` uses synchronously (scan scope enforcement included): `queued` ->
+  `running` -> `succeeded`/`failed`. A separate worker container with retry/failed-state
+  handling is roadmap item 11 (Worker Queue v1), a later task -- see `scan_jobs.py`'s module
+  docstring for the full scoping rationale, including why mid-flight cancellation of a
+  `running` job is best-effort (jobs finish near-instantly in this implementation).
+- Shares api-gateway's single Alembic migration history -- `scan_jobs` is migration `0004`.
+
 ## Inputs / outputs
 - Input: JSON payloads for scans, scenario runs, and copilot requests.
 - Output: JSON passthrough responses from downstream services.

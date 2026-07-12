@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 from urllib import error, parse, request
 
-from fastapi import Body, Cookie, Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi import BackgroundTasks, Body, Cookie, Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -24,6 +24,7 @@ from tools.graph_projection.graph_snapshot_loader import (
 import auth
 import audit
 import demo_seed
+import scan_jobs
 import scan_scope
 
 app = FastAPI(title="API Gateway", version="0.2.0")
@@ -150,6 +151,9 @@ audit_repository = audit.AuditRepository()
 
 # --- Scan scope manager (Product v1 roadmap Phase 4 item 9, see scan_scope.py) ---
 scan_scope_repository = scan_scope.ScanScopeRepository()
+
+# --- Scan job model (Product v1 roadmap Phase 4 item 10, see scan_jobs.py) ---
+scan_job_repository = scan_jobs.ScanJobRepository()
 
 
 def _client_ip(request: Request) -> str | None:
@@ -300,6 +304,99 @@ def list_scan_scopes(workspace_id: str | None = Query(default=None)) -> list[sca
     return scan_scope_repository.list_scopes(workspace_id=workspace_id)
 
 
+# --- Scan job model (Product v1 roadmap Phase 4 item 10, see scan_jobs.py) ---
+def _run_scan_job(job_id: str, scan_type: str, workspace_id: str | None, actor_user_id: str | None, actor_role: str | None) -> None:
+    """Runs as a FastAPI background task, after the response to POST
+    /api/scan-jobs has already been sent -- see scan_jobs.py's module
+    docstring for why this is in-process rather than a separate worker
+    container (that's roadmap item 11, Worker Queue v1, a separate task)."""
+    if not scan_job_repository.mark_running(job_id):
+        return  # already cancelled before the worker got to it
+    job_input = scan_job_repository.get_job_input(job_id)
+    if job_input is None:
+        return
+    payload, scenario = job_input
+    try:
+        result = _ingest_scan(scan_type, payload, scenario, workspace_id=workspace_id)
+        scan_job_repository.mark_finished(
+            job_id, status="succeeded",
+            result_summary=json.dumps({"created": result.get("created"), "scan_id": result.get("scan_id"), "workspace_id": result.get("workspace_id")}),
+            log_line=f"succeeded: created={result.get('created')}",
+        )
+        audit_repository.record(
+            action="scan.ingest", result="success",
+            actor_user_id=actor_user_id, actor_role=actor_role,
+            workspace_id=result.get("workspace_id"), resource_type="scan", resource_id=result.get("scan_id"),
+            summary=f"scan_job={job_id} source={scan_type} created={result.get('created')}",
+        )
+    except HTTPException as exc:
+        scan_job_repository.mark_finished(
+            job_id, status="failed", result_summary=str(exc.detail), log_line=f"failed: {exc.detail}",
+        )
+        audit_repository.record(
+            action="scan.ingest", result="failure",
+            actor_user_id=actor_user_id, actor_role=actor_role,
+            workspace_id=workspace_id, resource_type="scan", resource_id=job_id,
+            summary=f"scan_job={job_id} source={scan_type}: {exc.detail}",
+        )
+
+
+@app.post("/api/scan-jobs", response_model=scan_jobs.ScanJob, status_code=202)
+def create_scan_job(payload: scan_jobs.ScanJobCreate, request: Request, background_tasks: BackgroundTasks, current_user: auth.User | None = Depends(get_current_user)) -> scan_jobs.ScanJob:
+    """Admin/Security Architect-only (enforced by enforce_rbac below, see
+    PRIVILEGED_WRITE_PREFIXES) -- queues a scan (status=queued) and returns
+    immediately; a background task performs the actual evidence ingestion
+    (including scan scope enforcement) and updates status/logs/result_summary."""
+    if not payload.targets:
+        payload = payload.model_copy(update={"targets": _evidence_targets(payload.payload)})
+    job = scan_job_repository.create_job(payload, created_by=current_user.id if current_user else None)
+    audit_repository.record(
+        action="scan_job.create", result="success",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        workspace_id=job.workspace_id, resource_type="scan_job", resource_id=job.id,
+        source_ip=_client_ip(request), summary=f"scan_type={job.scan_type} targets={job.targets}",
+    )
+    background_tasks.add_task(
+        _run_scan_job, job.id, job.scan_type, job.workspace_id,
+        current_user.id if current_user else None, current_user.role if current_user else None,
+    )
+    return job
+
+
+@app.get("/api/scan-jobs", response_model=list[scan_jobs.ScanJob])
+def list_scan_jobs(workspace_id: str | None = Query(default=None)) -> list[scan_jobs.ScanJob]:
+    return scan_job_repository.list_jobs(workspace_id=workspace_id)
+
+
+@app.get("/api/scan-jobs/{job_id}", response_model=scan_jobs.ScanJob)
+def get_scan_job(job_id: str) -> scan_jobs.ScanJob:
+    job = scan_job_repository.get_job(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Scan job not found")
+    return job
+
+
+@app.post("/api/scan-jobs/{job_id}/cancel", response_model=scan_jobs.ScanJob)
+def cancel_scan_job(job_id: str, request: Request, current_user: auth.User | None = Depends(get_current_user)) -> scan_jobs.ScanJob:
+    """Admin/Security Architect-only. Only succeeds while the job hasn't
+    finished yet (queued or running) -- see scan_jobs.ScanJobRepository.cancel_job."""
+    cancelled = scan_job_repository.cancel_job(job_id)
+    if cancelled is None:
+        existing = scan_job_repository.get_job(job_id)
+        if existing is None:
+            raise HTTPException(status_code=404, detail="Scan job not found")
+        raise HTTPException(status_code=409, detail=f"Job already {existing.status}, cannot cancel")
+    audit_repository.record(
+        action="scan_job.cancel", result="success",
+        actor_user_id=current_user.id if current_user else None,
+        actor_role=current_user.role if current_user else None,
+        workspace_id=cancelled.workspace_id, resource_type="scan_job", resource_id=job_id,
+        source_ip=_client_ip(request),
+    )
+    return cancelled
+
+
 # --- RBAC v1 (Product v1 roadmap Phase 3 item 7) ---
 # Roles: Admin, Security Architect, Operator, Auditor (docs/product-v1-roadmap.md).
 # Enforcement only activates once at least one user has been bootstrapped --
@@ -329,6 +426,7 @@ PRIVILEGED_WRITE_PREFIXES = (
     "/api/demo/load",
     "/api/workspaces",
     "/api/scan-scopes",
+    "/api/scan-jobs",
     "/api/scenarios/run",
     "/api/policies/evaluate",
     "/api/fingerprint",

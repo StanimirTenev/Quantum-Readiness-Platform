@@ -72,6 +72,82 @@ def test_repository_crud(tmp_path: Path) -> None:
     assert repo.get_asset(created.id) is None
 
 
+def test_create_asset_defaults_environment_and_auto_creates_workspace(tmp_path: Path) -> None:
+    repo = AssetRepository(tmp_path / "inventory.db")
+
+    created = repo.create_asset(AssetCreate(asset_type="server", name="no-env-host"))
+
+    assert created.environment == "unknown"
+    assert created.workspace_id is not None
+    assert repo.get_workspace(created.workspace_id) is not None
+
+
+def test_update_asset_cannot_null_out_environment(tmp_path: Path) -> None:
+    repo = AssetRepository(tmp_path / "inventory.db")
+    created = repo.create_asset(AssetCreate(asset_type="server", name="env-host", environment="production"))
+
+    updated = repo.update_asset(created.id, AssetUpdate(environment=None))
+
+    assert updated is not None
+    assert updated.environment == "production"
+
+
+def test_create_many_shares_one_auto_created_workspace(tmp_path: Path) -> None:
+    repo = AssetRepository(tmp_path / "inventory.db")
+
+    created = repo.create_many([
+        AssetCreate(asset_type="server", name="batch-host-1"),
+        AssetCreate(asset_type="server", name="batch-host-2"),
+    ])
+
+    assert len(created) == 2
+    assert created[0].workspace_id is not None
+    assert created[0].workspace_id == created[1].workspace_id
+
+
+def test_list_assets_filters_by_workspace(tmp_path: Path) -> None:
+    repo = AssetRepository(tmp_path / "inventory.db")
+    ws_a = repo.create_workspace(source="a").id
+    ws_b = repo.create_workspace(source="b").id
+    repo.create_asset(AssetCreate(asset_type="server", name="host-a"), workspace_id=ws_a)
+    repo.create_asset(AssetCreate(asset_type="server", name="host-b"), workspace_id=ws_b)
+
+    scoped = repo.list_assets(workspace_id=ws_a)
+
+    assert [asset.name for asset in scoped] == ["host-a"]
+    assert len(repo.list_assets()) == 2
+
+
+def test_list_risk_results_filters_by_workspace(tmp_path: Path) -> None:
+    repo = AssetRepository(tmp_path / "inventory.db")
+    ws_a = repo.create_workspace(source="a").id
+    ws_b = repo.create_workspace(source="b").id
+    scan_a_id, _ = repo.create_scan(
+        ScanIngestRequest(source="manual", assets=[AssetCreate(asset_type="server", name="risk-host-a")]),
+        workspace_id=ws_a,
+    )
+    scan_b_id, _ = repo.create_scan(
+        ScanIngestRequest(source="manual", assets=[AssetCreate(asset_type="server", name="risk-host-b")]),
+        workspace_id=ws_b,
+    )
+    risk_payload = {
+        "scenario": "public_timeline",
+        "scenario_multiplier": 1.0,
+        "base_score": 3.0,
+        "final_score": 3.0,
+        "normalized_score_100": 60.0,
+        "rating": "medium",
+        "rationale": {},
+    }
+    repo.create_risk_result(scan_id=scan_a_id, asset_name="risk-host-a", payload=risk_payload)
+    repo.create_risk_result(scan_id=scan_b_id, asset_name="risk-host-b", payload=risk_payload)
+
+    scoped = repo.list_risk_results(workspace_id=ws_a)
+
+    assert [risk.asset_name for risk in scoped] == ["risk-host-a"]
+    assert len(repo.list_risk_results()) == 2
+
+
 def test_scan_and_risk_persistence(tmp_path: Path) -> None:
     repo = AssetRepository(tmp_path / "inventory.db")
 

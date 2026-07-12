@@ -239,8 +239,11 @@ def demo_status() -> dict[str, Any]:
 
 
 @app.get("/api/assets")
-def list_assets() -> list[dict[str, Any]]:
-    return _request_json("GET", f"{INVENTORY_BASE_URL}/assets")
+def list_assets(workspace_id: str | None = Query(default=None)) -> list[dict[str, Any]]:
+    endpoint = f"{INVENTORY_BASE_URL}/assets"
+    if workspace_id:
+        endpoint += f"?{parse.urlencode({'workspace_id': workspace_id})}"
+    return _request_json("GET", endpoint)
 
 
 @app.get("/api/assets/{asset_id}")

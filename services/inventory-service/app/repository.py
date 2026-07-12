@@ -233,9 +233,15 @@ class AssetRepository:
             ).fetchone()
         return Asset(**dict(row)) if row else None
 
-    def list_assets(self) -> list[Asset]:
+    def list_assets(self, workspace_id: str | None = None) -> list[Asset]:
+        query = "SELECT * FROM assets"
+        params: tuple[Any, ...] = ()
+        if workspace_id is not None:
+            query += " WHERE workspace_id = ?"
+            params = (workspace_id,)
+        query += " ORDER BY name ASC"
         with self._connect() as connection:
-            rows = connection.execute("SELECT * FROM assets ORDER BY name ASC").fetchall()
+            rows = connection.execute(query, params).fetchall()
         return [Asset(**dict(row)) for row in rows]
 
     def get_asset(self, asset_id: str) -> Asset | None:
@@ -248,10 +254,16 @@ class AssetRepository:
         it marks "first discovered in this workspace"; reusing an existing
         asset (matched by name+type) in a later workspace's scan does not
         change its workspace_id, matching created_at's immutable-on-creation
-        semantics."""
+        semantics. Mirrors create_scan's hybrid workspace model: if the
+        caller doesn't pass workspace_id, a new single-asset workspace is
+        auto-created (once we know we're actually inserting, not reusing an
+        existing asset) so every asset always ends up in some workspace."""
         existing = self._find_existing_asset(payload)
         if existing is not None:
             return existing
+
+        if workspace_id is None:
+            workspace_id = self.create_workspace(source="manual").id
 
         asset_id = str(uuid.uuid4())
         created_at = datetime.now(UTC).isoformat()
@@ -267,7 +279,7 @@ class AssetRepository:
                     payload.name,
                     payload.owner,
                     payload.criticality,
-                    payload.environment,
+                    payload.environment or "unknown",
                     payload.vendor,
                     payload.lifecycle_years,
                     created_at,
@@ -280,6 +292,11 @@ class AssetRepository:
         return created
 
     def create_many(self, payloads: Iterable[AssetCreate], workspace_id: str | None = None) -> list[Asset]:
+        # Resolve once so a batch of assets shares one auto-created workspace
+        # instead of each asset scattering into its own (create_asset would
+        # otherwise auto-create independently per call when workspace_id is None).
+        if workspace_id is None:
+            workspace_id = self.create_workspace(source="manual").id
         return [self.create_asset(payload, workspace_id=workspace_id) for payload in payloads]
 
     def update_asset(self, asset_id: str, payload: AssetUpdate) -> Asset | None:
@@ -287,6 +304,10 @@ class AssetRepository:
         if existing is None:
             return None
         merged = existing.model_copy(update=payload.model_dump(exclude_unset=True))
+        if not merged.environment:
+            # Guard against an update explicitly nulling out environment --
+            # every persisted asset always has a non-null environment.
+            merged.environment = existing.environment or "unknown"
         with self._connect() as connection:
             connection.execute(
                 """
@@ -387,13 +408,24 @@ class AssetRepository:
             connection.commit()
         return result_id
 
-    def list_risk_results(self, scan_id: str | None = None) -> list[RiskRecord]:
-        query = "SELECT * FROM risk_results"
-        params: tuple[Any, ...] = ()
-        if scan_id is not None:
-            query += " WHERE scan_id = ?"
-            params = (scan_id,)
-        query += " ORDER BY created_at DESC"
+    def list_risk_results(self, scan_id: str | None = None, workspace_id: str | None = None) -> list[RiskRecord]:
+        # risk_results has no workspace_id column of its own -- it's scoped to a
+        # workspace transitively through its scan, so filtering by workspace_id
+        # joins against scans (unlike the scan_id filter, which needs no join).
+        if workspace_id is not None:
+            query = "SELECT r.* FROM risk_results r JOIN scans s ON r.scan_id = s.id WHERE s.workspace_id = ?"
+            params: tuple[Any, ...] = (workspace_id,)
+            if scan_id is not None:
+                query += " AND r.scan_id = ?"
+                params += (scan_id,)
+            query += " ORDER BY r.created_at DESC"
+        else:
+            query = "SELECT * FROM risk_results"
+            params = ()
+            if scan_id is not None:
+                query += " WHERE scan_id = ?"
+                params = (scan_id,)
+            query += " ORDER BY created_at DESC"
 
         with self._connect() as connection:
             rows = connection.execute(query, params).fetchall()

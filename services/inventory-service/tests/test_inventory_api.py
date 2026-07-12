@@ -368,6 +368,32 @@ def test_asset_risk_history_unknown_asset_returns_404(client: TestClient) -> Non
     assert client.get("/assets/does-not-exist/history").status_code == 404
 
 
+def test_create_asset_without_environment_defaults_to_unknown(client: TestClient) -> None:
+    response = client.post("/assets", json={"asset_type": "server", "name": "no-env-host"})
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["environment"] == "unknown"
+    assert body["workspace_id"] is not None
+
+
+def test_list_assets_workspace_id_filter_isolates_workspaces(client: TestClient) -> None:
+    ws_a = client.post("/workspaces", json={"source": "a"}).json()["id"]
+    ws_b = client.post("/workspaces", json={"source": "b"}).json()["id"]
+    client.post("/assets?workspace_id=" + ws_a, json={"asset_type": "server", "name": "host-a"})
+    client.post("/assets?workspace_id=" + ws_b, json={"asset_type": "server", "name": "host-b"})
+
+    scoped = client.get("/assets", params={"workspace_id": ws_a}).json()
+
+    assert [asset["name"] for asset in scoped] == ["host-a"]
+
+
+def test_create_asset_rejects_unknown_workspace_id(client: TestClient) -> None:
+    response = client.post("/assets?workspace_id=does-not-exist", json={"asset_type": "server", "name": "orphan-host"})
+
+    assert response.status_code == 404
+
+
 def test_scan_ingest_rejects_invalid_source(client: TestClient) -> None:
     response = client.post(
         "/scans/ingest",

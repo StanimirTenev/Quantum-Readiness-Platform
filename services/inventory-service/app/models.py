@@ -94,6 +94,10 @@ class Asset(AssetBase):
     id: str
     created_at: Optional[str] = None
     workspace_id: Optional[str] = None
+    # Every persisted asset has a non-null environment (repository.py defaults
+    # missing/blank input to "unknown") -- see docs/product-v1-roadmap.md
+    # Phase 2 item 4 acceptance: "всяко asset има environment".
+    environment: str
 
 
 class HostInventory(BaseModel):

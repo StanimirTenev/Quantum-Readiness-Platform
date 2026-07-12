@@ -46,8 +46,8 @@ def health() -> dict[str, str]:
 
 
 @app.get("/assets", response_model=list[Asset])
-def list_assets() -> list[Asset]:
-    return repository.list_assets()
+def list_assets(workspace_id: str | None = Query(default=None)) -> list[Asset]:
+    return repository.list_assets(workspace_id=workspace_id)
 
 
 @app.get("/assets/{asset_id}", response_model=Asset)
@@ -93,8 +93,14 @@ def _risk_trend(first_score: float | None, latest_score: float | None, count: in
 
 
 @app.post("/assets", response_model=Asset, status_code=status.HTTP_201_CREATED)
-def create_asset(payload: AssetCreate) -> Asset:
-    return repository.create_asset(payload)
+def create_asset(payload: AssetCreate, workspace_id: str | None = Query(default=None)) -> Asset:
+    """Mirrors /scans/host's hybrid workspace model: pass an existing
+    workspace_id to group this asset under it, or omit it and a new
+    single-asset workspace is auto-created -- every asset always ends up in
+    some workspace."""
+    if workspace_id is not None and repository.get_workspace(workspace_id) is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace not found")
+    return repository.create_asset(payload, workspace_id=workspace_id)
 
 
 @app.put("/assets/{asset_id}", response_model=Asset)
@@ -195,8 +201,8 @@ def get_scan(scan_id: str) -> ScanWithRisk:
 
 
 @app.get("/risks", response_model=list[RiskRecord])
-def list_risks(scan_id: str | None = None) -> list[RiskRecord]:
-    return repository.list_risk_results(scan_id=scan_id)
+def list_risks(scan_id: str | None = None, workspace_id: str | None = None) -> list[RiskRecord]:
+    return repository.list_risk_results(scan_id=scan_id, workspace_id=workspace_id)
 
 
 @app.post("/admin/cleanup-assets")

@@ -25,6 +25,38 @@ services:
       retries: 20
       start_period: 5s
 
+  # One-shot Alembic migration runners (see services/*/migrations/,
+  # docs/adr/0001-product-v1-architecture.md) -- inventory-service/
+  # workflow-service wait on these completing successfully before starting,
+  # so production mode never relies on implicit schema creation. Each keeps
+  # its own version_table (alembic_version_inventory/_workflow) since both
+  # share one physical Postgres database.
+  inventory-migrate:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/inventory-service
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-qrp}:${POSTGRES_PASSWORD:-qrp}@postgres:5432/${POSTGRES_DB:-qrp}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  workflow-migrate:
+    build:
+      <<: *build-common
+      args:
+        SERVICE_DIR: services/workflow-service
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-qrp}:${POSTGRES_PASSWORD:-qrp}@postgres:5432/${POSTGRES_DB:-qrp}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
   risk-engine:
     build:
       <<: *build-common
@@ -49,6 +81,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      workflow-migrate:
+        condition: service_completed_successfully
     healthcheck: *healthcheck
 
   scenario-engine:
@@ -120,6 +154,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      inventory-migrate:
+        condition: service_completed_successfully
     healthcheck: *healthcheck
 
   planner-service:

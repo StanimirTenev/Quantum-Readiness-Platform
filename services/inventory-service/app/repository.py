@@ -20,7 +20,7 @@ from .models import (
 REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.append(str(REPO_ROOT))
-from tools.db_compat import Connection, connect, existing_columns  # noqa: E402
+from tools.db_compat import Connection, connect, existing_columns, is_postgres_target  # noqa: E402
 
 # DATABASE_URL (postgres://... or postgresql://...) takes priority when set --
 # used by infra/docker/docker-compose.yml so the deployed product runs on
@@ -36,7 +36,12 @@ DEFAULT_DB_PATH = os.getenv("DATABASE_URL") or os.getenv("INVENTORY_DB_PATH") or
 class AssetRepository:
     def __init__(self, db_path: str | Path = DEFAULT_DB_PATH) -> None:
         self.db_path = str(db_path)
-        self._ensure_schema()
+        # Postgres (production mode) relies on Alembic migrations having already
+        # run (see migrations/, docs/adr/0001-product-v1-architecture.md) --
+        # never silently creates schema. SQLite (dev/test) keeps the existing
+        # implicit-create-on-first-use convenience.
+        if not is_postgres_target(self.db_path):
+            self._ensure_schema()
 
     def _connect(self) -> Connection:
         return connect(self.db_path)

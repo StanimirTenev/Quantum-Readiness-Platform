@@ -95,6 +95,13 @@ the default local/CI path, fully unaffected by any of the above.
   this stack anywhere it matters. Fully separate from the bare-metal dev DB
   (`services/inventory-service/inventory.db`), never touched by this stack. See
   `tools/db_compat.py` and `services/inventory-service/README.md`.
+- Schema on this Postgres instance is created by Alembic migrations, not implicitly: the
+  one-shot `inventory-migrate`/`workflow-migrate` services run `alembic upgrade head` and
+  exit; `inventory-service`/`workflow-service` each `depends_on` their migrate service with
+  `condition: service_completed_successfully`, so `docker compose up` always migrates before
+  the app starts. Re-running `docker compose up` against an already-migrated database is a
+  no-op (idempotent). See `docs/adr/0001-product-v1-architecture.md` and
+  `scripts/run_db_migration_smoke.sh`.
 - `graph-service`, `copilot-service`, `retrieval-service`, and `api-gateway` read the repo's
   already-committed `reports/graph/latest/graph-snapshot.json` /
   `reports/doc-index/latest/doc-index.json` via bind mounts landed at the exact path each

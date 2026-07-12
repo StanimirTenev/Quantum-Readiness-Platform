@@ -298,3 +298,40 @@ jobs:
         if: always()
         working-directory: infra/docker
         run: docker compose down -v
+
+  db-migrations-check:
+    name: Alembic migrations (Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: qrp
+          POSTGRES_PASSWORD: qrp
+          POSTGRES_DB: qrp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U qrp -d qrp"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install migration dependencies
+        run: pip install alembic==1.14.0 "psycopg[binary]==3.2.3"
+
+      - name: Run DB migration smoke (scripts/run_db_migration_smoke.sh)
+        env:
+          DATABASE_URL: postgresql://qrp:qrp@localhost:5432/qrp
+        run: bash scripts/run_db_migration_smoke.sh
+
+      - name: Migration smoke report (on failure)
+        if: failure()
+        run: cat reports/db-migration-smoke-report.md

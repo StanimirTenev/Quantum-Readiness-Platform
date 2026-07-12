@@ -51,6 +51,7 @@ reports/product-stack-smoke-report.md
 reports/evidence-to-risk-smoke-report.md
 reports/product-demo/
 reports/ui-endpoints-smoke-report.md
+reports/db-migration-smoke-report.md
 reports/doc-index/
 reports/graph/latest/demo-load-graph-report.md
 

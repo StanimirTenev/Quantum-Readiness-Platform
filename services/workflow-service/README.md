@@ -26,6 +26,13 @@
   `reports`) so the deployed product gets concurrent-write-safe persistence without a second
   database server. Bare-metal dev/tests/CI stay on SQLite by default. See
   `tools/db_compat.py` and `services/inventory-service/README.md`.
+- When `DATABASE_URL` is set (Postgres/production mode), schema is created by Alembic
+  migrations (`migrations/`), not implicitly on first use -- run `alembic upgrade head`
+  (or `make db-migrate` from the repo root) before starting the service. Uses its own
+  `alembic_version_workflow` version table so its migration history stays independent
+  from `inventory-service`'s even though they share one physical database. SQLite
+  (dev/test) keeps the existing implicit-create-on-first-use behavior. See
+  `docs/adr/0001-product-v1-architecture.md`.
 
 ## Current status
 - Working prototype service. Enforces segregation of duties: `POST /tasks/{task_id}/approve`

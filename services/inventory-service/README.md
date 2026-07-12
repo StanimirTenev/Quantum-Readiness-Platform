@@ -113,6 +113,11 @@
   writes, not SQLite's single-writer file lock); bare-metal dev/tests/CI stay on SQLite by
   default (no `DATABASE_URL`, no Postgres server needed). Both backends run the exact same
   queries via `tools/db_compat.py` -- no ORM, no ongoing dual-query maintenance.
+- When `DATABASE_URL` is set (Postgres/production mode), schema is created by Alembic
+  migrations (`migrations/`), not implicitly on first use -- run `alembic upgrade head`
+  (or `make db-migrate` from the repo root) before starting the service. SQLite (dev/test)
+  keeps the existing implicit-create-on-first-use behavior; Alembic is not involved there.
+  See `docs/adr/0001-product-v1-architecture.md`.
 
 ## Asset risk history
 - `GET /assets/{asset_id}/history` returns the asset's risk trend across all

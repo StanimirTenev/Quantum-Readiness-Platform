@@ -2,13 +2,17 @@
 
 [![CI](https://github.com/StanimirTenev/Quantum-Readiness-Platform/actions/workflows/ci.yml/badge.svg)](https://github.com/StanimirTenev/Quantum-Readiness-Platform/actions/workflows/ci.yml)
 
-> This repository reflects the initial prototype/proof-of-concept phase of QRP. Active
-> product development continues in a private repository as part of a structured pilot
-> program with design partners. If you're interested in a pilot, get in touch.
+> This repository reflects the early prototype/proof-of-concept phase of QRP. **Product v1 —
+> a complete, production-candidate on-prem platform — has since been built and reached
+> v1.0.0** in a private repository, and is now in structured pilots with design partners
+> under NDA. This public repository remains frozen as a portfolio/credibility record and is
+> not updated further.
+>
+> **Interested in a pilot or a technical walkthrough?** Get in touch.
 
-## Product v1 (private, in active development)
+## What Product v1 added
 
-Building on the prototype in this repository, Product v1 adds the operational and
+Building on the prototype in this repository, Product v1 added the operational and
 governance layer a real deployment needs:
 
 - **Multi-user accounts & RBAC** — real per-user logins and four roles (Admin, Security
@@ -23,9 +27,11 @@ governance layer a real deployment needs:
   the API never blocks on a long-running scan.
 - **Managed agent fleet** — enrollment tokens, agent registration and heartbeat tracking,
   automatic detection of outdated agent versions.
+- **Backup/restore, a versioned upgrade path, and documented install/admin/operator guides**
+  — each proven by an automated smoke test.
+- **A consolidated acceptance gate** tracing every capability to an automated verifier.
 
-More is landing continuously: agent security hardening, a guided migration workflow, a
-persistent risk graph, and richer executive/technical reporting.
+QRP v1 makes no production-readiness or TRL7-achieved claim.
 
 **Interested in a pilot?** Open a
 [Discussion](https://github.com/StanimirTenev/Quantum-Readiness-Platform/discussions) —

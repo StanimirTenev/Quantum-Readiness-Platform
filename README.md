@@ -10,6 +10,13 @@
 >
 > **Interested in a pilot or a technical walkthrough?** Get in touch.
 
+## Direction
+
+QRP v1 **assesses** post-quantum exposure — cryptographic inventory, deterministic risk
+scoring, a migration plan. The next step is **guided remediation**: helping organisations
+*close* the findings, not just see them. Delivered on-premises, in structured design-partner
+pilots.
+
 ## What Product v1 added
 
 Building on the prototype in this repository, Product v1 added the operational and

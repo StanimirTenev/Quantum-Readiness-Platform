@@ -17,6 +17,21 @@ scoring, a migration plan. The next step is **guided remediation**: helping orga
 *close* the findings, not just see them. Delivered on-premises, in structured design-partner
 pilots.
 
+## Free tool: `qrp-mcp`
+
+One piece of this work is published free and open source:
+**[qrp-mcp](https://github.com/StanimirTenev/qrp-mcp)** — an MCP server that scans a local
+codebase for classical public-key cryptography and reports what it finds, so an AI agent can
+work from a real inventory instead of guessing. It runs entirely offline and needs no QRP
+backend:
+
+```
+uvx qrp-mcp
+```
+
+Apache-2.0, and listed in the MCP Registry as `eu.quantumreadiness/qrp-mcp`. It does inventory
+only — risk scoring, prioritisation and migration planning stay in the platform.
+
 ## What Product v1 added
 
 Building on the prototype in this repository, Product v1 added the operational and
